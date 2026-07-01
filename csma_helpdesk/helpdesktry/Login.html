@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="IT Helpdesk Portal - Secure Login for Colegio de Sta. Monica de Angat">
+    <title>IT Helpdesk Portal | CSMA - Academic Access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="Login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo-area">
+                <img src="https://scontent.fmnl8-4.fna.fbcdn.net/v/t39.30808-6/317390607_820079655836948_3769284989226831402_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=T5XwQtp6HgwQ7kNvwGvcfPY&_nc_oc=AdqgEJSjJHp6s3KRt2Y4_vEy66knBtknEOV01v9l-5DzGKgY2IWYvB768ngAz1ZRup8&_nc_zt=23&_nc_ht=scontent.fmnl8-4.fna&_nc_gid=DnV7SSTTzxJPR90avO376Q&_nc_ss=7b289&oh=00_Af4GmdmGSeBsihthQS3mJKIpQJrogorfZ26PaDR9ugHiMg&oe=6A0B1CE7" 
+                     alt="Colegio de Sta. Monica de Angat Logo" 
+                     class="logo-image"
+                     loading="eager">
+                <h1 class="logo-label">colegio de sta. monica de angat</h1>
+                <p class="logo-sub">IT Helpdesk Portal</p>
+            </div>
+
+            <form action="#" method="post" id="loginForm">
+                <div class="input-group">
+                    <label for="username">Username / Employee ID</label>
+                    <input type="text" id="username" name="username" placeholder="e.g., CSMA-2024-001" autofocus autocomplete="username" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="··········" autocomplete="current-password" required>
+                </div>
+
+                <div class="options-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="remember">
+                        <span>Keep me signed in</span>
+                    </label>
+                    <a href="#" class="forgot-link" id="forgotPasswordLink">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn-primary">Sign in →</button>
+            </form>
+
+            <div class="security-note">
+                <span class="secure-icon">🛡️</span> Protected by institutional security protocols · SSL Encrypted
+            </div>
+
+            <div class="helpdesk-footer">
+                <p>Need assistance? <a href="#" class="support-link" id="supportLink">Contact IT Helpdesk</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="Login.js"></script>
+    <script>
+        // Forgot password and support links (non-auth, safe to keep inline)
+        document.getElementById('forgotPasswordLink')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Password recovery link has been sent to your institutional email.\nPlease contact IT support if you need further assistance.');
+        });
+
+        document.getElementById('supportLink')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('IT Support: support@csma.edu.ph | Local 1234\nOffice hours: Mon-Fri 8:00 AM – 5:00 PM');
+        });
+    </script>
+</body>
+</html>

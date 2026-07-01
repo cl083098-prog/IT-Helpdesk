@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CSMA IT Helpdesk | Equipment Failures</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="Sidebar.css">
+    <link rel="stylesheet" href="EquipmentFailures.css">
+</head>
+<body>
+<div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="mainSidebar">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <img src="https://scontent.fmnl8-4.fna.fbcdn.net/v/t39.30808-6/317390607_820079655836948_3769284989226831402_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=T5XwQtp6HgwQ7kNvwGvcfPY&_nc_oc=AdqgEJSjJHp6s3KRt2Y4_vEy66knBtknEOV01v9l-5DzGKgY2IWYvB768ngAz1ZRup8&_nc_zt=23&_nc_ht=scontent.fmnl8-4.fna&_nc_gid=DnV7SSTTzxJPR90avO376Q&_nc_ss=7b289&oh=00_Af4GmdmGSeBsihthQS3mJKIpQJrogorfZ26PaDR9ugHiMg&oe=6A0B1CE7" alt="School Logo">
+                </div>
+                <div class="logo-text">
+                    <h2>CSMA</h2>
+                    <span>IT Helpdesk Portal</span>
+                </div>
+            </div>
+        </div>
+        <nav class="nav-menu">
+            <a href="Dashboard.html" class="nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+            <a href="ServiceRequest.html" class="nav-item"><i class="fas fa-ticket-alt"></i><span>Service Requests</span></a>
+            <a href="Inventory.html" class="nav-item"><i class="fas fa-boxes"></i><span>Inventory</span></a>
+            <a href="EquipmentFailures.html" class="nav-item active"><i class="fas fa-microchip"></i><span>Equipment Failures</span></a>
+            <a href="CostAnalysis.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Cost Analysis</span></a>
+            <a href="BudgetPlanning.html" class="nav-item"><i class="fas fa-calculator"></i><span>Budget Planning</span></a>
+            <a href="UserManagement.html" class="nav-item"><i class="fas fa-users"></i><span>User Management</span></a>
+            <a href="Reports.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reports</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="logout-sidebar-btn" id="sidebarLogoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></div>
+            <div class="page-title"><h1>Equipment Failures & Maintenance</h1></div>
+            <div class="theme-toggle-wrapper">
+                <i class="fas fa-moon" id="themeIcon"></i>
+                <label class="switch">
+                    <input type="checkbox" id="themeSwitchCheckbox">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </header>
+
+        <!-- SUMMARY CARDS - MOVED TO TOP FOR BETTER VISIBILITY -->
+        <div class="summary-cards">
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="metric-info">
+                    <div class="metric-label">Total Failures</div>
+                    <div class="metric-value" id="totalFailures">0</div>
+                    <div class="metric-sub">equipment incidents</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fas fa-coins"></i></div>
+                <div class="metric-info">
+                    <div class="metric-label">Total Repair Cost</div>
+                    <div class="metric-value" id="totalCost">₱0</div>
+                    <div class="metric-sub">cumulative</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fas fa-clock"></i></div>
+                <div class="metric-info">
+                    <div class="metric-label">Avg Resolution Time</div>
+                    <div class="metric-value" id="avgResolution">0</div>
+                    <div class="metric-sub">days</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="failures-container">
+            <div class="section-header">
+                <h2><i class="fas fa-microchip"></i> Failure Records</h2>
+                <button id="addFailureBtn" class="btn-primary-custom"><i class="fas fa-plus"></i> Report Failure</button>
+            </div>
+
+            <!-- Filter Bar: Search, Department, Date Range -->
+            <div class="filter-bar">
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchEquipment" class="search-input" placeholder="Search by equipment name...">
+                </div>
+                <div class="filter-group">
+                    <select id="filterDepartment" class="filter-select">
+                        <option value="all">All Departments</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Business">Business</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Arts & Sciences">Arts & Sciences</option>
+                    </select>
+                    <input type="date" id="dateFrom" class="date-input" placeholder="From">
+                    <input type="date" id="dateTo" class="date-input" placeholder="To">
+                    <button id="resetFiltersBtn" class="btn-reset-filters"><i class="fas fa-undo-alt"></i> Reset</button>
+                </div>
+            </div>
+
+            <!-- Failures Table -->
+            <div class="failures-table-wrapper">
+                <table class="failures-table" id="failuresTable">
+                    <thead>
+                        <tr>
+                            <th>Equipment Name</th>
+                            <th>Department</th>
+                            <th>Date of Failure</th>
+                            <th>Issue</th>
+                            <th>Action Taken</th>
+                            <th>Resolution Date</th>
+                            <th>Cost (₱)</th>
+                            <th>Status</th>
+                            <th style="width:80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="failuresTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal for Add/Edit Failure - FIXED LAYOUT WITH SCROLLABLE BODY -->
+<div id="failureModal" class="modal-overlay">
+    <div class="failure-modal">
+        <div class="modal-header">
+            <h3 id="modalTitle"><i class="fas fa-tools"></i> Report Equipment Failure</h3>
+            <button class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editId" value="">
+            <div class="form-group">
+                <label>EQUIPMENT NAME *</label>
+                <input type="text" id="equipmentName" class="form-input" placeholder="e.g., Projector, Server">
+            </div>
+            <div class="form-group">
+                <label>DEPARTMENT *</label>
+                <select id="deptSelect" class="form-input">
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Business">Business</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Arts & Sciences">Arts & Sciences</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>DATE OF FAILURE *</label>
+                <input type="date" id="failureDate" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>ISSUE DESCRIPTION *</label>
+                <textarea id="issueDesc" rows="3" class="form-input" placeholder="Describe the failure..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>ACTION TAKEN</label>
+                <input type="text" id="actionTaken" class="form-input" placeholder="e.g., Replaced component, firmware update">
+            </div>
+            <div class="form-group">
+                <label>RESOLUTION DATE</label>
+                <input type="date" id="resolutionDate" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>REPAIR COST (₱)</label>
+                <input type="number" id="costAmount" class="form-input" step="0.01" value="0">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel-modal" id="cancelModalBtn">Cancel</button>
+            <button class="btn-save" id="saveFailureBtn">Save Record</button>
+        </div>
+    </div>
+</div>
+
+<script src="Sidebar.js"></script>
+<script src="EquipmentFailures.js"></script>
+</body>
+</html>

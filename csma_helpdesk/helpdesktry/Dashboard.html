@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>IT Helpdesk Portal | CSMA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="Sidebar.css">
+    <link rel="stylesheet" href="Dashbaord.css">
+    <style>
+        .dashboard-wrapper {
+            display: flex;
+            min-height: 100vh;
+            background: #f5f9fe;
+        }
+        .main-content {
+            width: 100%;
+            max-width: calc(100% - 280px);
+            transition: all 0.2s;
+        }
+        @media (max-width: 1024px) {
+            .main-content {
+                max-width: 100%;
+            }
+        }
+        .calendar-dates span {
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+        }
+        .bottom-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            background: white;
+            padding: 20px;
+            border-radius: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+        body {
+            overflow-x: hidden;
+        }
+
+        /* Dashboard Modal Styles */
+        .dashboard-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(3px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+        .dashboard-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .dashboard-modal {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            border-radius: 28px;
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .dashboard-modal-overlay.active .dashboard-modal {
+            transform: scale(1);
+        }
+        .dashboard-modal .modal-header {
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eef3f8;
+            background: white;
+        }
+        .dashboard-modal .modal-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1c4c6e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dashboard-modal .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #95a5a6;
+            transition: color 0.2s;
+        }
+        .dashboard-modal .modal-close:hover {
+            color: #c62828;
+        }
+        .dashboard-modal .modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-ticket-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .modal-ticket-item {
+            padding: 16px;
+            background: #fafdff;
+            border-radius: 20px;
+            border-left: 4px solid;
+            transition: all 0.2s;
+        }
+        .modal-ticket-item:hover {
+            background: #f5f9fe;
+        }
+        .modal-ticket-item.priority-high { border-left-color: #e67e22; }
+        .modal-ticket-item.priority-medium { border-left-color: #f1c40f; }
+        .modal-ticket-item.priority-critical { border-left-color: #e74c3c; }
+        .modal-ticket-item.priority-low { border-left-color: #2ecc71; }
+        .modal-ticket-id {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-ticket-desc {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: #1e2f3e;
+        }
+        .modal-ticket-meta {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #95a5a6;
+        }
+        .modal-activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .modal-activity-item {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            padding: 12px;
+            background: #fafdff;
+            border-radius: 16px;
+        }
+        .modal-activity-icon {
+            width: 36px;
+            height: 36px;
+            background: #eef3fc;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1f6392;
+            font-size: 1rem;
+        }
+        .modal-activity-details {
+            flex: 1;
+        }
+        .modal-activity-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #2c5a7a;
+        }
+        .modal-activity-time {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #95a5a6;
+        }
+        .empty-modal-message {
+            text-align: center;
+            padding: 40px;
+            color: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+    <aside class="sidebar" id="mainSidebar">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <img src="https://scontent.fmnl8-4.fna.fbcdn.net/v/t39.30808-6/317390607_820079655836948_3769284989226831402_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=T5XwQtp6HgwQ7kNvwGvcfPY&_nc_oc=AdqgEJSjJHp6s3KRt2Y4_vEy66knBtknEOV01v9l-5DzGKgY2IWYvB768ngAz1ZRup8&_nc_zt=23&_nc_ht=scontent.fmnl8-4.fna&_nc_gid=DnV7SSTTzxJPR90avO376Q&_nc_ss=7b289&oh=00_Af4GmdmGSeBsihthQS3mJKIpQJrogorfZ26PaDR9ugHiMg&oe=6A0B1CE7"
+                 alt="CSMA School Logo"> alt="School Logo">
+                </div>
+                <div class="logo-text">
+                    <h2>CSMA</h2>
+                    <span>IT Helpdesk Portal</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <a href="Dashboard.html" class="nav-item" data-page="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="ServiceRequest.html" class="nav-item" data-page="servicerequest">
+                <i class="fas fa-ticket-alt"></i>
+                <span>Service Requests</span>
+            </a>
+            <a href="Inventory.html" class="nav-item" data-page="inventory">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </a>
+            <a href="EquipmentFailures.html" class="nav-item">
+                <i class="fas fa-microchip"></i>
+                <span>Equipment Failures</span>
+            </a>
+            <a href="CostAnalysis.html" class="nav-item">
+                <i class="fas fa-chart-pie"></i>
+                <span>Cost Analysis</span>
+            </a>
+            <a href="BudgetPlanning.html" class="nav-item">
+                <i class="fas fa-calculator"></i>
+                <span>Budget Planning</span>
+            </a>
+            <a href="UserManagement.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>User Management</span>
+            </a>
+            <a href="Reports.html" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Reports</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="logout-sidebar-btn" id="sidebarLogoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+    
+    <main class="main-content" id="dynamicMainContent">
+        <header class="top-bar">
+            <div class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div class="page-title">
+                <h1>Admin Dashboard</h1>
+            </div>
+            <div class="user-actions">
+                <button class="notification-icon" id="notificationBell" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <div class="theme-toggle-wrapper">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <label class="switch">
+                        <input type="checkbox" id="themeSwitchCheckbox">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-title">Total Service Requests</div><div class="stat-number" data-stat="total">0</div></div>
+            <div class="stat-card"><div class="stat-title">Pending Requests</div><div class="stat-number" data-stat="pending">0</div></div>
+            <div class="stat-card"><div class="stat-title">Ongoing Requests</div><div class="stat-number" data-stat="ongoing">0</div></div>
+            <div class="stat-card"><div class="stat-title">Completed Requests</div><div class="stat-number" data-stat="completed">0</div></div>
+            <div class="stat-card"><div class="stat-title">Low Stock Items</div><div class="stat-number" data-stat="lowstock">0</div></div>
+            <div class="stat-card"><div class="stat-title">Total Inventory Value</div><div class="stat-number" data-stat="invvalue">₱0.00</div></div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="tickets-panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-inbox"></i> New Open Tickets</h3>
+                    <a href="#" class="view-all" onclick="showNewTicketsModal(); return false;">View All →</a>
+                </div>
+                <div class="ticket-list" id="newTicketsList">
+                    <div class="empty-modal-message">Loading…</div>
+                </div>
+            </div>
+            <div class="tickets-panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-hourglass-half"></i> Aging Tickets</h3>
+                    <a href="#" class="view-all" onclick="showAgingTicketsModal(); return false;">View All →</a>
+                </div>
+                <div class="ticket-list" id="agingTicketsList">
+                    <div class="empty-modal-message">Loading…</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="two-column-grid">
+            <div class="recent-activities-panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-history"></i> Recent Activities</h3>
+                    <a href="#" class="view-all" onclick="showActivitiesModal(); return false;">View All →</a>
+                </div>
+                <div class="activities-list" id="activitiesList">
+                    <div class="empty-modal-message">Loading…</div>
+                </div>
+            </div>
+            <div class="calendar-panel">
+                <div class="calendar-header">
+                    <h3>Calendar</h3>
+                    <a href="#" class="view-all" onclick="return false;">full calendar</a>
+                </div>
+                <div class="calendar-body">
+                    <div class="calendar-month" id="calendarMonth">April 2026</div>
+                    <div class="calendar-weekdays">
+                        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                    </div>
+                    <div class="calendar-dates" id="calendarDates"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-stats">
+            <div class="stat-simple"><span>Total Service Requests</span><strong data-stat="total">0</strong></div>
+            <div class="stat-simple"><span>Pending Requests</span><strong data-stat="pending">0</strong></div>
+            <div class="stat-simple"><span>Ongoing Requests</span><strong data-stat="ongoing">0</strong></div>
+            <div class="stat-simple"><span>Completed Requests</span><strong data-stat="completed">0</strong></div>
+            <div class="stat-simple"><span>Low Stock Items</span><strong data-stat="lowstock">0</strong></div>
+            <div class="stat-simple"><span>Total Inventory Value</span><strong data-stat="invvalue">₱0.00</strong></div>
+        </div>
+    </main>
+</div>
+
+<div id="logoutToast" class="logout-toast">🔐 Logging out, redirecting to login...</div>
+
+<script src="Sidebar.js"></script>
+<script src="Dashboard.js"></script>
+
+<script>
+    // Modal helpers — pull LIVE data set by Dashboard.js (window.getDashboardData())
+    // instead of hardcoded arrays. Dashboard.js fetches this from get_dashboard_data.php.
+
+    function createModal(title, contentHtml) {
+        const existingModal = document.querySelector('.dashboard-modal-overlay');
+        if (existingModal) existingModal.remove();
+        
+        const modalHTML = `
+            <div class="dashboard-modal-overlay" id="dashboardModal">
+                <div class="dashboard-modal">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-list"></i> ${title}</h3>
+                        <button class="modal-close" onclick="closeDashboardModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        ${contentHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = document.getElementById('dashboardModal');
+        setTimeout(() => modal.classList.add('active'), 10);
+        
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeDashboardModal();
+        });
+    }
+
+    window.closeDashboardModal = function() {
+        const modal = document.getElementById('dashboardModal');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => modal.remove(), 300);
+        }
+    };
+
+    window.showNewTicketsModal = function() {
+        const data = window.getDashboardData ? window.getDashboardData().new_tickets : [];
+        if (!data || data.length === 0) {
+            createModal('New Open Tickets', '<div class="empty-modal-message">No new tickets found.</div>');
+            return;
+        }
+
+        const ticketsHtml = `
+            <div class="modal-ticket-list">
+                ${data.map(ticket => `
+                    <div class="modal-ticket-item ${window.getPriorityClass(ticket.priority)}">
+                        <div class="modal-ticket-id">
+                            ${ticket.id}
+                            <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${ticket.priority}</span>
+                        </div>
+                        <div class="modal-ticket-desc">${window.escapeHtmlDashboard(ticket.title)}</div>
+                        <div class="modal-ticket-meta">Requester: ${window.escapeHtmlDashboard(ticket.requester)} · ${ticket.time}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        createModal('New Open Tickets', ticketsHtml);
+    };
+
+    window.showAgingTicketsModal = function() {
+        const data = window.getDashboardData ? window.getDashboardData().aging_tickets : [];
+        if (!data || data.length === 0) {
+            createModal('Aging Tickets', '<div class="empty-modal-message">No aging tickets found.</div>');
+            return;
+        }
+
+        const ticketsHtml = `
+            <div class="modal-ticket-list">
+                ${data.map(ticket => `
+                    <div class="modal-ticket-item ${window.getPriorityClass(ticket.priority)}">
+                        <div class="modal-ticket-id">
+                            ${ticket.id}
+                            <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${ticket.priority}</span>
+                        </div>
+                        <div class="modal-ticket-desc">${window.escapeHtmlDashboard(ticket.title)}</div>
+                        <div class="modal-ticket-meta">Requester: ${window.escapeHtmlDashboard(ticket.requester)} · ${ticket.days}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        createModal('Aging Tickets', ticketsHtml);
+    };
+
+    window.showActivitiesModal = function() {
+        const data = window.getDashboardData ? window.getDashboardData().activities : [];
+        if (!data || data.length === 0) {
+            createModal('Recent Activities', '<div class="empty-modal-message">No recent activities found.</div>');
+            return;
+        }
+
+        const activitiesHtml = `
+            <div class="modal-activity-list">
+                ${data.map(activity => `
+                    <div class="modal-activity-item">
+                        <div class="modal-activity-icon"><i class="fas ${activity.icon}"></i></div>
+                        <div class="modal-activity-details">
+                            <div class="modal-activity-title">${window.escapeHtmlDashboard(activity.title)}</div>
+                            <div class="modal-activity-time">${activity.time}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        createModal('Recent Activities', activitiesHtml);
+    };
+
+    // Sidebar toggle and logout are handled by Sidebar.js — no duplicate needed here
+    // Calendar is initialized by Dashboard.js — no duplicate call needed here
+    // Live data fetch + rendering is handled entirely by Dashboard.js
+</script>
+</body>
+</html>

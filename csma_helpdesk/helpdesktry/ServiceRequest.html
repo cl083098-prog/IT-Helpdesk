@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>IT Helpdesk | Manage Service Requests</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="Sidebar.css">
+    <link rel="stylesheet" href="ServiceRequest.css">
+    <style>
+        .requests-table th,
+        .requests-table td {
+            vertical-align: middle;
+        }
+        
+        .requests-table th {
+            background: #f8fbfe;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .requests-table td {
+            font-size: 0.85rem;
+        }
+        
+        .ticket-id-link {
+            font-weight: 700;
+            color: #1f6392;
+            text-decoration: none;
+        }
+        
+        .ticket-id-link:hover {
+            text-decoration: underline;
+        }
+        
+        .action-icons {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .action-icons i {
+            cursor: pointer;
+            color: #95a5a6;
+            font-size: 1rem;
+            transition: all 0.2s;
+            padding: 6px;
+            border-radius: 8px;
+        }
+        
+        .action-icons i:hover {
+            color: #1f6392;
+            background: #eef3fc;
+        }
+        
+        .action-icons .fa-trash-alt:hover {
+            color: #c62828;
+            background: #fde2e2;
+        }
+        
+        .empty-row td {
+            text-align: center;
+            padding: 50px;
+            color: #95a5a6;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .requests-table th,
+            .requests-table td {
+                padding: 10px 8px;
+                font-size: 0.75rem;
+            }
+            
+            .action-icons {
+                gap: 6px;
+            }
+            
+            .action-icons i {
+                font-size: 0.8rem;
+                padding: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+    <aside class="sidebar" id="mainSidebar">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <img src="https://scontent.fmnl8-4.fna.fbcdn.net/v/t39.30808-6/317390607_820079655836948_3769284989226831402_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=T5XwQtp6HgwQ7kNvwGvcfPY&_nc_oc=AdqgEJSjJHp6s3KRt2Y4_vEy66knBtknEOV01v9l-5DzGKgY2IWYvB768ngAz1ZRup8&_nc_zt=23&_nc_ht=scontent.fmnl8-4.fna&_nc_gid=DnV7SSTTzxJPR90avO376Q&_nc_ss=7b289&oh=00_Af4GmdmGSeBsihthQS3mJKIpQJrogorfZ26PaDR9ugHiMg&oe=6A0B1CE7" alt="School Logo">
+                </div>
+                <div class="logo-text">
+                    <h2>CSMA</h2>
+                    <span>IT Helpdesk Portal</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <a href="Dashboard.html" class="nav-item" data-page="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="ServiceRequest.html" class="nav-item active" data-page="servicerequest">
+                <i class="fas fa-ticket-alt"></i>
+                <span>Service Requests</span>
+            </a>
+            <a href="Inventory.html" class="nav-item" data-page="inventory">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </a>
+            <a href="EquipmentFailures.html" class="nav-item">
+                <i class="fas fa-microchip"></i>
+                <span>Equipment Failures</span>
+            </a>
+            <a href="CostAnalysis.html" class="nav-item">
+                <i class="fas fa-chart-pie"></i>
+                <span>Cost Analysis</span>
+            </a>
+            <a href="BudgetPlanning.html" class="nav-item">
+                <i class="fas fa-calculator"></i>
+                <span>Budget Planning</span>
+            </a>
+            <a href="UserManagement.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>User Management</span>
+            </a>
+            <a href="Reports.html" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Reports</span>
+            </a>
+        
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="logout-sidebar-btn" id="sidebarLogoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+    
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div class="page-title">
+                <h1>Manage Service Requests</h1>
+            </div>
+            <div class="theme-toggle-wrapper">
+                <i class="fas fa-moon" id="themeIcon"></i>
+                <label class="switch">
+                    <input type="checkbox" id="themeSwitchCheckbox">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </header>
+
+        <div class="requests-container">
+            <div class="section-header">
+                <h2><i class="fas fa-ticket-alt" style="color:#1f6392"></i> Request Tickets</h2>
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search by ticket ID, requester, or equipment...">
+                </div>
+            </div>
+
+            <div class="filter-tabs" id="filterTabs">
+                <button class="filter-btn active" data-filter="all">Overall Requests</button>
+                <button class="filter-btn" data-filter="Pending">Pending</button>
+                <button class="filter-btn" data-filter="Ongoing">Ongoing</button>
+                <button class="filter-btn" data-filter="Completed">Completed</button>
+                <button class="filter-btn" data-filter="Closed">Closed</button>
+            </div>
+
+            <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
+                <div class="bulk-actions-content">
+                    <span id="selectedCount">0</span> tickets selected
+                    <div class="bulk-action-buttons">
+                        <button class="bulk-delete-btn" id="bulkDeleteBtn"><i class="fas fa-trash-alt"></i> Delete</button>
+                        <button class="bulk-update-btn" id="bulkUpdateStatusBtn"><i class="fas fa-sync-alt"></i> Update Status</button>
+                        <button class="bulk-cancel-btn" id="bulkCancelBtn"><i class="fas fa-times"></i> Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="select-all-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="selectAllCheckbox">
+                    <span>Select All</span>
+                </label>
+            </div>
+
+            <div class="requests-table-wrapper">
+                <table class="requests-table" id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"><input type="checkbox" id="selectAllHeaderCheckbox"></th>
+                            <th>Ticket ID</th>
+                            <th>Category</th>
+                            <th>Requester</th>
+                            <th>Department</th>
+                            <th>Equipment</th>
+                            <th>Assigned To</th>
+                            <th>Title</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bottom-stats">
+            <div class="stat-simple"><span>Total Service Requests</span><strong id="statTotal">0</strong></div>
+            <div class="stat-simple"><span>Pending Requests</span><strong id="statPending">0</strong></div>
+            <div class="stat-simple"><span>Ongoing Requests</span><strong id="statOngoing">0</strong></div>
+            <div class="stat-simple"><span>Completed Requests</span><strong id="statCompleted">0</strong></div>
+            <div class="stat-simple"><span>Closed Requests</span><strong id="statClosed">0</strong></div>
+        </div>
+    </main>
+</div>
+
+<div id="logoutToast" class="logout-toast">🔐 Logging out, redirecting to login...</div>
+
+<script src="Sidebar.js"></script>
+<script src="ServiceRequest.js"></script>
+</body>
+</html>
