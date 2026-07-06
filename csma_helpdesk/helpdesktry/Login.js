@@ -1,4 +1,5 @@
 // Login.js - Authentication via PHP/MySQL backend
+// Supports roles: admin | requester | dept_head
 
 (function() {
     if (document.readyState === 'loading') {
@@ -10,7 +11,6 @@
     function initLogin() {
         if (!document.getElementById('loginForm')) return;
 
-        // If already logged in, redirect immediately
         const currentUser = sessionStorage.getItem('currentUser');
         if (currentUser) {
             try {
@@ -22,12 +22,9 @@
             return;
         }
 
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) loginForm.addEventListener('submit', handleLogin);
-
+        document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
         addDemoCredentialsHint();
 
-        // Auto-fill remembered username
         const rememberedUser = localStorage.getItem('rememberedUser');
         if (rememberedUser) {
             const usernameInput = document.getElementById('username');
@@ -46,24 +43,20 @@
         const password   = document.getElementById('password').value;
         const rememberMe = document.querySelector('input[name="remember"]')?.checked || false;
 
-        if (!username || !password) {
-            showError('Please enter both username and password.');
-            return;
-        }
+        if (!username || !password) { showError('Please enter both username and password.'); return; }
 
-        // Disable submit button while request is in flight
         const submitBtn = document.querySelector('#loginForm button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Signing in\u2026'; }
 
         try {
             const controller = new AbortController();
-            const timeout    = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const timeout    = setTimeout(() => controller.abort(), 10000);
 
             const res  = await fetch('../api/login.php', {
-                method:  'POST',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ username, password }),
-                signal:  controller.signal
+                body: JSON.stringify({ username, password }),
+                signal: controller.signal
             });
             clearTimeout(timeout);
             const json = await res.json();
@@ -74,7 +67,6 @@
                 return;
             }
 
-            // Store real DB user (id comes from MySQL, not a hardcoded number)
             const sessionUser = {
                 id:         json.user.id,
                 username:   json.user.username,
@@ -98,7 +90,7 @@
         } catch (err) {
             console.error('Login error:', err);
             const msg = err.name === 'AbortError'
-                ? 'Request timed out. Make sure XAMPP is running and try again.'
+                ? 'Request timed out. Make sure XAMPP is running.'
                 : 'Could not connect to server. Make sure XAMPP is running.';
             showError(msg);
             if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign in \u2192'; }
@@ -106,11 +98,13 @@
     }
 
     function redirectToDashboard(role) {
-        if (role === 'admin') {
-            window.location.href = 'Dashboard.html';
-        } else {
-            window.location.href = 'RequesterDashboard.html';
-        }
+        const routes = {
+            admin:        'Dashboard.html',
+            dept_head:    'DeptHeadDashboard.html',
+            school_admin: 'SchoolAdmin.html',
+            requester:    'RequesterDashboard.html'
+        };
+        window.location.href = routes[role] || 'RequesterDashboard.html';
     }
 
     function showError(message) {
@@ -118,20 +112,10 @@
         if (!errorDiv) {
             errorDiv = document.createElement('div');
             errorDiv.id = 'loginError';
-            errorDiv.style.cssText = [
-                'background:#fde2e2',
-                'color:#c62828',
-                'padding:12px 16px',
-                'border-radius:16px',
-                'margin-bottom:20px',
-                'font-size:0.85rem',
-                'font-weight:500',
-                'text-align:center',
-                'border-left:4px solid #c62828'
-            ].join(';');
-            const loginCard = document.querySelector('.login-card');
+            errorDiv.style.cssText = 'background:#fde2e2;color:#c62828;padding:12px 16px;border-radius:16px;margin-bottom:20px;font-size:0.85rem;font-weight:500;text-align:center;border-left:4px solid #c62828;';
             const form = document.getElementById('loginForm');
-            if (loginCard && form) loginCard.insertBefore(errorDiv, form);
+            const card = document.querySelector('.login-card');
+            if (card && form) card.insertBefore(errorDiv, form);
         }
         errorDiv.textContent = message;
         errorDiv.style.display = 'block';
@@ -143,20 +127,10 @@
         if (!successDiv) {
             successDiv = document.createElement('div');
             successDiv.id = 'loginSuccess';
-            successDiv.style.cssText = [
-                'background:#d5f5e3',
-                'color:#27ae60',
-                'padding:12px 16px',
-                'border-radius:16px',
-                'margin-bottom:20px',
-                'font-size:0.85rem',
-                'font-weight:500',
-                'text-align:center',
-                'border-left:4px solid #27ae60'
-            ].join(';');
-            const loginCard = document.querySelector('.login-card');
+            successDiv.style.cssText = 'background:#d5f5e3;color:#27ae60;padding:12px 16px;border-radius:16px;margin-bottom:20px;font-size:0.85rem;font-weight:500;text-align:center;border-left:4px solid #27ae60;';
             const form = document.getElementById('loginForm');
-            if (loginCard && form) loginCard.insertBefore(successDiv, form);
+            const card = document.querySelector('.login-card');
+            if (card && form) card.insertBefore(successDiv, form);
         }
         successDiv.textContent = message;
         successDiv.style.display = 'block';
@@ -164,28 +138,20 @@
 
     function addDemoCredentialsHint() {
         const hintDiv = document.createElement('div');
-        hintDiv.style.cssText = [
-            'background:#eef3fc',
-            'border-radius:16px',
-            'padding:12px 16px',
-            'margin-top:16px',
-            'font-size:0.75rem',
-            'text-align:center'
-        ].join(';');
+        hintDiv.style.cssText = 'background:#eef3fc;border-radius:16px;padding:12px 16px;margin-top:16px;font-size:0.75rem;text-align:center;';
         hintDiv.innerHTML = [
             '<strong style="color:#1f6392;">Demo Accounts:</strong><br>',
             '<span style="color:#2c5a7a;"><strong>Admin:</strong> admin / admin123</span><br>',
+            '<span style="color:#2c5a7a;"><strong>Dept Head:</strong> depthead / depthead123</span><br>',
             '<span style="color:#2c5a7a;"><strong>Requester:</strong> requester / req123</span>'
         ].join('');
-        const loginCard = document.querySelector('.login-card');
-        if (loginCard) loginCard.appendChild(hintDiv);
+        const card = document.querySelector('.login-card');
+        if (card) card.appendChild(hintDiv);
     }
 
-    // Expose logout for other pages
     window.performLogout = function() {
         sessionStorage.removeItem('currentUser');
         localStorage.removeItem('rememberedUser');
         window.location.href = 'Login.html';
     };
-
 })();

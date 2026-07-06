@@ -39,7 +39,7 @@
             <div class="profile-dropdown" id="profileDropdown">
                 <button class="user-profile-btn" id="profileBtn">
                     <i class="fas fa-user-circle"></i>
-                    <span>Alex Rivera (Faculty)</span>
+                    <span id="profileDisplayName">Requester</span>
                     <i class="fas fa-chevron-down dropdown-arrow"></i>
                 </button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -63,7 +63,7 @@
     <div class="welcome-banner">
         <div class="welcome-content">
             <div class="welcome-text">
-                <h1>Welcome back, Alex <span class="wave">👋</span></h1>
+                <h1>Welcome back, <span id="welcomeFirstName">there</span> <span class="wave">👋</span></h1>
                 <p>Track your IT support requests, create new tickets, and stay updated on progress.</p>
             </div>
             <div class="button-group">
@@ -79,13 +79,22 @@
         <div class="stat-card"><div class="stat-title">Pending</div><div class="stat-number" id="pendingCount">0</div></div>
         <div class="stat-card"><div class="stat-title">Ongoing</div><div class="stat-number" id="ongoingCount">0</div></div>
         <div class="stat-card"><div class="stat-title">Completed</div><div class="stat-number" id="completedCount">0</div></div>
+        <div class="stat-card"><div class="stat-title">Closed</div><div class="stat-number" id="closedCount">0</div></div>
     </div>
 
     <div class="dashboard-main-grid">
         <div class="requests-panel">
             <div class="panel-header">
-                <h3><i class="fas fa-ticket-alt"></i> My Recent Requests</h3>
+                <h3><i class="fas fa-ticket-alt"></i> My Requests</h3>
                 <a href="#" class="action-link" id="viewAllTicketsLink">View All →</a>
+            </div>
+            <!-- Status tabs per PDF spec -->
+            <div class="request-status-tabs" id="requestStatusTabs">
+                <button class="req-tab active" data-status="all">Overall</button>
+                <button class="req-tab" data-status="Pending">Pending</button>
+                <button class="req-tab" data-status="Ongoing">Ongoing</button>
+                <button class="req-tab" data-status="Completed">Completed</button>
+                <button class="req-tab" data-status="Closed">Closed</button>
             </div>
             <div class="ticket-list" id="myTicketsList">
                 <div style="text-align:center; padding: 24px; color:#8aaec0;">Loading your requests...</div>
@@ -130,6 +139,18 @@
                     <div class="priority-label"><i class="fas fa-chart-line"></i> Priority Level (Auto-calculated)</div>
                     <div class="priority-value"><span class="priority-badge-large" id="priorityDisplay">Low</span><span class="priority-note">Based on category and request type</span></div>
                 </div>
+                <!-- SLA Preview per PDF spec -->
+                <div class="sla-preview-section" id="slaPreviewSection" style="display:none;">
+                    <div class="sla-preview-title"><i class="fas fa-clock"></i> Service Level Agreement (SLA)</div>
+                    <div class="sla-preview-row">
+                        <span class="sla-preview-label">Expected Response:</span>
+                        <span class="sla-preview-val" id="slaResponsePreview">—</span>
+                    </div>
+                    <div class="sla-preview-row">
+                        <span class="sla-preview-label">Expected Resolution:</span>
+                        <span class="sla-preview-val" id="slaResolutionPreview">—</span>
+                    </div>
+                </div>
                 <div class="form-actions"><button type="button" class="btn-cancel-modal" id="cancelFormBtn"><i class="fas fa-times"></i> Cancel</button><button type="submit" class="btn-submit-modal"><i class="fas fa-paper-plane"></i> Submit Request</button></div>
             </form>
         </div>
@@ -166,9 +187,10 @@
             <!-- Filter Bar - dynamic status buttons with consistent styling -->
             <div class="filter-bar" id="ticketFilterBar">
                 <button class="filter-chip filter-chip-active" data-filter="all">All Requests</button>
-                <button class="filter-chip" data-filter="PENDING">Pending</button>
-                <button class="filter-chip" data-filter="ONGOING">Ongoing</button>
-                <button class="filter-chip" data-filter="COMPLETED">Completed</button>
+                <button class="filter-chip" data-filter="Pending">Pending</button>
+                <button class="filter-chip" data-filter="Ongoing">Ongoing</button>
+                <button class="filter-chip" data-filter="Completed">Completed</button>
+                <button class="filter-chip" data-filter="Closed">Closed</button>
             </div>
             <!-- Results count + ticket grid -->
             <div class="filter-stats" id="filterStats">
@@ -177,6 +199,67 @@
             <div class="tickets-grid" id="allTicketsGrid">
                 <!-- dynamic list injected here -->
                 <div class="empty-state">Loading requests...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Issue Resolution Confirmation (PDF spec) -->
+<div id="resolveConfirmModal" class="modal-overlay">
+    <div class="modal-container" style="max-width:480px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-question-circle"></i> Confirm Issue Resolved?</h3>
+            <button class="modal-close" id="closeResolveModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="resolve-ticket-ref">
+                <span class="resolve-label">Ticket</span>
+                <strong id="resolveTicketCode" class="resolve-ticket-id">—</strong>
+            </div>
+            <p class="resolve-message">Has the IT team fully resolved your issue? Please confirm before we close this ticket.</p>
+            <div class="resolve-actions">
+                <button class="btn-confirm-resolved" id="confirmResolvedBtn">
+                    <i class="fas fa-check-circle"></i> Yes, Issue Resolved
+                </button>
+                <button class="btn-reopen" id="reopenTicketBtn">
+                    <i class="fas fa-redo-alt"></i> Not Resolved — Re-open
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Feedback Form — matches attached image design -->
+<div id="feedbackModal" class="modal-overlay">
+    <div class="modal-container" style="max-width:480px;">
+        <div class="modal-header" style="border-bottom:1px solid #eef2f5;padding:18px 24px;">
+            <div>
+                <h3 style="font-size:1rem;font-weight:700;color:#1a4a6e;margin-bottom:4px;">Submit Feedback</h3>
+                <p class="feedback-ticket-ref-line" id="feedbackTicketRef" style="font-size:0.78rem;color:#1f6392;"></p>
+            </div>
+            <button class="modal-close" id="closeFeedbackModalBtn">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:24px;">
+            <!-- Star rating — hollow stars by default, matching image -->
+            <div class="feedback-rating-group" style="margin-bottom:18px;">
+                <label class="feedback-label" style="display:block;font-size:0.82rem;font-weight:600;color:#2c4c6e;margin-bottom:10px;">Rating</label>
+                <div class="star-rating-row" id="starRatingRow">
+                    <i class="far fa-star star-icon" data-value="1"></i>
+                    <i class="far fa-star star-icon" data-value="2"></i>
+                    <i class="far fa-star star-icon" data-value="3"></i>
+                    <i class="far fa-star star-icon" data-value="4"></i>
+                    <i class="far fa-star star-icon" data-value="5"></i>
+                </div>
+            </div>
+            <!-- Comment -->
+            <div class="form-group" style="margin-bottom:10px;">
+                <label style="display:block;font-size:0.82rem;font-weight:600;color:#2c4c6e;margin-bottom:8px;">Comment <span style="font-weight:400;color:#95a5a6;">(Optional)</span></label>
+                <textarea id="feedbackComment" rows="4" style="width:100%;padding:10px 14px;border:1px solid #dee4ea;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;color:#2c4c6e;resize:none;" placeholder="Share your experience with our IT service…"></textarea>
+            </div>
+            <p style="font-size:0.75rem;color:#95a5a6;margin-bottom:20px;">Your feedback helps us improve our service quality</p>
+            <div class="form-actions" style="display:flex;gap:12px;">
+                <button type="button" class="btn-submit-modal" id="submitFeedbackBtn" style="flex:1;">Submit Feedback</button>
+                <button type="button" class="btn-cancel-modal" id="skipFeedbackBtn" style="min-width:80px;">Skip</button>
             </div>
         </div>
     </div>

@@ -43,10 +43,9 @@ try {
 
     // Tell the frontend which dashboard to redirect to
     $redirectTo = match ($user['role']) {
-        'admin'        => 'Dashboard.html',
-        'dept_head'    => 'DeptHeadDashboard.html',
-        'school_admin' => 'SchoolAdmin.html',
-        default        => 'RequesterDashboard.html',
+        'admin'     => 'Dashboard.html',
+        'dept_head' => 'DeptHeadDashboard.html',
+        default     => 'RequesterDashboard.html',
     };
 
     echo json_encode([

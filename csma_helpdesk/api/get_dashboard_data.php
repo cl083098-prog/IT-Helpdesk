@@ -7,9 +7,14 @@ header('Access-Control-Allow-Headers: Content-Type');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
 try {
+    // ── FIX 2: IT Admin dashboard must only reflect tickets it is allowed to
+    //    action — same rule as get_tickets.php. Tickets awaiting or rejected
+    //    by the Department Head stay out of these stats/lists entirely.
+    $adminVisibleSQL = "approval_status IN ('Not Required', 'Approved')";
+
     // ── 1. Ticket status counts ─────────────────────────────────────────────
-    $counts = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Closed' => 0];
-    foreach ($pdo->query("SELECT status, COUNT(*) AS cnt FROM tickets GROUP BY status")->fetchAll() as $r) {
+    $counts = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Pending Confirmation' => 0, 'Closed' => 0];
+    foreach ($pdo->query("SELECT status, COUNT(*) AS cnt FROM tickets WHERE $adminVisibleSQL GROUP BY status")->fetchAll() as $r) {
         $counts[$r['status']] = (int)$r['cnt'];
     }
     $totalTickets = array_sum($counts);
@@ -19,7 +24,7 @@ try {
         "SELECT t.ticket_code, t.title, u.full_name AS requester, t.priority, t.submitted_at
          FROM tickets t
          JOIN users u ON u.id = t.requester_id
-         WHERE t.status = 'Pending'
+         WHERE t.status = 'Pending' AND $adminVisibleSQL
          ORDER BY t.submitted_at DESC
          LIMIT 6"
     );
@@ -39,7 +44,7 @@ try {
                 DATEDIFF(NOW(), t.submitted_at) AS days_open
          FROM tickets t
          JOIN users u ON u.id = t.requester_id
-         WHERE t.status IN ('Pending', 'Ongoing')
+         WHERE t.status IN ('Pending', 'Ongoing') AND $adminVisibleSQL
          ORDER BY t.submitted_at ASC
          LIMIT 6"
     );

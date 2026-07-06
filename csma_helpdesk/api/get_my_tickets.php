@@ -8,9 +8,12 @@ if (!$requesterId) { http_response_code(400); echo json_encode(['success'=>false
 try {
     $stmt = $pdo->prepare(
         "SELECT t.id, t.ticket_code, t.title, t.category, t.equipment_item, t.request_type,
-                t.priority, t.status, t.description, t.location, t.preferred_date,
-                d.name AS department, t.assigned_to, t.response_due_at, t.resolution_due_at, t.submitted_at
-         FROM tickets t JOIN departments d ON d.id = t.department_id
+                t.priority, t.status, t.approval_status, t.description, t.location, t.preferred_date,
+                d.name AS department, t.assigned_to, t.response_due_at, t.resolution_due_at, t.submitted_at,
+                ta.rejection_note
+         FROM tickets t
+         JOIN departments d ON d.id = t.department_id
+         LEFT JOIN ticket_approvals ta ON ta.ticket_id = t.id AND ta.decision = 'Rejected'
          WHERE t.requester_id = :rid ORDER BY t.submitted_at DESC"
     );
     $stmt->execute([':rid'=>$requesterId]);
