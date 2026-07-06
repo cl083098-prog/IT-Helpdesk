@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CSMA IT Helpdesk | Department Head Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="DeptHeadDashboard.css">
+</head>
+<body>
+<div class="dept-head-dashboard">
+
+    <!-- ── Header ────────────────────────────────────────────────────────── -->
+    <header class="dashboard-header">
+        <div class="logo-brand">
+            <div class="logo-icon">
+                <img src="https://scontent.fmnl8-4.fna.fbcdn.net/v/t39.30808-6/317390607_820079655836948_3769284989226831402_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=T5XwQtp6HgwQ7kNvwGvcfPY&_nc_oc=AdqgEJSjJHp6s3KRt2Y4_vEy66knBtknEOV01v9l-5DzGKgY2IWYvB768ngAz1ZRup8&_nc_zt=23&_nc_ht=scontent.fmnl8-4.fna&oh=00_Af4GmdmGSeBsihthQS3mJKIpQJrogorfZ26PaDR9ugHiMg&oe=6A0B1CE7"
+                     alt="CSMA School Logo">
+            </div>
+            <div class="logo-text">
+                <h2>CSMA</h2>
+                <span>IT Helpdesk Portal</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <!-- Notification Bell -->
+            <div class="notification-wrapper" id="notificationWrapper">
+                <button class="notification-icon" id="notificationBell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
+                </button>
+                <div class="notification-panel" id="notificationPanel">
+                    <div class="notification-header">
+                        <h3><i class="fas fa-bell"></i> Notifications</h3>
+                        <button class="mark-read-btn" id="markAllReadBtn">Mark all read</button>
+                    </div>
+                    <div class="notification-list" id="notificationList"></div>
+                </div>
+            </div>
+            <!-- Profile Dropdown -->
+            <div class="profile-dropdown" id="profileDropdown">
+                <button class="user-profile-btn" id="profileBtn">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="profileName">Dept Head</span>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-item theme-toggle-item">
+                        <div class="theme-switch-label">
+                            <i class="fas fa-moon" id="themeIcon"></i>
+                            <span>Dark Mode</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="themeSwitchCheckbox">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item logout-btn" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── Welcome Banner ────────────────────────────────────────────────── -->
+    <div class="welcome-banner">
+        <div class="welcome-content">
+            <div class="welcome-text">
+                <h1>Welcome back, <span id="welcomeName">Department Head</span> <span class="wave">👋</span></h1>
+                <p>Review approval requests from your department and manage your own IT service tickets.</p>
+            </div>
+            <div class="button-group">
+                <button class="btn-create-welcome" id="openNewRequestBtn">
+                    <i class="fas fa-plus-circle"></i> New Service Request
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Stats Row ─────────────────────────────────────────────────────── -->
+    <div class="stats-row" id="statsContainer">
+        <div class="stat-card approval-stat">
+            <div class="stat-title">Pending Approvals</div>
+            <div class="stat-number" id="pendingApprovalsCount">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">My Requests</div>
+            <div class="stat-number" id="totalRequests">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Pending</div>
+            <div class="stat-number" id="pendingCount">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Ongoing</div>
+            <div class="stat-number" id="ongoingCount">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Completed</div>
+            <div class="stat-number" id="completedCount">0</div>
+        </div>
+    </div>
+
+    <!-- ── Main Grid ─────────────────────────────────────────────────────── -->
+    <div class="dashboard-main-grid">
+
+        <!-- Left: Approval Requests Section -->
+        <div class="approvals-panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-clipboard-check"></i> Service Requests Requiring Approval</h3>
+                <span class="dept-label" id="deptLabel"></span>
+            </div>
+
+            <!-- Approval filter tabs -->
+            <div class="approval-tabs" id="approvalTabs">
+                <button class="approval-tab active" data-filter="all">All Requests</button>
+                <button class="approval-tab" data-filter="pending">Pending Approval</button>
+                <button class="approval-tab" data-filter="approved">Approved</button>
+                <button class="approval-tab" data-filter="rejected">Rejected</button>
+            </div>
+
+            <div class="approval-cards-list" id="approvalCardsList">
+                <div class="loading-placeholder">Loading approval requests…</div>
+            </div>
+        </div>
+
+        <!-- Right: My Requests + Activity -->
+        <div class="right-column">
+            <div class="requests-panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-ticket-alt"></i> My Recent Requests</h3>
+                    <a href="#" class="action-link" id="viewAllTicketsLink">View All →</a>
+                </div>
+
+                <!-- My requests filter tabs -->
+                <div class="my-request-tabs" id="myRequestTabs">
+                    <button class="my-tab active" data-filter="all">All</button>
+                    <button class="my-tab" data-filter="Ongoing">Ongoing</button>
+                    <button class="my-tab" data-filter="Completed">Completed</button>
+                    <button class="my-tab" data-filter="Closed">Closed</button>
+                </div>
+
+                <div class="ticket-list" id="myTicketsList">
+                    <div class="loading-placeholder">Loading your requests…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- MODAL: Approval Detail View -->
+<div id="approvalDetailModal" class="modal-overlay">
+    <div class="modal-container modal-large" style="max-width:800px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-clipboard-list"></i> Request Details &amp; Approval</h3>
+            <button class="modal-close" id="closeApprovalDetailBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="approvalDetailBody"></div>
+    </div>
+</div>
+
+<!-- MODAL: New Service Request Form -->
+<div id="newRequestModal" class="modal-overlay">
+    <div class="modal-container modal-large">
+        <div class="modal-header">
+            <h3><i class="fas fa-pen-alt"></i> Submit Service Request</h3>
+            <button class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="serviceRequestForm" novalidate>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category <span class="required-star">*</span></label>
+                        <select id="category" required>
+                            <option value="">Select category</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Software">Software</option>
+                            <option value="Network">Network</option>
+                            <option value="Account Access">Account Access</option>
+                            <option value="Consumable">Consumable</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Department <span class="required-star">*</span></label>
+                        <select id="department" required>
+                            <option value="">Select department</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Equipment/Item <span class="required-star">*</span></label>
+                        <input type="text" id="equipmentItem" placeholder="e.g., Projector, Printer" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Request Type <span class="required-star">*</span></label>
+                        <select id="requestType" required>
+                            <option value="">Select type</option>
+                            <option value="Hardware Issue">Hardware Issue</option>
+                            <option value="Software Issue">Software Issue</option>
+                            <option value="Network Issue">Network Issue</option>
+                            <option value="Installation">Installation</option>
+                            <option value="Maintenance">Maintenance</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>Title <span class="required-star">*</span></label>
+                        <input type="text" id="requestTitle" placeholder="Brief summary of the issue" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>Issue Description <span class="required-star">*</span></label>
+                        <textarea id="description" rows="4" placeholder="Describe the issue in detail…"></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Room/Location</label>
+                        <input type="text" id="location" placeholder="e.g., Building A, Room 301">
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Date</label>
+                        <input type="date" id="preferredDate">
+                    </div>
+                </div>
+                <div class="priority-section">
+                    <div class="priority-label"><i class="fas fa-chart-line"></i> Priority Level (Auto-calculated)</div>
+                    <div class="priority-value">
+                        <span class="priority-badge-large low" id="priorityDisplay">Low</span>
+                        <span class="priority-note">Based on category and request type</span>
+                    </div>
+                </div>
+                <div class="sla-preview" id="slaPreview" style="display:none;">
+                    <div class="sla-preview-row">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span>Response within <strong id="slaResponseTime">—</strong></span>
+                    </div>
+                    <div class="sla-preview-row">
+                        <i class="fas fa-clock"></i>
+                        <span>Resolution within <strong id="slaResolutionTime">—</strong></span>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel-modal" id="cancelFormBtn"><i class="fas fa-times"></i> Cancel</button>
+                    <button type="submit" class="btn-submit-modal"><i class="fas fa-paper-plane"></i> Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Submission Confirmation -->
+<div id="confirmationModal" class="modal-overlay">
+    <div class="confirmation-modal">
+        <div class="modal-header">
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+            <h2>Request Submitted!</h2>
+            <p>Your IT service request has been received</p>
+        </div>
+        <div class="modal-body">
+            <div class="request-summary-card">
+                <div class="summary-row"><span class="summary-label">Request ID:</span><span class="summary-value" id="confirmTicketId">—</span></div>
+                <div class="summary-row"><span class="summary-label">Title:</span><span class="summary-value" id="confirmTitle">—</span></div>
+                <div class="summary-row"><span class="summary-label">Priority:</span><span class="summary-value" id="confirmPriority">—</span></div>
+                <div class="summary-row"><span class="summary-label">Department:</span><span class="summary-value" id="confirmDept">—</span></div>
+                <div class="summary-row"><span class="summary-label">Submitted:</span><span class="summary-value" id="confirmDate">—</span></div>
+            </div>
+            <div class="modal-footer-actions">
+                <button class="btn-done" id="modalDoneBtn"><i class="fas fa-check"></i> Done</button>
+                <button class="btn-new-request" id="modalNewRequestBtn"><i class="fas fa-plus"></i> Submit Another</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: My Request Detail + Follow-Up -->
+<div id="requestDetailModal" class="modal-overlay">
+    <div class="modal-container modal-large" style="max-width:780px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-clipboard-list"></i> Request Details &amp; Conversation</h3>
+            <button class="modal-close" id="closeDetailModalBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="detailModalBody"></div>
+    </div>
+</div>
+
+<!-- MODAL: Issue Resolution Confirmation -->
+<div id="resolveConfirmModal" class="modal-overlay">
+    <div class="modal-container" style="max-width:460px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-question-circle"></i> Confirm Issue Resolved?</h3>
+            <button class="modal-close" id="closeResolveModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom:16px;color:#2c4c6e;font-size:0.95rem;">
+                Has the IT team fully resolved this issue for ticket <strong id="resolveTicketCode"></strong>?
+            </p>
+            <div class="resolve-actions">
+                <button class="btn-confirm-resolved" id="confirmResolvedBtn">
+                    <i class="fas fa-check-circle"></i> Yes, Issue Resolved
+                </button>
+                <button class="btn-reopen" id="reopenTicketBtn">
+                    <i class="fas fa-redo"></i> Not Resolved — Re-open
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Feedback Form -->
+<div id="feedbackModal" class="modal-overlay">
+    <div class="modal-container" style="max-width:500px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-star"></i> Rate the IT Service</h3>
+            <button class="modal-close" id="closeFeedbackModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.85rem;color:#6c86a0;margin-bottom:20px;">Your feedback helps us improve our service quality.</p>
+            <div class="star-rating-group">
+                <span class="star-label">Rating</span>
+                <div class="star-rating" id="starRating">
+                    <i class="fas fa-star" data-value="1"></i>
+                    <i class="fas fa-star" data-value="2"></i>
+                    <i class="fas fa-star" data-value="3"></i>
+                    <i class="fas fa-star" data-value="4"></i>
+                    <i class="fas fa-star" data-value="5"></i>
+                </div>
+                <span class="star-count" id="starCount">0 / 5</span>
+            </div>
+            <div class="form-group" style="margin-top:16px;">
+                <label>Comment (optional)</label>
+                <textarea id="feedbackComment" rows="3" placeholder="Share your experience or suggestions…"></textarea>
+            </div>
+            <div class="form-actions">
+                <button class="btn-cancel-modal" id="skipFeedbackBtn"><i class="fas fa-forward"></i> Skip</button>
+                <button class="btn-submit-modal" id="submitFeedbackBtn"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Reject with note -->
+<div id="rejectModal" class="modal-overlay">
+    <div class="modal-container" style="max-width:460px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-times-circle"></i> Reject Request</h3>
+            <button class="modal-close" id="closeRejectModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.85rem;color:#6c86a0;margin-bottom:16px;">
+                Provide a reason for rejecting ticket <strong id="rejectTicketCode"></strong>. This will be visible to the requester.
+            </p>
+            <div class="form-group">
+                <label>Rejection Reason</label>
+                <textarea id="rejectionNote" rows="3" placeholder="e.g., Budget not approved, duplicate request…"></textarea>
+            </div>
+            <div class="form-actions">
+                <button class="btn-cancel-modal" id="cancelRejectBtn"><i class="fas fa-arrow-left"></i> Back</button>
+                <button class="btn-reject-confirm" id="confirmRejectBtn"><i class="fas fa-times"></i> Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: View All My Tickets -->
+<div id="fullListModal" class="modal-overlay full-list-overlay">
+    <div class="modal-container full-list-container">
+        <div class="modal-header">
+            <h3><i class="fas fa-tasks"></i> All My Service Requests</h3>
+            <button class="modal-close" id="closeFullListBtn">&times;</button>
+        </div>
+        <div class="modal-body full-list-body">
+            <div class="filter-bar" id="ticketFilterBar">
+                <button class="filter-chip filter-chip-active" data-filter="all">All Requests</button>
+                <button class="filter-chip" data-filter="Ongoing">Ongoing</button>
+                <button class="filter-chip" data-filter="Completed">Completed</button>
+                <button class="filter-chip" data-filter="Closed">Closed</button>
+            </div>
+            <div class="filter-stats"><span class="results-count" id="resultsCount">0 requests</span></div>
+            <div class="tickets-grid" id="allTicketsGrid">
+                <div class="loading-placeholder">Loading…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toastMsg" class="toast-message"></div>
+<script src="DeptHeadDashboard.js"></script>
+</body>
+</html>

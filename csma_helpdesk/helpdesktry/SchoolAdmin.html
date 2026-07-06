@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CSMA IT Helpdesk | School Admin Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="Sidebar.css">
+    <link rel="stylesheet" href="SchoolAdmin.css">
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+
+    <!-- ══════════════════════════════════════════════════════
+         SIDEBAR  (same structure as Dashboard.html)
+    ══════════════════════════════════════════════════════ -->
+    <aside class="sidebar" id="mainSidebar">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <img src="https://scontent.fmnl8-4.fna.fbcdn.net/v/t39.30808-6/317390607_820079655836948_3769284989226831402_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=T5XwQtp6HgwQ7kNvwGvcfPY&_nc_oc=AdqgEJSjJHp6s3KRt2Y4_vEy66knBtknEOV01v9l-5DzGKgY2IWYvB768ngAz1ZRup8&_nc_zt=23&_nc_ht=scontent.fmnl8-4.fna&oh=00_Af4GmdmGSeBsihthQS3mJKIpQJrogorfZ26PaDR9ugHiMg&oe=6A0B1CE7"
+                         alt="CSMA Logo">
+                </div>
+                <div class="logo-text">
+                    <h2>CSMA</h2>
+                    <span>School Admin Portal</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <a href="#" class="nav-item active" data-section="dashboard">
+                <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" data-section="service-requests">
+                <i class="fas fa-ticket-alt"></i><span>Service Requests</span>
+            </a>
+            <a href="#" class="nav-item" data-section="inventory">
+                <i class="fas fa-boxes"></i><span>Inventory</span>
+            </a>
+            <a href="#" class="nav-item" data-section="cost-analysis">
+                <i class="fas fa-chart-pie"></i><span>Cost Analysis</span>
+            </a>
+            <a href="#" class="nav-item" data-section="feedback">
+                <i class="fas fa-star"></i><span>Feedback</span>
+            </a>
+            <a href="#" class="nav-item" data-section="reports">
+                <i class="fas fa-file-alt"></i><span>Reports</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="#" class="nav-item" data-section="user-management">
+                <i class="fas fa-users"></i><span>User Management</span>
+            </a>
+            <a href="#" class="nav-item" data-section="notifications">
+                <i class="fas fa-bell"></i><span>Notifications</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sa-user-info">
+                <i class="fas fa-user-shield"></i>
+                <div>
+                    <span class="sa-name" id="sidebarUserName">School Admin</span>
+                    <span class="sa-role">View-Only Access</span>
+                </div>
+            </div>
+            <button class="logout-sidebar-btn" id="sidebarLogoutBtn">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ══════════════════════════════════════════════════════
+         MAIN CONTENT
+    ══════════════════════════════════════════════════════ -->
+    <main class="main-content">
+
+        <!-- Top bar -->
+        <header class="top-bar">
+            <div class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></div>
+            <div class="page-title"><h1 id="pageTitle">Dashboard</h1></div>
+            <div class="top-bar-actions">
+                <!-- Notifications bell -->
+                <div class="notif-wrapper" id="notifWrapper">
+                    <button class="notif-bell" id="notifBell">
+                        <i class="fas fa-bell"></i>
+                        <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+                    </button>
+                    <div class="notif-dropdown" id="notifDropdown">
+                        <div class="notif-dropdown-header">
+                            <span>Notifications</span>
+                            <button id="markAllReadBtn">Mark all read</button>
+                        </div>
+                        <div class="notif-dropdown-list" id="notifList">
+                            <div class="notif-empty">No new notifications</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Theme toggle -->
+                <div class="theme-toggle-wrapper">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <label class="switch">
+                        <input type="checkbox" id="themeSwitchCheckbox">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <!-- ══ SECTION: Dashboard ══════════════════════════════════════════ -->
+        <section id="section-dashboard" class="sa-section active">
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-title">Total Requests</div><div class="stat-number" data-stat="total">0</div></div>
+                <div class="stat-card"><div class="stat-title">Pending</div><div class="stat-number" data-stat="pending">0</div></div>
+                <div class="stat-card"><div class="stat-title">Ongoing</div><div class="stat-number" data-stat="ongoing">0</div></div>
+                <div class="stat-card"><div class="stat-title">Completed</div><div class="stat-number" data-stat="completed">0</div></div>
+                <div class="stat-card"><div class="stat-title">Low Stock Items</div><div class="stat-number" data-stat="low_stock">0</div></div>
+                <div class="stat-card"><div class="stat-title">Inventory Value</div><div class="stat-number" data-stat="inv_value">₱0</div></div>
+            </div>
+
+            <!-- Shortcut tiles -->
+            <div class="shortcut-grid">
+                <div class="shortcut-tile" data-goto="service-requests"><i class="fas fa-ticket-alt"></i><span>Service Requests</span></div>
+                <div class="shortcut-tile" data-goto="inventory"><i class="fas fa-boxes"></i><span>Inventory</span></div>
+                <div class="shortcut-tile" data-goto="cost-analysis"><i class="fas fa-chart-pie"></i><span>Cost Analysis</span></div>
+                <div class="shortcut-tile" data-goto="user-management"><i class="fas fa-users"></i><span>User Management</span></div>
+                <div class="shortcut-tile" data-goto="feedback"><i class="fas fa-star"></i><span>Feedback</span></div>
+                <div class="shortcut-tile" data-goto="reports"><i class="fas fa-file-alt"></i><span>Reports</span></div>
+            </div>
+
+            <!-- Recent activities -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-history"></i> Recent Activities</h3>
+                </div>
+                <div class="activity-list" id="dashboardActivityList">
+                    <div class="loading-msg">Loading activities…</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ SECTION: Service Requests ══════════════════════════════════ -->
+        <section id="section-service-requests" class="sa-section">
+            <!-- Summary cards -->
+            <div class="stats-row" id="srSummaryRow">
+                <div class="stat-card"><div class="stat-title">Total</div><div class="stat-number" id="srTotal">0</div></div>
+                <div class="stat-card"><div class="stat-title">Pending</div><div class="stat-number" id="srPending">0</div></div>
+                <div class="stat-card"><div class="stat-title">Ongoing</div><div class="stat-number" id="srOngoing">0</div></div>
+                <div class="stat-card"><div class="stat-title">Completed</div><div class="stat-number" id="srCompleted">0</div></div>
+                <div class="stat-card"><div class="stat-title">Closed</div><div class="stat-number" id="srClosed">0</div></div>
+            </div>
+
+            <!-- Status tabs -->
+            <div class="tab-bar">
+                <button class="tab-btn active" data-filter-status="all">Overall Requests</button>
+                <button class="tab-btn" data-filter-status="Pending">Pending</button>
+                <button class="tab-btn" data-filter-status="Ongoing">Ongoing</button>
+                <button class="tab-btn" data-filter-status="Completed">Completed</button>
+                <button class="tab-btn" data-filter-status="Closed">Closed</button>
+            </div>
+
+            <!-- Filter row -->
+            <div class="filter-row">
+                <select class="filter-select" id="srDeptFilter">
+                    <option value="all">All Departments</option>
+                    <option value="Elementary">Elementary</option>
+                    <option value="Junior High School">Junior High School</option>
+                    <option value="Senior High School">Senior High School</option>
+                </select>
+                <select class="filter-select" id="srPriorityFilter">
+                    <option value="all">All Priority</option>
+                    <option value="Critical">Critical</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="srSearch" class="search-input" placeholder="Search ticket ID, requester, description…">
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="panel">
+                <div class="table-wrapper">
+                    <table class="sa-table" id="srTable">
+                        <thead>
+                            <tr>
+                                <th>Ticket ID</th><th>Requester</th><th>Department</th>
+                                <th>Category</th><th>Priority</th><th>Status</th>
+                                <th>Date Submitted</th><th>Date Completed</th><th>Date Closed</th>
+                                <th>Assigned To</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="srTableBody"><tr><td colspan="11" class="loading-msg">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ SECTION: Inventory ══════════════════════════════════════════ -->
+        <section id="section-inventory" class="sa-section">
+            <!-- Inventory stats -->
+            <div class="stats-row" id="invSummaryRow">
+                <div class="stat-card"><div class="stat-title">Total Equipment</div><div class="stat-number" id="invEquipQty">0</div></div>
+                <div class="stat-card"><div class="stat-title">Total Consumables</div><div class="stat-number" id="invConsQty">0</div></div>
+                <div class="stat-card"><div class="stat-title">Equipment Types</div><div class="stat-number" id="invEquipTypes">0</div></div>
+                <div class="stat-card"><div class="stat-title">Consumable Types</div><div class="stat-number" id="invConsTypes">0</div></div>
+                <div class="stat-card sa-alert-card"><div class="stat-title">Low Stock Alert</div><div class="stat-number" id="invLowStock">0</div></div>
+                <div class="stat-card sa-warn-card"><div class="stat-title">Oversupply Alert</div><div class="stat-number" id="invOversupply">0</div></div>
+            </div>
+
+            <!-- Tabs + search/filter -->
+            <div class="tab-bar">
+                <button class="tab-btn active" data-inv-tab="all">Overall Inventory</button>
+                <button class="tab-btn" data-inv-tab="equipment">Equipment</button>
+                <button class="tab-btn" data-inv-tab="consumable">Consumables</button>
+                <button class="tab-btn" data-inv-tab="allocated">Allocated Items</button>
+            </div>
+            <div class="filter-row">
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="invSearch" class="search-input" placeholder="Search item, category, department…">
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="table-wrapper">
+                    <table class="sa-table" id="invTable">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th><th>Type</th><th>Category</th>
+                                <th>Quantity</th><th>Unit Price</th><th>Total Value</th>
+                                <th>Department</th><th>Stock Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invTableBody"><tr><td colspan="8" class="loading-msg">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ SECTION: Cost Analysis ══════════════════════════════════════ -->
+        <section id="section-cost-analysis" class="sa-section">
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-title">Total Repair Costs</div><div class="stat-number" id="caRepair">₱0</div></div>
+                <div class="stat-card"><div class="stat-title">Total Maintenance</div><div class="stat-number" id="caMaintenance">₱0</div></div>
+                <div class="stat-card"><div class="stat-title">Total Replacement</div><div class="stat-number" id="caReplacement">₱0</div></div>
+                <div class="stat-card"><div class="stat-title">Grand Total</div><div class="stat-number" id="caGrandTotal">₱0</div></div>
+            </div>
+
+            <div class="two-col-grid">
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fas fa-building"></i> Cost by Department</h3></div>
+                    <div class="table-wrapper">
+                        <table class="sa-table" id="caDeptTable">
+                            <thead><tr><th>Department</th><th>Repair Cost</th><th>Maintenance Cost</th><th>Total</th></tr></thead>
+                            <tbody id="caDeptBody"><tr><td colspan="4" class="loading-msg">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fas fa-tag"></i> Cost by Category</h3></div>
+                    <div class="table-wrapper">
+                        <table class="sa-table" id="caCatTable">
+                            <thead><tr><th>Category</th><th>Total Cost</th><th>Tickets</th><th>%</th></tr></thead>
+                            <tbody id="caCatBody"><tr><td colspan="4" class="loading-msg">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly trend -->
+            <div class="panel">
+                <div class="panel-header"><h3><i class="fas fa-chart-line"></i> Monthly Expense Trend</h3></div>
+                <div class="chart-wrapper" id="caChartWrapper">
+                    <canvas id="caMonthlyChart" height="120"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ SECTION: Feedback ══════════════════════════════════════════ -->
+        <section id="section-feedback" class="sa-section">
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-title">Average Rating</div><div class="stat-number" id="fbAvgRating">—</div></div>
+                <div class="stat-card"><div class="stat-title">Total Feedback</div><div class="stat-number" id="fbTotal">0</div></div>
+                <div class="stat-card"><div class="stat-title">Positive (4–5★)</div><div class="stat-number" id="fbPositive">0</div></div>
+                <div class="stat-card"><div class="stat-title">Negative (1–3★)</div><div class="stat-number" id="fbNegative">0</div></div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-row">
+                <select class="filter-select" id="fbRatingFilter">
+                    <option value="0">All Ratings</option>
+                    <option value="5">5 Stars</option>
+                    <option value="4">4 Stars</option>
+                    <option value="3">3 Stars</option>
+                    <option value="2">2 Stars</option>
+                    <option value="1">1 Star</option>
+                </select>
+                <select class="filter-select" id="fbDeptFilter">
+                    <option value="all">All Departments</option>
+                    <option value="Elementary">Elementary</option>
+                    <option value="Junior High School">Junior High School</option>
+                    <option value="Senior High School">Senior High School</option>
+                </select>
+                <select class="filter-select" id="fbRespondedFilter">
+                    <option value="all">All Responses</option>
+                    <option value="yes">Has Comment</option>
+                    <option value="no">No Comment</option>
+                </select>
+                <input type="date" class="filter-select" id="fbDateFrom" title="Date from">
+                <input type="date" class="filter-select" id="fbDateTo" title="Date to">
+            </div>
+
+            <div class="panel">
+                <div class="table-wrapper">
+                    <table class="sa-table" id="fbTable">
+                        <thead>
+                            <tr>
+                                <th>Requester</th><th>Ticket ID</th><th>Rating</th>
+                                <th>Comment</th><th>Department</th><th>Date Submitted</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fbTableBody"><tr><td colspan="7" class="loading-msg">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ SECTION: Reports ════════════════════════════════════════════ -->
+        <section id="section-reports" class="sa-section">
+            <div class="two-col-grid">
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fas fa-cog"></i> Configure Report</h3></div>
+                    <div style="padding:8px 0;">
+                        <div class="form-group">
+                            <label class="form-label">Report Type</label>
+                            <select class="filter-select" id="reportType" style="width:100%">
+                                <option value="ServiceRequest">Service Request Report</option>
+                                <option value="Inventory">Inventory Status Report</option>
+                                <option value="CostAnalysis">Cost Analysis Report</option>
+                                <option value="UserManagement">User Management Report</option>
+                                <option value="Feedback">Feedback Report</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Date From</label>
+                                <input type="date" class="filter-select" id="reportDateFrom" style="width:100%">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Date To</label>
+                                <input type="date" class="filter-select" id="reportDateTo" style="width:100%">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Export Format</label>
+                            <div class="export-format-group" id="exportFormatGroup">
+                                <button class="export-btn active" data-fmt="PDF"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="export-btn" data-fmt="Excel"><i class="fas fa-file-excel"></i> Excel</button>
+                                <button class="export-btn" data-fmt="CSV"><i class="fas fa-file-csv"></i> CSV</button>
+                            </div>
+                        </div>
+                        <button class="btn-primary-sa" id="generateReportBtn">
+                            <i class="fas fa-download"></i> Generate Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fas fa-clock"></i> Recent Reports</h3></div>
+                    <div class="table-wrapper">
+                        <table class="sa-table" id="recentReportsTable">
+                            <thead><tr><th>Report Name</th><th>Date Generated</th><th>Format</th></tr></thead>
+                            <tbody id="recentReportsBody"><tr><td colspan="3" class="loading-msg">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ SECTION: User Management ════════════════════════════════════ -->
+        <section id="section-user-management" class="sa-section">
+            <!-- Audit log summary -->
+            <div class="stats-row" id="auditSummaryRow">
+                <div class="stat-card"><div class="stat-title">Total Activities</div><div class="stat-number" id="auditTotal">0</div></div>
+                <div class="stat-card"><div class="stat-title">IT Admin Actions</div><div class="stat-number" id="auditAdminAct">0</div></div>
+                <div class="stat-card"><div class="stat-title">User Actions</div><div class="stat-number" id="auditUserAct">0</div></div>
+                <div class="stat-card"><div class="stat-title">Today's Activities</div><div class="stat-number" id="auditToday">0</div></div>
+            </div>
+
+            <!-- Sub-tabs -->
+            <div class="tab-bar">
+                <button class="tab-btn active" data-um-tab="users">Users</button>
+                <button class="tab-btn" data-um-tab="audit">Activity Log</button>
+            </div>
+
+            <!-- Users sub-section -->
+            <div id="umUsersSection">
+                <div class="filter-row">
+                    <select class="filter-select" id="umRoleFilter">
+                        <option value="all">All Roles</option>
+                        <option value="admin">IT Administrator</option>
+                        <option value="dept_head">Department Head</option>
+                        <option value="requester">Faculty / Staff</option>
+                        <option value="school_admin">School Admin</option>
+                    </select>
+                    <select class="filter-select" id="umStatusFilter">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                    <div class="search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="umSearch" class="search-input" placeholder="Search name, ID, email…">
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="table-wrapper">
+                        <table class="sa-table" id="umTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th><th>Full Name</th><th>Email</th>
+                                    <th>Role</th><th>Status</th><th>Date Joined</th><th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="umTableBody"><tr><td colspan="7" class="loading-msg">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit log sub-section -->
+            <div id="umAuditSection" style="display:none;">
+                <div class="filter-row">
+                    <select class="filter-select" id="auditModuleFilter">
+                        <option value="all">All Modules</option>
+                        <option value="Dashboard">Dashboard</option>
+                        <option value="ServiceRequest">Service Requests</option>
+                        <option value="Inventory">Inventory</option>
+                        <option value="UserManagement">User Management</option>
+                    </select>
+                    <select class="filter-select" id="auditRoleFilter">
+                        <option value="all">All Roles</option>
+                        <option value="admin">IT Administrator</option>
+                        <option value="requester">Faculty / Staff</option>
+                    </select>
+                    <input type="date" class="filter-select" id="auditDateFrom">
+                    <input type="date" class="filter-select" id="auditDateTo">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="auditSearch" class="search-input" placeholder="Search user, action…">
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="table-wrapper">
+                        <table class="sa-table" id="auditTable">
+                            <thead>
+                                <tr>
+                                    <th>Log ID</th><th>Timestamp</th><th>User</th><th>Role</th>
+                                    <th>Module</th><th>Action</th><th>Status</th><th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody"><tr><td colspan="8" class="loading-msg">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ SECTION: Notifications ══════════════════════════════════════ -->
+        <section id="section-notifications" class="sa-section">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-bell"></i> All Notifications</h3>
+                    <button class="btn-sm" id="markAllReadPageBtn">Mark All Read</button>
+                </div>
+                <div class="notif-full-list" id="notifFullList">
+                    <div class="loading-msg">Loading notifications…</div>
+                </div>
+            </div>
+        </section>
+
+    </main><!-- /main-content -->
+</div><!-- /dashboard-wrapper -->
+
+<!-- ══ MODAL: Ticket Detail (view-only) ════════════════════════════════════ -->
+<div id="ticketDetailModal" class="sa-modal-overlay">
+    <div class="sa-modal">
+        <div class="sa-modal-header">
+            <h3><i class="fas fa-clipboard-list"></i> Request Details</h3>
+            <button class="sa-modal-close" id="closeTicketModal">&times;</button>
+        </div>
+        <div class="sa-modal-body" id="ticketDetailBody">Loading…</div>
+    </div>
+</div>
+
+<!-- ══ MODAL: User Detail / Password Reset ════════════════════════════════ -->
+<div id="userDetailModal" class="sa-modal-overlay">
+    <div class="sa-modal" style="max-width:500px;">
+        <div class="sa-modal-header">
+            <h3><i class="fas fa-user"></i> User Details</h3>
+            <button class="sa-modal-close" id="closeUserModal">&times;</button>
+        </div>
+        <div class="sa-modal-body" id="userDetailBody">Loading…</div>
+    </div>
+</div>
+
+<!-- ══ MODAL: Audit Log Detail ════════════════════════════════════════════ -->
+<div id="auditDetailModal" class="sa-modal-overlay">
+    <div class="sa-modal" style="max-width:520px;">
+        <div class="sa-modal-header">
+            <h3><i class="fas fa-history"></i> Activity Log Detail</h3>
+            <button class="sa-modal-close" id="closeAuditModal">&times;</button>
+        </div>
+        <div class="sa-modal-body" id="auditDetailBody">Loading…</div>
+    </div>
+</div>
+
+<!-- ══ MODAL: Feedback Detail ═════════════════════════════════════════════ -->
+<div id="feedbackDetailModal" class="sa-modal-overlay">
+    <div class="sa-modal" style="max-width:540px;">
+        <div class="sa-modal-header">
+            <h3><i class="fas fa-star"></i> Feedback Detail</h3>
+            <button class="sa-modal-close" id="closeFeedbackModal">&times;</button>
+        </div>
+        <div class="sa-modal-body" id="feedbackDetailBody">Loading…</div>
+    </div>
+</div>
+
+<div id="logoutToast" class="logout-toast">🔐 Logging out…</div>
+
+<script src="Sidebar.js"></script>
+<script src="SchoolAdmin.js"></script>
+</body>
+</html>
