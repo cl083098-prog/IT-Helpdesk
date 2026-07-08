@@ -42,10 +42,26 @@
 
     function initServiceRequest() {
         injectStyles();
-        loadTicketsFromDB();     // fetches live data from PHP/MySQL
+        initTheme();
+        loadTicketsFromDB();
         initFilters();
         initBulkActions();
-        initCompletionModal();   // FIX 3: wire the "Mark as Completed" confirmation modal
+        initCompletionModal();
+    }
+
+    function initTheme() {
+        const toggle = document.getElementById('themeSwitchCheckbox');
+        const icon   = document.getElementById('themeIcon');
+        const isDark = localStorage.getItem('theme') === 'dark';
+        if (toggle) toggle.checked = isDark;
+        document.body.classList.toggle('dark-mode', isDark);
+        if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        toggle?.addEventListener('change', e => {
+            const dark = e.target.checked;
+            document.body.classList.toggle('dark-mode', dark);
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+            if (icon) icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+        });
     }
 
     // ─── DB: fetch all tickets ────────────────────────────────────────────────
@@ -159,10 +175,10 @@
         if (currentSearch.trim()) {
             const term = currentSearch.trim().toLowerCase();
             tickets = tickets.filter(t =>
-                t.id.toLowerCase().includes(term)         ||
-                t.requester.toLowerCase().includes(term)  ||
-                t.equipment.toLowerCase().includes(term)  ||
-                t.title.toLowerCase().includes(term)
+                (t.id       || '').toLowerCase().includes(term) ||
+                (t.requester|| '').toLowerCase().includes(term) ||
+                (t.equipment|| '').toLowerCase().includes(term) ||
+                (t.title    || '').toLowerCase().includes(term)
             );
         }
         return tickets;
@@ -312,7 +328,7 @@
     async function bulkUpdateStatus() {
         const count = selectedTickets.size;
         if (count === 0) { showToast('No tickets selected.', 'warning'); return; }
-        const newStatus = prompt(`Update status for ${count} selected ticket(s):\n\nEnter: Pending / Ongoing / Completed / Closed`, 'Ongoing');
+        const newStatus = prompt(`Update status for ${count} selected ticket(s):\n\nEnter: Pending or Ongoing\n(Use Mark as Completed in the detail view to complete individual tickets)`, 'Ongoing');
         if (newStatus === null) return;
         if (!['Pending', 'Ongoing'].includes(newStatus)) {
             showToast('Invalid status. Bulk update only supports Pending or Ongoing. Use Mark as Completed for completion flow.', 'error');
@@ -384,14 +400,10 @@
         const tbody = document.getElementById('tableBody');
         if (tbody) {
             tbody.addEventListener('click', e => {
-                const editIcon   = e.target.closest('.edit-ticket-icon');
-                const viewIcon   = e.target.closest('.view-ticket-icon');
                 const deleteIcon = e.target.closest('.delete-ticket-icon');
                 const viewLink   = e.target.closest('.view-ticket-link');
-                if (editIcon)   { e.preventDefault(); editTicket(editIcon.dataset.id); }
-                else if (viewIcon)   { e.preventDefault(); viewTicket(viewIcon.dataset.id); }
-                else if (deleteIcon) { e.preventDefault(); deleteTicket(deleteIcon.dataset.id); }
-                else if (viewLink)   { e.preventDefault(); viewTicket(viewLink.dataset.id); }
+                if (deleteIcon) { e.preventDefault(); deleteTicket(deleteIcon.dataset.id); }
+                else if (viewLink) { e.preventDefault(); viewTicket(viewLink.dataset.id); }
             });
         }
     }
@@ -671,30 +683,7 @@
         } catch { showToast('Network error.', 'error'); }
     }
 
-    // FIX 3: Admin can no longer set Completed/Closed/Pending Confirmation directly.
-    // Those states can only be reached through the "Mark as Completed" confirmation
-    // flow (openCompletionModal) followed by the requester's own confirmation.
-    function editTicket(ticketId) {
-        const ticket = ticketsData.find(t => t.id === ticketId);
-        if (!ticket) return;
-        const newStatus = prompt(
-            `Edit status for ${ticket.id}\nCurrent: ${ticket.status}\n\nEnter: Pending / Ongoing\n\n` +
-            `To mark this ticket as completed, use the checkmark ("Mark as Completed") action instead.`,
-            ticket.status
-        );
-        if (newStatus === null) return;
-
-        const blockedByAdmin = ['Completed', 'Closed', 'Pending Confirmation'];
-        if (blockedByAdmin.includes(newStatus)) {
-            showToast('Use "Mark as Completed" to complete a ticket — the requester must confirm first.', 'warning');
-            return;
-        }
-        if (!['Pending', 'Ongoing'].includes(newStatus)) {
-            showToast('Invalid status. Must be Pending or Ongoing for direct edit.', 'error');
-            return;
-        }
-        updateTicketStatusInDB(ticket.dbId, ticket.id, newStatus);
-    }
+    // editTicket removed — status changes are handled inside the detail overlay
 
     // ── FIX 3: Completion confirmation modal (matches Image 3) ────────────────
     function openCompletionModal(ticketId) {

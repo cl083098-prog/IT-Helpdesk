@@ -49,6 +49,29 @@ try {
         default        => 'RequesterDashboard.html',
     };
 
+    // ── Log successful login to audit_log ──────────────────────────────────────
+    $roleLabels = ['admin'=>'IT Admin','school_admin'=>'School Admin','dept_head'=>'Dept Head','requester'=>'Faculty/Staff'];
+    $roleLabel  = $roleLabels[$user['role']] ?? ucfirst($user['role']);
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (
+            id INT AUTO_INCREMENT PRIMARY KEY, user_id INT DEFAULT NULL,
+            user_name VARCHAR(100) NOT NULL DEFAULT '', user_role VARCHAR(50) NOT NULL DEFAULT '',
+            module VARCHAR(80) NOT NULL DEFAULT '', action VARCHAR(150) NOT NULL DEFAULT '',
+            detail TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL,
+            status ENUM('Success','Failed','Warning') DEFAULT 'Success',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+        $pdo->prepare(
+            "INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status)
+             VALUES(:uid,:uname,:urole,'Authentication','Logged in',:detail,:ip,'Success')"
+        )->execute([
+            ':uid'    => $user['id'],
+            ':uname'  => $user['full_name'],
+            ':urole'  => $user['role'],
+            ':detail' => "$roleLabel account authenticated. Redirected to: $redirectTo",
+            ':ip'     => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]);
+    } catch (PDOException $logErr) { /* Silently ignore if audit_log not yet available */ }
+
     echo json_encode([
         'success'     => true,
         'user'        => $user,

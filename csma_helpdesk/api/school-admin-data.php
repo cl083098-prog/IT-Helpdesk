@@ -59,8 +59,9 @@ try {
             if ($priority !== 'all') { $where[] = 't.priority = :priority';     $params[':priority'] = $priority; }
             if ($dept     !== 'all') { $where[] = 'd.name = :dept';             $params[':dept']     = $dept; }
             if ($search   !== '')    {
-                $where[] = '(t.ticket_code LIKE :s OR u.full_name LIKE :s OR t.title LIKE :s)';
-                $params[':s'] = "%$search%";
+                $sv = "%$search%";
+                $where[] = '(t.ticket_code LIKE :s1 OR u.full_name LIKE :s2 OR t.title LIKE :s3)';
+                $params[':s1'] = $params[':s2'] = $params[':s3'] = $sv;
             }
             $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
@@ -124,7 +125,7 @@ try {
 
             if ($tab === 'equipment')  { $where[] = "type='Equipment'"; }
             if ($tab === 'consumable') { $where[] = "type='Consumable'"; }
-            if ($search !== '') { $where[] = "(name LIKE :s OR category LIKE :s OR department LIKE :s)"; $params[':s'] = "%$search%"; }
+            if ($search !== '') { $sv = "%$search%"; $where[] = '(name LIKE :s1 OR category LIKE :s2 OR department LIKE :s3)'; $params[':s1']=$params[':s2']=$params[':s3']=$sv; }
 
             $whereSQL = $where ? 'WHERE '.implode(' AND ',$where) : '';
 
@@ -264,12 +265,46 @@ try {
             $where = []; $params = [];
             if ($role   !== 'all') { $where[] = 'role = :role';         $params[':role']   = $role; }
             if ($status !== 'all') { $where[] = 'is_active = :active';  $params[':active'] = $status === 'active' ? 1 : 0; }
-            if ($search !== '')    { $where[] = "(full_name LIKE :s OR username LIKE :s OR email LIKE :s)"; $params[':s'] = "%$search%"; }
+            if ($search !== '') { $sv = "%$search%"; $where[] = '(full_name LIKE :s1 OR username LIKE :s2 OR email LIKE :s3)'; $params[':s1']=$params[':s2']=$params[':s3']=$sv; }
 
             $whereSQL = $where ? 'WHERE '.implode(' AND ',$where) : '';
-            $stmt = $pdo->prepare("SELECT id, username, full_name, email, role, is_active, created_at FROM users $whereSQL ORDER BY created_at DESC");
+
+            // Safely build SELECT list — employee_id and department may not exist yet
+            // (depends on whether um-schema.sql has been run)
+            $availableCols = [];
+            try {
+                $cols = $pdo->query("SHOW COLUMNS FROM users")->fetchAll(PDO::FETCH_COLUMN);
+                $availableCols = $cols;
+            } catch (PDOException $e) {}
+
+            $selectCols = ['id', 'username', 'full_name', 'email', 'role', 'is_active', 'created_at'];
+            if (in_array('employee_id', $availableCols)) $selectCols[] = 'employee_id';
+            if (in_array('department',  $availableCols)) $selectCols[] = 'department';
+            $selectSQL = implode(', ', $selectCols);
+
+            $stmt = $pdo->prepare("SELECT $selectSQL FROM users $whereSQL ORDER BY created_at DESC");
             $stmt->execute($params);
-            jsonOk(['data' => $stmt->fetchAll()]);
+            $users = array_map(function($u) {
+                $u['role_label']  = match($u['role'] ?? '') {
+                    'admin'        => 'IT Admin',
+                    'school_admin' => 'School Admin',
+                    'dept_head'    => 'Dept Head',
+                    'requester'    => 'Faculty/Staff',
+                    default        => ucfirst($u['role'] ?? ''),
+                };
+                $u['status_text'] = ($u['is_active'] ?? 1) ? 'Active' : 'Inactive';
+                $u['employee_id'] = $u['employee_id'] ?? null;
+                $u['department']  = $u['department']  ?? null;
+                return $u;
+            }, $stmt->fetchAll());
+            // Role/active counts for summary cards (same pattern as user-management-data.php)
+            $hasIsActive = in_array('is_active', $availableCols);
+            $countSQL    = $hasIsActive
+                ? "SELECT role, is_active, COUNT(*) cnt FROM users GROUP BY role, is_active"
+                : "SELECT role, 1 AS is_active, COUNT(*) cnt FROM users GROUP BY role";
+            $counts = $pdo->query($countSQL)->fetchAll();
+
+            jsonOk(['data' => $users, 'counts' => $counts]);
             break;
 
         case 'reset_admin_password':
@@ -306,7 +341,7 @@ try {
             $where = []; $params = [];
             if ($module !== 'all') { $where[] = 'module = :module'; $params[':module'] = $module; }
             if ($role   !== 'all') { $where[] = 'user_role = :role'; $params[':role']   = $role; }
-            if ($search !== '') { $where[] = "(user_name LIKE :s OR action LIKE :s OR detail LIKE :s)"; $params[':s'] = "%$search%"; }
+            if ($search !== '') { $sv = "%$search%"; $where[] = '(user_name LIKE :s1 OR action LIKE :s2 OR detail LIKE :s3)'; $params[':s1']=$params[':s2']=$params[':s3']=$sv; }
             if ($dateFrom) { $where[] = 'DATE(created_at) >= :df'; $params[':df'] = $dateFrom; }
             if ($dateTo)   { $where[] = 'DATE(created_at) <= :dt'; $params[':dt'] = $dateTo; }
 

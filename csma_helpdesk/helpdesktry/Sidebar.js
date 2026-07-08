@@ -190,6 +190,10 @@
         }
     }
     
+    // Expose showLogoutModal globally so SchoolAdmin.js (and other pages)
+    // can call it without duplicating the implementation.
+    window.showLogoutModal = showLogoutModal;
+
     function showToastAndRedirect() {
         let toastElement = document.getElementById('logoutToast');
         

@@ -37,17 +37,15 @@
         initTheme();
         initNavigation();
         initModalCloseHandlers();
-        initNotifBell();
+        initResetPwdModal();
         initServiceRequestFilters();
         initInventoryFilters();
         initFeedbackFilters();
         initUserManagementFilters();
         initReportsSection();
         initShortcutTiles();
-        initMarkAllRead();
-
+        initSaNotifBell();
         await navigateTo('dashboard');
-        loadNotifications();
     }
 
     // ─── User info ────────────────────────────────────────────────────────────
@@ -91,7 +89,7 @@
 
         const titles = { dashboard:'Dashboard', 'service-requests':'Service Requests', inventory:'Inventory',
             'cost-analysis':'Cost Analysis', feedback:'Feedback Monitoring', reports:'Reports',
-            'user-management':'User Management', notifications:'Notifications' };
+            'user-management':'User Management', };
         const titleEl = document.getElementById('pageTitle');
         if (titleEl) titleEl.textContent = titles[section] || section;
 
@@ -103,7 +101,7 @@
             feedback:           loadFeedback,
             reports:            loadReports,
             'user-management':  loadUserManagement,
-            notifications:      loadNotificationsPage,
+
         };
         if (loaders[section]) await loaders[section]();
     }
@@ -480,8 +478,20 @@
     }
 
     // ─── User Management ──────────────────────────────────────────────────────
+    let _saFilterSuppressed = false;
+
+    function _saOpenModal(id) {
+        _saFilterSuppressed = true;
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+    }
+
     function initUserManagementFilters() {
-        ['umRoleFilter','umStatusFilter'].forEach(id => document.getElementById(id)?.addEventListener('change', loadUsers));
+        ['umRoleFilter','umStatusFilter'].forEach(id =>
+            document.getElementById(id)?.addEventListener('change', () => {
+                if (!_saFilterSuppressed) loadUsers();
+            })
+        );
         let umTimer; document.getElementById('umSearch')?.addEventListener('input', () => { clearTimeout(umTimer); umTimer = setTimeout(loadUsers, 320); });
 
         document.querySelectorAll('.tab-btn[data-um-tab]').forEach(btn => {
@@ -499,6 +509,14 @@
     }
 
     async function loadUserManagement() {
+        // Reset all user management filters on each navigation visit
+        // This prevents browser autofill from stale-searching on every load
+        const srch  = document.getElementById('umSearch');
+        const roleF = document.getElementById('umRoleFilter');
+        const statF = document.getElementById('umStatusFilter');
+        if (srch)  srch.value  = '';
+        if (roleF) roleF.value = 'all';
+        if (statF) statF.value = 'all';
         await loadUsers();
         await loadAuditSummary();
     }
@@ -514,71 +532,142 @@
         s('auditToday',    sm.today            || 0);
     }
 
+    // ─── User Summary Cards ───────────────────────────────────────────────────
+    function renderUserSummaryCards(counts) {
+        const totals = { all:0, admin:0, requester:0, dept_head:0, school_admin:0, active:0 };
+        (counts || []).forEach(c => {
+            totals.all += parseInt(c.cnt) || 0;
+            if (c.role in totals) totals[c.role] += parseInt(c.cnt) || 0;
+            if (parseInt(c.is_active) === 1) totals.active += parseInt(c.cnt) || 0;
+        });
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        set('umCardTotal',      totals.all);
+        set('umCardActive',     totals.active);
+        set('umCardITAdmin',    totals.admin);
+        set('umCardFaculty',    totals.requester);
+        set('umCardDeptHead',   totals.dept_head);
+        set('umCardSchoolAdmin',totals.school_admin);
+    }
+
     async function loadUsers() {
         const role   = document.getElementById('umRoleFilter')?.value   || 'all';
         const status = document.getElementById('umStatusFilter')?.value || 'all';
         const search = document.getElementById('umSearch')?.value       || '';
-        const json   = await apiFetch(`${API}?action=get_users&role=${role}&status=${status}&search=${encodeURIComponent(search)}`);
+        const json   = await apiFetch(
+            `${API}?action=get_users&role=${encodeURIComponent(role)}&status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}`
+        );
         const tbody  = document.getElementById('umTableBody');
         if (!tbody) return;
-        if (!json?.data?.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No users found.</td></tr>'; return; }
+
+        if (!json?.success) {
+            tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">Failed to load users: ${escHtml(json?.message || 'Server error')}</td></tr>`;
+            return;
+        }
+
+        renderUserSummaryCards(json.counts || []);
+
+        if (!json.data?.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">No users found.</td></tr>';
+            return;
+        }
 
         tbody.innerHTML = json.data.map(u => {
             const isItAdmin = u.role === 'admin';
+            const empId     = escHtml(u.employee_id || '—');
+            const rl        = escHtml(u.role_label  || roleLabel(u.role));
+            const st        = escHtml(u.status_text || (u.is_active ? 'Active' : 'Inactive'));
+            const roleBadge = u.role === 'admin' ? 'badge-ongoing' : u.role === 'school_admin' ? 'badge-required' : 'badge-completed';
+            const stBadge   = u.is_active ? 'badge-completed' : 'badge-closed';
             const resetBtn  = isItAdmin
-                ? `<button class="btn-reset-pwd" data-uid="${u.id}" data-uname="${escHtml(u.full_name)}">Reset Pwd</button>`
+                ? `<button type="button" class="btn-reset-pwd" data-uid="${u.id}" data-uname="${escHtml(u.full_name)}"><i class="fas fa-key"></i> Reset Pwd</button>`
                 : '';
+            // Serialise only safe scalar fields; avoid XSS via JSON.stringify on full row
+            const safeUser = JSON.stringify({
+                id: u.id, full_name: u.full_name, email: u.email || '',
+                role: u.role, role_label: u.role_label || u.role,
+                is_active: u.is_active ? 1 : 0,
+                employee_id: u.employee_id || '',
+                department:  u.department  || '',
+                created_at:  u.created_at  || ''
+            }).replace(/'/g, '&apos;');
             return `<tr>
-                <td>${u.id}</td>
+                <td class="um-empid">${empId}</td>
                 <td><strong>${escHtml(u.full_name)}</strong></td>
-                <td>${escHtml(u.email)}</td>
-                <td><span class="badge ${u.role==='admin'?'badge-ongoing':u.role==='school_admin'?'badge-required':'badge-completed'}">${roleLabel(u.role)}</span></td>
-                <td><span class="badge ${u.is_active?'badge-completed':'badge-closed'}">${u.is_active?'Active':'Inactive'}</span></td>
+                <td>${escHtml(u.email || '—')}</td>
+                <td><span class="badge ${roleBadge}">${rl}</span></td>
+                <td><span class="badge ${stBadge}">${st}</span></td>
                 <td>${formatDate(u.created_at)}</td>
-                <td>
-                    <button class="btn-view" data-user='${JSON.stringify(u).replace(/'/g,"&apos;")}'>View</button>
+                <td class="action-buttons">
+                    <button type="button" class="btn-view" data-user='${safeUser}'><i class="fas fa-eye"></i> View</button>
                     ${resetBtn}
                 </td>
             </tr>`;
         }).join('');
 
         tbody.querySelectorAll('.btn-view[data-user]').forEach(btn => {
-            btn.addEventListener('click', () => { try { openUserDetail(JSON.parse(btn.dataset.user)); } catch(e){} });
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                try { openUserDetail(JSON.parse(btn.dataset.user.replace(/&apos;/g, "'"))); }
+                catch(err) { console.error('SchoolAdmin openUserDetail parse error', err); }
+            });
         });
         tbody.querySelectorAll('.btn-reset-pwd[data-uid]').forEach(btn => {
-            btn.addEventListener('click', () => { pendingResetUserId = Number(btn.dataset.uid); openUserDetail({id:btn.dataset.uid, full_name:btn.dataset.uname, role:'admin'}, true); });
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                pendingResetUserId = Number(btn.dataset.uid);
+                openResetPasswordPanel(btn.dataset.uid, btn.dataset.uname);
+            });
         });
     }
 
-    function openUserDetail(u, showReset = false) {
+    function openUserDetail(u) {
         const modal = document.getElementById('userDetailModal');
         const body  = document.getElementById('userDetailBody');
-        if (!modal||!body) return;
-        const resetSection = (showReset || u.role==='admin') ? `
-            <div class="detail-section-title">Reset Password (IT Admin only)</div>
-            <div class="pwd-reset-form">
-                <input type="password" id="newPwdInput" placeholder="New password (min 6 chars)">
-                <button class="btn-primary-sa" style="padding:10px 20px;margin-top:0;" id="doResetPwdBtn">Reset</button>
-            </div>` : '';
+        if (!modal || !body) return;
+
+        // Build status and role badges
+        const statusBadge = u.is_active
+            ? '<span class="badge badge-completed">Active</span>'
+            : '<span class="badge badge-closed">Inactive</span>';
+        const roleBadgeClass = u.role === 'admin' ? 'badge-ongoing'
+            : u.role === 'school_admin' ? 'badge-required' : 'badge-completed';
+
         body.innerHTML = `
             <div class="detail-grid">
-                <div class="detail-item"><span class="detail-label">ID</span><span class="detail-value">${u.id}</span></div>
-                <div class="detail-item"><span class="detail-label">Full Name</span><span class="detail-value">${escHtml(u.full_name)}</span></div>
-                <div class="detail-item"><span class="detail-label">Email</span><span class="detail-value">${escHtml(u.email||'—')}</span></div>
-                <div class="detail-item"><span class="detail-label">Role</span><span class="detail-value">${roleLabel(u.role)}</span></div>
-                <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">${u.is_active?'Active':'Inactive'}</span></div>
-                <div class="detail-item"><span class="detail-label">Date Joined</span><span class="detail-value">${formatDate(u.created_at)}</span></div>
-            </div>
-            ${resetSection}`;
-        modal.classList.add('active');
+                <div class="detail-item">
+                    <span class="detail-label">Employee ID</span>
+                    <span class="detail-value" style="font-weight:700;color:#1f6392;">${escHtml(u.employee_id || '—')}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Full Name</span>
+                    <span class="detail-value">${escHtml(u.full_name)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Email</span>
+                    <span class="detail-value">${escHtml(u.email || '—')}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Department</span>
+                    <span class="detail-value">${escHtml(u.department || '—')}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Role</span>
+                    <span class="detail-value">
+                        <span class="badge ${roleBadgeClass}">${escHtml(u.role_label || roleLabel(u.role))}</span>
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value">${statusBadge}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Date Joined</span>
+                    <span class="detail-value">${formatDate(u.created_at)}</span>
+                </div>
+            </div>`;
 
-        document.getElementById('doResetPwdBtn')?.addEventListener('click', async () => {
-            const newPwd = document.getElementById('newPwdInput')?.value.trim();
-            if (!newPwd || newPwd.length < 6) { showToast('Password must be at least 6 characters.', true); return; }
-            const json = await apiFetch(API, { method:'POST', body:JSON.stringify({ action:'reset_admin_password', user_id:u.id, new_password:newPwd, requestor_name:USER_NAME }) });
-            if (json?.success) { showToast('✅ Password reset successfully.'); closeModal('userDetailModal'); }
-            else showToast('Reset failed: ' + (json?.message||'Unknown error'), true);
-        });
+        _saFilterSuppressed = true;
+        modal.classList.add('active');
     }
 
     async function loadAuditLog() {
@@ -637,62 +726,78 @@
         modal.classList.add('active');
     }
 
-    // ─── Notifications ────────────────────────────────────────────────────────
-    async function loadNotifications() {
-        const json = await apiFetch(`${API}?action=get_notifications&user_id=${USER_ID}`);
-        if (!json?.success) return;
-        const notifs = json.data || [];
-        const unread = notifs.filter(n => !n.is_read).length;
-        const badge  = document.getElementById('notifBadge');
-        if (badge) { badge.textContent = unread; badge.style.display = unread > 0 ? 'inline-block' : 'none'; }
 
-        const list = document.getElementById('notifList');
-        if (list) {
-            list.innerHTML = notifs.length === 0 ? '<div class="notif-empty">No notifications</div>'
-                : notifs.slice(0,6).map(n => `
-                <div class="notif-item ${n.is_read?'':'unread'}">
-                    <div class="notif-item-title">${escHtml(n.title)}</div>
-                    <div class="notif-item-desc">${escHtml(n.description||'')}</div>
-                    <div class="notif-item-time">${formatDate(n.created_at)}</div>
-                </div>`).join('');
-        }
-    }
 
-    async function loadNotificationsPage() {
-        const json = await apiFetch(`${API}?action=get_notifications&user_id=${USER_ID}`);
-        const container = document.getElementById('notifFullList');
-        if (!container) return;
-        if (!json?.data?.length) { container.innerHTML = '<div class="empty-msg">No notifications yet.</div>'; return; }
-        container.innerHTML = json.data.map(n => `
-            <div class="notif-full-item ${n.is_read?'':'unread'}">
-                <div class="notif-full-item-title">${escHtml(n.title)}</div>
-                ${n.description ? `<div class="notif-full-item-desc">${escHtml(n.description)}</div>` : ''}
-                <div class="notif-full-item-time">${formatDate(n.created_at)}</div>
-            </div>`).join('');
-    }
 
-    function initMarkAllRead() {
-        const handler = async () => {
-            await apiFetch(API, { method:'POST', body:JSON.stringify({ action:'mark_notifications_read', user_id:USER_ID }) });
-            loadNotifications();
-            if (currentSection === 'notifications') loadNotificationsPage();
-        };
-        document.getElementById('markAllReadBtn')?.addEventListener('click', handler);
-        document.getElementById('markAllReadPageBtn')?.addEventListener('click', handler);
-    }
-
-    // ─── Notification bell dropdown ───────────────────────────────────────────
-    function initNotifBell() {
-        const bell     = document.getElementById('notifBell');
-        const dropdown = document.getElementById('notifDropdown');
-        bell?.addEventListener('click', e => { e.stopPropagation(); dropdown?.classList.toggle('open'); });
-        document.addEventListener('click', e => { if (!e.target.closest('#notifWrapper')) dropdown?.classList.remove('open'); });
-    }
 
     // ─── Modals ───────────────────────────────────────────────────────────────
+    // ─── Reset Password Modal (School Admin) ─────────────────────────────────
+    function initResetPwdModal() {
+        // Live password match hint
+        ['rp-new-pwd','rp-confirm-pwd'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', () => {
+                const pwd  = document.getElementById('rp-new-pwd')?.value;
+                const conf = document.getElementById('rp-confirm-pwd')?.value;
+                const hint = document.getElementById('rpMatchHint');
+                if (!hint || !conf) return;
+                if (pwd === conf) {
+                    hint.style.color   = '#27ae60';
+                    hint.textContent   = '✓ Passwords match';
+                } else {
+                    hint.style.color   = '#c62828';
+                    hint.textContent   = '✗ Passwords do not match';
+                }
+            });
+        });
+
+        document.getElementById('confirmResetPwdBtn')?.addEventListener('click', async () => {
+            const newPwd  = document.getElementById('rp-new-pwd')?.value.trim();
+            const confPwd = document.getElementById('rp-confirm-pwd')?.value.trim();
+
+            if (!newPwd || newPwd.length < 8) {
+                showToast('Password must be at least 8 characters.', true);
+                return;
+            }
+            if (newPwd !== confPwd) {
+                showToast('Passwords do not match.', true);
+                return;
+            }
+            if (!pendingResetUserId) {
+                showToast('No user selected for reset.', true);
+                return;
+            }
+
+            const json = await apiFetch(API, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action:         'reset_admin_password',
+                    user_id:         pendingResetUserId,
+                    new_password:    newPwd,
+                    requestor_name:  USER_NAME,
+                }),
+            });
+
+            if (json?.success) {
+                showToast('✅ Password reset successfully.');
+                closeModal('resetPwdModal');
+                pendingResetUserId = null;
+                // Clear fields
+                ['rp-new-pwd','rp-confirm-pwd'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                const hint = document.getElementById('rpMatchHint');
+                if (hint) hint.textContent = '';
+            } else {
+                showToast('Reset failed: ' + (json?.message || 'Unknown error'), true);
+            }
+        });
+    }
+
     function initModalCloseHandlers() {
         [['closeTicketModal','ticketDetailModal'],['closeUserModal','userDetailModal'],
-         ['closeAuditModal','auditDetailModal'],['closeFeedbackModal','feedbackDetailModal']].forEach(([btnId, modalId]) => {
+         ['closeAuditModal','auditDetailModal'],['closeFeedbackModal','feedbackDetailModal'],
+         ['closeResetPwdModal','resetPwdModal'],['cancelResetPwdBtn','resetPwdModal']].forEach(([btnId, modalId]) => {
             document.getElementById(btnId)?.addEventListener('click', () => closeModal(modalId));
         });
         document.querySelectorAll('.sa-modal-overlay').forEach(overlay => {
@@ -702,14 +807,94 @@
             if (e.key === 'Escape') document.querySelectorAll('.sa-modal-overlay.active').forEach(m => m.classList.remove('active'));
         });
     }
-    function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
+    function closeModal(id) {
+        document.getElementById(id)?.classList.remove('active');
+        // Re-enable filters after focus events have settled
+        requestAnimationFrame(() => requestAnimationFrame(() => { _saFilterSuppressed = false; }));
+    }
+
+    // ─── School Admin Notification Bell ─────────────────────────────────────
+    function initSaNotifBell() {
+        const bell     = document.getElementById('saNotifBell');
+        const dropdown = document.getElementById('saNotifDropdown');
+        if (!bell || !dropdown) return;
+
+        bell.addEventListener('click', e => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+            if (dropdown.classList.contains('open')) loadSaNotifications();
+        });
+        document.addEventListener('click', e => {
+            if (!e.target.closest('#saNotifWrapper')) dropdown.classList.remove('open');
+        });
+        document.getElementById('saMarkAllReadBtn')?.addEventListener('click', async () => {
+            await apiFetch(API, { method:'POST', body:JSON.stringify({ action:'mark_notifications_read', user_id:USER_ID }) });
+            loadSaNotifications();
+        });
+
+        // Auto-load on init and poll every 60s
+        loadSaNotifications();
+        setInterval(loadSaNotifications, 60000);
+    }
+
+    async function loadSaNotifications() {
+        const json = await apiFetch(`${API}?action=get_notifications&user_id=${USER_ID}`);
+        const notifs = json?.data || [];
+        const unread = notifs.filter(n => !n.is_read).length;
+
+        const badge = document.getElementById('saNotifBadge');
+        if (badge) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = unread > 0 ? 'inline-block' : 'none'; }
+
+        const list = document.getElementById('saNotifList');
+        if (!list) return;
+        if (!notifs.length) { list.innerHTML = '<div class="admin-notif-empty">No new notifications</div>'; return; }
+
+        const fmtRel = d => { if (!d) return ''; const s = Math.floor((Date.now()-new Date(d))/1000); if(s<60) return 'Just now'; if(s<3600) return Math.floor(s/60)+' min ago'; if(s<86400) return Math.floor(s/3600)+' hr ago'; return Math.floor(s/86400)+' days ago'; };
+        list.innerHTML = notifs.slice(0,6).map(n => `
+            <div class="admin-notif-item${n.is_read?'':' unread'}">
+                <div class="admin-notif-dot"></div>
+                <div class="admin-notif-text">
+                    <div class="admin-notif-title">${escHtml(n.title)}</div>
+                    <div class="admin-notif-desc">${escHtml(n.description||'')}</div>
+                    <div class="admin-notif-time">${fmtRel(n.created_at)}</div>
+                </div>
+            </div>`).join('');
+    }
+
+    // ─── Reset Password Panel (School Admin → IT Admin only) ────────────────
+    function openResetPasswordPanel(userId, userName) {
+        pendingResetUserId = Number(userId);
+
+        // Set target user name
+        const nameEl = document.getElementById('rpTargetName');
+        if (nameEl) nameEl.textContent = userName || '—';
+
+        // Clear inputs and hint
+        ['rp-new-pwd', 'rp-confirm-pwd'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        const hint = document.getElementById('rpMatchHint');
+        if (hint) hint.textContent = '';
+
+        // Open modal — _saFilterSuppressed set so filters don't fire on close
+        _saFilterSuppressed = true;
+        document.getElementById('resetPwdModal')?.classList.add('active');
+    }
 
     // ─── Logout ───────────────────────────────────────────────────────────────
     function doLogout() {
-        const toast = document.getElementById('logoutToast');
-        if (toast) { toast.classList.add('show'); }
-        sessionStorage.removeItem('currentUser');
-        setTimeout(() => window.location.href = 'Login.html', 1200);
+        // Delegate to Sidebar.js showLogoutModal for consistent logout UX
+        // Sidebar.js is loaded before SchoolAdmin.js and exposes showLogoutModal
+        // via the same DOM injection pattern it uses for all IT Admin pages.
+        if (typeof showLogoutModal === 'function') {
+            showLogoutModal();
+        } else {
+            // Fallback in case Sidebar.js hasn't exposed showLogoutModal globally
+            if (!confirm('Are you sure you want to logout?')) return;
+            sessionStorage.removeItem('currentUser');
+            window.location.replace('Login.html');
+        }
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
