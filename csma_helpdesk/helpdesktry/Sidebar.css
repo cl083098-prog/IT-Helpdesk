@@ -579,3 +579,189 @@ body.dark-mode .filter-btn.active {
         text-align: center;
     }
 }
+/* ══════════════════════════════════════════════════════════════════════════
+   Admin Notification Bell — shared across all IT Admin pages
+   Injected by admin-notifications.js into .user-actions wrapper
+══════════════════════════════════════════════════════════════════════════ */
+
+/* Top-bar user-actions flex wrapper */
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Bell button (reuses .notification-icon from Dashbaord.css shape) */
+.admin-notif-wrapper {
+    position: relative;
+}
+
+.admin-notif-bell {
+    background: #f4f6f9;
+    border: 1px solid #e2e8ed;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #1a4a6e;
+    position: relative;
+    transition: all 0.2s ease;
+}
+.admin-notif-bell:hover {
+    background: #eef2f6;
+    border-color: #1f6392;
+    color: #1f6392;
+}
+
+/* Unread count badge */
+.admin-notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #e74c3c;
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 20px;
+    min-width: 17px;
+    text-align: center;
+    line-height: 1.4;
+    pointer-events: none;
+}
+
+/* Dropdown panel */
+.admin-notif-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 320px;
+    max-height: 420px;
+    background: white;
+    border: 1px solid #e2e8ed;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    z-index: 1200;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.admin-notif-dropdown.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Dropdown header */
+.admin-notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f4f8;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1c4c6e;
+    flex-shrink: 0;
+}
+.admin-notif-mark-read {
+    background: none;
+    border: none;
+    font-size: 0.72rem;
+    color: #1f6392;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    padding: 0;
+}
+.admin-notif-mark-read:hover { text-decoration: underline; }
+
+/* Notification list */
+.admin-notif-list {
+    overflow-y: auto;
+    flex: 1;
+    max-height: 300px;
+}
+.admin-notif-item {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f8fafc;
+    cursor: pointer;
+    transition: background 0.15s;
+    align-items: flex-start;
+}
+.admin-notif-item:hover { background: #f8fafc; }
+.admin-notif-item.unread { background: #f0f7ff; }
+.admin-notif-item.unread:hover { background: #e8f2ff; }
+
+.admin-notif-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    flex-shrink: 0;
+    margin-top: 5px;
+}
+.admin-notif-item.unread .admin-notif-dot { background: #1f6392; }
+
+.admin-notif-text { flex: 1; }
+.admin-notif-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1c4c6e;
+    margin-bottom: 3px;
+    line-height: 1.3;
+}
+.admin-notif-desc {
+    font-size: 0.74rem;
+    color: #5a7e9e;
+    line-height: 1.4;
+    margin-bottom: 3px;
+}
+.admin-notif-time {
+    font-size: 0.68rem;
+    color: #95a5a6;
+}
+
+.admin-notif-empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: #95a5a6;
+    font-size: 0.82rem;
+}
+
+/* Footer link */
+.admin-notif-footer-link {
+    display: block;
+    text-align: center;
+    padding: 10px;
+    font-size: 0.75rem;
+    color: #1f6392;
+    text-decoration: none;
+    font-weight: 600;
+    border-top: 1px solid #f0f4f8;
+    flex-shrink: 0;
+}
+.admin-notif-footer-link:hover { background: #f8fafc; }
+
+/* Dark mode */
+body.dark-mode .admin-notif-bell { background: #1a2234; border-color: #2d3345; color: #8aa5bf; }
+body.dark-mode .admin-notif-bell:hover { background: #1f6392; color: white; }
+body.dark-mode .admin-notif-dropdown { background: #111827; border-color: #1f2937; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+body.dark-mode .admin-notif-header { color: #c9d6e3; border-bottom-color: #1f2937; }
+body.dark-mode .admin-notif-item { border-bottom-color: #1a2234; }
+body.dark-mode .admin-notif-item:hover { background: #1a2234; }
+body.dark-mode .admin-notif-item.unread { background: #172038; }
+body.dark-mode .admin-notif-title { color: #e8edf2; }
+body.dark-mode .admin-notif-desc  { color: #8aa5bf; }
+body.dark-mode .admin-notif-footer-link { border-top-color: #1f2937; }
+body.dark-mode .admin-notif-footer-link:hover { background: #1a2234; }

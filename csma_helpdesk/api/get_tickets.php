@@ -27,8 +27,9 @@ try {
         $params[':status'] = $status;
     }
     if ($search !== '') {
-        $where[]      = '(t.ticket_code LIKE :s OR u.full_name LIKE :s OR t.equipment_item LIKE :s OR t.title LIKE :s)';
-        $params[':s'] = "%$search%";
+        $sv           = "%$search%";
+        $where[]      = '(t.ticket_code LIKE :s1 OR u.full_name LIKE :s2 OR t.equipment_item LIKE :s3 OR t.title LIKE :s4)';
+        $params[':s1'] = $params[':s2'] = $params[':s3'] = $params[':s4'] = $sv;
     }
 
     $whereSQL = 'WHERE ' . implode(' AND ', $where);

@@ -61,6 +61,19 @@ if ($action === 'send_confirmation') {
             ]);
         }
 
+        // Fetch ticket details for audit log
+        $tcRow = $pdo->prepare("SELECT t.ticket_code, t.title, u.full_name AS requester_name FROM tickets t JOIN users u ON u.id = t.requester_id WHERE t.id = :id");
+        $tcRow->execute([':id' => $ticketId]);
+        $tc = $tcRow->fetch();
+        $tcCode = $tc['ticket_code'] ?? $ticketId;
+        $tcTitle = $tc['title'] ?? '—';
+
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT DEFAULT NULL, user_name VARCHAR(100) NOT NULL DEFAULT '', user_role VARCHAR(50) NOT NULL DEFAULT '', module VARCHAR(80) NOT NULL DEFAULT '', action VARCHAR(150) NOT NULL DEFAULT '', detail TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL, status ENUM('Success','Failed','Warning') DEFAULT 'Success', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+            $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,:urole,'ServiceRequest','Marked ticket as Pending Confirmation',:det,:ip,'Success')")
+                ->execute([':uid'=>$adminId,':uname'=>$adminName,':urole'=>'admin',':det'=>"Ticket: #$tcCode — $tcTitle | Status changed to Pending Confirmation | Confirmation request sent to requester: {$tc['requester_name']}",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+        } catch (PDOException $al) {}
+
         $pdo->commit();
 
         echo json_encode([
@@ -134,6 +147,23 @@ try {
             ':aname' => $data['admin_name'] ?? 'Admin',
             ':msg'   => $note,
         ]);
+    }
+
+    // Audit log for standard status/assignment update
+    if (isset($data['status']) || isset($data['assigned_to'])) {
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT DEFAULT NULL, user_name VARCHAR(100) NOT NULL DEFAULT '', user_role VARCHAR(50) NOT NULL DEFAULT '', module VARCHAR(80) NOT NULL DEFAULT '', action VARCHAR(150) NOT NULL DEFAULT '', detail TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL, status ENUM('Success','Failed','Warning') DEFAULT 'Success', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+            $tcRow2 = $pdo->prepare("SELECT ticket_code, title FROM tickets WHERE id = :id");
+            $tcRow2->execute([':id' => $ticketId]);
+            $tc2 = $tcRow2->fetch();
+            $parts = [];
+            if (isset($data['status']))      $parts[] = "Status → {$data['status']}";
+            if (isset($data['assigned_to'])) $parts[] = "Assigned to → {$data['assigned_to']}";
+            $adminName2 = $data['admin_name'] ?? 'IT Admin';
+            $adminId2   = (int)($data['admin_id'] ?? 0);
+            $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,'admin','ServiceRequest','Updated ticket',:det,:ip,'Success')")
+                ->execute([':uid'=>$adminId2,':uname'=>$adminName2,':det'=>"Ticket: #" . ($tc2['ticket_code']??$ticketId) . " — " . ($tc2['title']??'') . " | " . implode(' | ', $parts),':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+        } catch (PDOException $al) {}
     }
 
     echo json_encode(['success'=>true,'message'=>'Ticket updated.']);

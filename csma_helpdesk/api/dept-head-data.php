@@ -177,6 +177,16 @@ try {
             )->execute([':tid' => $ticketId, ':aid' => $deptHeadId, ':aname' => $data['dept_head_name'] ?? 'Dept Head']);
 
             $pdo->commit();
+            // Audit log for approval
+            $deptHeadName = $data['dept_head_name'] ?? 'Dept Head';
+            try {
+                $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT DEFAULT NULL, user_name VARCHAR(100) NOT NULL DEFAULT '', user_role VARCHAR(50) NOT NULL DEFAULT '', module VARCHAR(80) NOT NULL DEFAULT '', action VARCHAR(150) NOT NULL DEFAULT '', detail TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL, status ENUM('Success','Failed','Warning') DEFAULT 'Success', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+                $tcRow = $pdo->prepare("SELECT t.ticket_code, t.title, u.full_name AS req FROM tickets t JOIN users u ON u.id=t.requester_id WHERE t.id=:id");
+                $tcRow->execute([':id'=>$ticketId]);
+                $tc = $tcRow->fetch();
+                $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,'dept_head','ServiceRequest','Approved ticket',:det,:ip,'Success')")
+                    ->execute([':uid'=>$deptHeadId,':uname'=>$deptHeadName,':det'=>"Ticket: #".($tc['ticket_code']??$ticketId)." — ".($tc['title']??'—')." | Requester: ".($tc['req']??'—')." | Approved. Cost estimate: ₱".number_format((float)($data['estimated_cost']??0),2).". Routed to IT Admin.",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+            } catch (PDOException $al) {}
             jsonSuccess(['message' => 'Ticket approved.']);
             break;
 
@@ -226,6 +236,16 @@ try {
             ]);
 
             $pdo->commit();
+            // Audit log for rejection
+            $deptHeadNameR = $data['dept_head_name'] ?? 'Dept Head';
+            try {
+                $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT DEFAULT NULL, user_name VARCHAR(100) NOT NULL DEFAULT '', user_role VARCHAR(50) NOT NULL DEFAULT '', module VARCHAR(80) NOT NULL DEFAULT '', action VARCHAR(150) NOT NULL DEFAULT '', detail TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL, status ENUM('Success','Failed','Warning') DEFAULT 'Success', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+                $tcRow2 = $pdo->prepare("SELECT t.ticket_code, t.title, u.full_name AS req FROM tickets t JOIN users u ON u.id=t.requester_id WHERE t.id=:id");
+                $tcRow2->execute([':id'=>$ticketId]);
+                $tc2 = $tcRow2->fetch();
+                $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,'dept_head','ServiceRequest','Rejected ticket',:det,:ip,'Warning')")
+                    ->execute([':uid'=>$deptHeadId,':uname'=>$deptHeadNameR,':det'=>"Ticket: #".($tc2['ticket_code']??$ticketId)." — ".($tc2['title']??'—')." | Requester: ".($tc2['req']??'—')." | Rejected. Reason: ".($note?:"No reason provided")." | Ticket closed.",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+            } catch (PDOException $al) {}
             jsonSuccess(['message' => 'Ticket rejected.']);
             break;
 
@@ -287,6 +307,17 @@ try {
                 )->execute([':tid' => $ticketId, ':uid' => $userId, ':uname' => $userName]);
             }
             $pdo->commit();
+            // Audit log
+            $confirmerName = $data['user_name'] ?? 'Requester';
+            $confirmerId   = (int)($data['user_id'] ?? 0);
+            try {
+                $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT DEFAULT NULL, user_name VARCHAR(100) NOT NULL DEFAULT '', user_role VARCHAR(50) NOT NULL DEFAULT '', module VARCHAR(80) NOT NULL DEFAULT '', action VARCHAR(150) NOT NULL DEFAULT '', detail TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL, status ENUM('Success','Failed','Warning') DEFAULT 'Success', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+                $tcRow3 = $pdo->prepare("SELECT ticket_code, title FROM tickets WHERE id = :id");
+                $tcRow3->execute([':id' => $ticketId]);
+                $tc3 = $tcRow3->fetch();
+                $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,'requester','ServiceRequest','Confirmed issue resolved',:det,:ip,'Success')")
+                    ->execute([':uid'=>$confirmerId,':uname'=>$confirmerName,':det'=>"Ticket: #" . ($tc3['ticket_code']??$ticketId) . " — " . ($tc3['title']??'—') . " | Requester confirmed the issue is resolved. Ticket closed.",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+            } catch (PDOException $al) {}
             jsonSuccess(['message' => 'Ticket closed.']);
             break;
 

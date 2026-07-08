@@ -20,7 +20,7 @@
         <div class="sidebar-header">
             <div class="logo-area">
                 <div class="logo-icon">
-                    <img src="https://scontent.fmnl8-4.fna.fbcdn.net/v/t39.30808-6/317390607_820079655836948_3769284989226831402_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=T5XwQtp6HgwQ7kNvwGvcfPY&_nc_oc=AdqgEJSjJHp6s3KRt2Y4_vEy66knBtknEOV01v9l-5DzGKgY2IWYvB768ngAz1ZRup8&_nc_zt=23&_nc_ht=scontent.fmnl8-4.fna&oh=00_Af4GmdmGSeBsihthQS3mJKIpQJrogorfZ26PaDR9ugHiMg&oe=6A0B1CE7"
+                    <img src="../assets/images/csma_logo.png"
                          alt="CSMA Logo">
                 </div>
                 <div class="logo-text">
@@ -53,9 +53,7 @@
             <a href="#" class="nav-item" data-section="user-management">
                 <i class="fas fa-users"></i><span>User Management</span>
             </a>
-            <a href="#" class="nav-item" data-section="notifications">
-                <i class="fas fa-bell"></i><span>Notifications</span>
-            </a>
+
         </nav>
 
         <div class="sidebar-footer">
@@ -82,19 +80,19 @@
             <div class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></div>
             <div class="page-title"><h1 id="pageTitle">Dashboard</h1></div>
             <div class="top-bar-actions">
-                <!-- Notifications bell -->
-                <div class="notif-wrapper" id="notifWrapper">
-                    <button class="notif-bell" id="notifBell">
+                <!-- School Admin Notification Bell -->
+                <div class="admin-notif-wrapper" id="saNotifWrapper">
+                    <button class="notification-icon admin-notif-bell" id="saNotifBell" title="Notifications">
                         <i class="fas fa-bell"></i>
-                        <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+                        <span class="admin-notif-badge" id="saNotifBadge" style="display:none;">0</span>
                     </button>
-                    <div class="notif-dropdown" id="notifDropdown">
-                        <div class="notif-dropdown-header">
-                            <span>Notifications</span>
-                            <button id="markAllReadBtn">Mark all read</button>
+                    <div class="admin-notif-dropdown" id="saNotifDropdown">
+                        <div class="admin-notif-header">
+                            <span><i class="fas fa-bell"></i> Notifications</span>
+                            <button class="admin-notif-mark-read" id="saMarkAllReadBtn">Mark all read</button>
                         </div>
-                        <div class="notif-dropdown-list" id="notifList">
-                            <div class="notif-empty">No new notifications</div>
+                        <div class="admin-notif-list" id="saNotifList">
+                            <div class="admin-notif-empty">No new notifications</div>
                         </div>
                     </div>
                 </div>
@@ -385,13 +383,16 @@
 
         <!-- ══ SECTION: User Management ════════════════════════════════════ -->
         <section id="section-user-management" class="sa-section">
-            <!-- Audit log summary -->
-            <div class="stats-row" id="auditSummaryRow">
-                <div class="stat-card"><div class="stat-title">Total Activities</div><div class="stat-number" id="auditTotal">0</div></div>
-                <div class="stat-card"><div class="stat-title">IT Admin Actions</div><div class="stat-number" id="auditAdminAct">0</div></div>
-                <div class="stat-card"><div class="stat-title">User Actions</div><div class="stat-number" id="auditUserAct">0</div></div>
-                <div class="stat-card"><div class="stat-title">Today's Activities</div><div class="stat-number" id="auditToday">0</div></div>
+            <!-- User summary cards -->
+            <div class="stats-row" id="umSummaryRow" style="margin-bottom:16px;">
+                <div class="stat-card"><div class="stat-title">Total Users</div><div class="stat-number" id="umCardTotal">—</div></div>
+                <div class="stat-card" style="border-top:3px solid #27ae60;"><div class="stat-title">Active</div><div class="stat-number" id="umCardActive" style="color:#27ae60;">—</div></div>
+                <div class="stat-card"><div class="stat-title">IT Admins</div><div class="stat-number" id="umCardITAdmin">—</div></div>
+                <div class="stat-card"><div class="stat-title">Faculty / Staff</div><div class="stat-number" id="umCardFaculty">—</div></div>
+                <div class="stat-card"><div class="stat-title">Dept Heads</div><div class="stat-number" id="umCardDeptHead">—</div></div>
+                <div class="stat-card"><div class="stat-title">School Admins</div><div class="stat-number" id="umCardSchoolAdmin">—</div></div>
             </div>
+
 
             <!-- Sub-tabs -->
             <div class="tab-bar">
@@ -416,7 +417,7 @@
                     </select>
                     <div class="search-wrapper">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="umSearch" class="search-input" placeholder="Search name, ID, email…">
+                        <input type="text" id="umSearch" class="search-input" placeholder="Search name, ID, email…" autocomplete="off">
                     </div>
                 </div>
                 <div class="panel">
@@ -472,18 +473,6 @@
             </div>
         </section>
 
-        <!-- ══ SECTION: Notifications ══════════════════════════════════════ -->
-        <section id="section-notifications" class="sa-section">
-            <div class="panel">
-                <div class="panel-header">
-                    <h3><i class="fas fa-bell"></i> All Notifications</h3>
-                    <button class="btn-sm" id="markAllReadPageBtn">Mark All Read</button>
-                </div>
-                <div class="notif-full-list" id="notifFullList">
-                    <div class="loading-msg">Loading notifications…</div>
-                </div>
-            </div>
-        </section>
 
     </main><!-- /main-content -->
 </div><!-- /dashboard-wrapper -->
@@ -529,6 +518,49 @@
             <button class="sa-modal-close" id="closeFeedbackModal">&times;</button>
         </div>
         <div class="sa-modal-body" id="feedbackDetailBody">Loading…</div>
+    </div>
+</div>
+
+<!-- ══ MODAL: Reset Password (School Admin → IT Admin only) ════════════════ -->
+<div id="resetPwdModal" class="sa-modal-overlay">
+    <div class="sa-modal" style="max-width:440px;">
+        <div class="sa-modal-header">
+            <h3><i class="fas fa-key"></i> Reset Password — IT Admin</h3>
+            <button class="sa-modal-close" id="closeResetPwdModal">&times;</button>
+        </div>
+        <div class="sa-modal-body">
+            <!-- Target user info -->
+            <div style="background:#eef4fb;border-radius:12px;padding:14px 16px;margin-bottom:16px;border:1px solid #c8dcf0;">
+                <div style="font-size:0.75rem;color:#6c86a0;margin-bottom:4px;">Resetting password for:</div>
+                <div id="rpTargetName" style="font-size:0.95rem;font-weight:700;color:#1c4c6e;">—</div>
+            </div>
+            <!-- School Admin restriction note -->
+            <div style="display:flex;gap:10px;align-items:flex-start;background:#fff9e6;border:1.5px solid #f0c040;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:0.82rem;color:#5a4a1e;">
+                <i class="fas fa-info-circle" style="color:#c97a2e;flex-shrink:0;margin-top:2px;"></i>
+                <p><strong>Note:</strong> As a School Admin, you can only reset passwords for IT Administrator accounts.</p>
+            </div>
+            <!-- Password fields -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:0.82rem;font-weight:600;color:#2c4c6e;margin-bottom:6px;">New Password <span style="color:#c62828;">*</span></label>
+                <input type="password" id="rp-new-pwd" placeholder="Enter new password (min 8 chars)"
+                    style="width:100%;padding:10px 14px;border:1.5px solid #e2e8ed;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;color:#2c4c6e;">
+            </div>
+            <div style="margin-bottom:6px;">
+                <label style="display:block;font-size:0.82rem;font-weight:600;color:#2c4c6e;margin-bottom:6px;">Confirm Password <span style="color:#c62828;">*</span></label>
+                <input type="password" id="rp-confirm-pwd" placeholder="Confirm new password"
+                    style="width:100%;padding:10px 14px;border:1.5px solid #e2e8ed;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;color:#2c4c6e;">
+                <span id="rpMatchHint" style="font-size:0.72rem;display:block;margin-top:4px;min-height:16px;"></span>
+            </div>
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid #eef2f5;display:flex;gap:10px;justify-content:flex-end;">
+            <button class="sa-modal-close" id="cancelResetPwdBtn"
+                style="background:white;border:1.5px solid #dee4ea;padding:10px 20px;border-radius:8px;font-size:0.85rem;font-weight:500;color:#6c86a0;cursor:pointer;font-family:'Inter',sans-serif;">
+                Cancel
+            </button>
+            <button id="confirmResetPwdBtn" class="btn-primary-sa" style="padding:10px 24px;">
+                Reset Password
+            </button>
+        </div>
     </div>
 </div>
 

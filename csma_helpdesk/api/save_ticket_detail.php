@@ -27,6 +27,14 @@ if (!$ticketId) {
 }
 
 try {
+    // Detect optional columns to avoid crashes on fresh installs
+    $ticketCols   = $pdo->query("SHOW COLUMNS FROM tickets")->fetchAll(PDO::FETCH_COLUMN);
+    $actCols      = $pdo->query("SHOW COLUMNS FROM ticket_activity")->fetchAll(PDO::FETCH_COLUMN);
+    $hasExtRepair = in_array('external_repair',    $ticketCols);
+    $hasConsumable= in_array('consumable_item_id', $ticketCols);
+    $hasSlaCustom = in_array('sla_custom_hours',   $ticketCols);
+    $hasMsgType   = in_array('message_type',       $actCols);
+
     $pdo->beginTransaction();
 
     $sets   = [];
@@ -58,53 +66,54 @@ try {
         $params[':assigned_to'] = $data['assigned_to'] ?: null;
     }
 
-    // ── External repair fields ────────────────────────────────────────────────
-    $repairFields = [
-        'external_repair'     => ':extRepair',
-        'repair_service_cost' => ':svcCost',
-        'repair_parts_cost'   => ':partsCost',
-        'repair_service_fee'  => ':svcFee',
-        'repair_remarks'      => ':repRemarks',
-    ];
-    foreach ($repairFields as $col => $param) {
-        if (array_key_exists($col, $data)) {
-            $sets[]        = "$col = $param";
-            $params[$param] = $data[$col] !== '' ? $data[$col] : null;
+    // ── External repair fields (only if columns exist) ───────────────────────
+    if ($hasExtRepair) {
+        $repairFields = [
+            'external_repair'     => ':extRepair',
+            'repair_service_cost' => ':svcCost',
+            'repair_parts_cost'   => ':partsCost',
+            'repair_service_fee'  => ':svcFee',
+            'repair_remarks'      => ':repRemarks',
+        ];
+        foreach ($repairFields as $col => $param) {
+            if (array_key_exists($col, $data)) {
+                $sets[]        = "$col = $param";
+                $params[$param] = $data[$col] !== '' ? $data[$col] : null;
+            }
+        }
+        if (isset($data['repair_service_cost']) || isset($data['repair_parts_cost']) || isset($data['repair_service_fee'])) {
+            $svc   = (float)($data['repair_service_cost'] ?? 0);
+            $parts = (float)($data['repair_parts_cost']   ?? 0);
+            $fee   = (float)($data['repair_service_fee']  ?? 0);
+            $total = $svc + $parts + $fee;
+            $sets[]              = 'repair_total_cost = :repTotal';
+            $params[':repTotal'] = $total > 0 ? $total : null;
         }
     }
 
-    // Auto-calculate repair total when any cost field is set
-    if (isset($data['repair_service_cost']) || isset($data['repair_parts_cost']) || isset($data['repair_service_fee'])) {
-        $svc   = (float)($data['repair_service_cost'] ?? 0);
-        $parts = (float)($data['repair_parts_cost']   ?? 0);
-        $fee   = (float)($data['repair_service_fee']  ?? 0);
-        $total = $svc + $parts + $fee;
-        $sets[]              = 'repair_total_cost = :repTotal';
-        $params[':repTotal'] = $total > 0 ? $total : null;
+    // ── Consumable item selection (only if columns exist) ────────────────────
+    if ($hasConsumable) {
+        if (array_key_exists('consumable_item_id', $data)) {
+            $sets[]              = 'consumable_item_id = :consItem';
+            $params[':consItem'] = $data['consumable_item_id'] ?: null;
+        }
+        if (array_key_exists('consumable_qty_needed', $data)) {
+            $sets[]            = 'consumable_qty_needed = :consQty';
+            $params[':consQty'] = (int)$data['consumable_qty_needed'] ?: null;
+        }
+        if (array_key_exists('consumable_dept_id', $data)) {
+            $sets[]              = 'consumable_dept_id = :consDept';
+            $params[':consDept'] = $data['consumable_dept_id'] ?: null;
+        }
     }
 
-    // ── Consumable item selection ─────────────────────────────────────────────
-    if (array_key_exists('consumable_item_id', $data)) {
-        $sets[]                      = 'consumable_item_id = :consItem';
-        $params[':consItem']          = $data['consumable_item_id'] ?: null;
-    }
-    if (array_key_exists('consumable_qty_needed', $data)) {
-        $sets[]                       = 'consumable_qty_needed = :consQty';
-        $params[':consQty']            = (int)$data['consumable_qty_needed'] ?: null;
-    }
-    if (array_key_exists('consumable_dept_id', $data)) {
-        $sets[]                       = 'consumable_dept_id = :consDept';
-        $params[':consDept']           = $data['consumable_dept_id'] ?: null;
-    }
-
-    // ── SLA custom hours ──────────────────────────────────────────────────────
-    if (isset($data['sla_custom_hours']) && $data['sla_custom_hours'] !== '') {
+    // ── SLA custom hours (only if column exists) ─────────────────────────────
+    if ($hasSlaCustom && isset($data['sla_custom_hours']) && $data['sla_custom_hours'] !== '') {
         $customHours = (float)$data['sla_custom_hours'];
-        $sets[]                  = 'sla_custom_hours = :slaCustom';
-        $params[':slaCustom']     = $customHours;
-        // Recalculate resolution_due_at based on submitted_at + custom hours
-        $sets[]                  = 'resolution_due_at = DATE_ADD(submitted_at, INTERVAL :slaH HOUR)';
-        $params[':slaH']          = $customHours;
+        $sets[]                = 'sla_custom_hours = :slaCustom';
+        $params[':slaCustom']  = $customHours;
+        $sets[]                = 'resolution_due_at = DATE_ADD(submitted_at, INTERVAL :slaH HOUR)';
+        $params[':slaH']       = $customHours;
     }
 
     // ── Apply UPDATE if there's anything to save ──────────────────────────────
@@ -115,15 +124,17 @@ try {
 
     // ── Add reply / follow-up ─────────────────────────────────────────────────
     if (!empty(trim($data['reply'] ?? ''))) {
-        $pdo->prepare(
-            "INSERT INTO ticket_activity (ticket_id,author_id,author_name,message,message_type)
-             VALUES(:tid,:aid,:aname,:msg,'reply')"
-        )->execute([
-            ':tid'   => $ticketId,
-            ':aid'   => $adminId,
-            ':aname' => $adminName,
-            ':msg'   => trim($data['reply']),
-        ]);
+        if ($hasMsgType) {
+            $pdo->prepare(
+                "INSERT INTO ticket_activity (ticket_id,author_id,author_name,message,message_type)
+                 VALUES(:tid,:aid,:aname,:msg,'reply')"
+            )->execute([':tid'=>$ticketId,':aid'=>$adminId,':aname'=>$adminName,':msg'=>trim($data['reply'])]);
+        } else {
+            $pdo->prepare(
+                "INSERT INTO ticket_activity (ticket_id,author_id,author_name,message)
+                 VALUES(:tid,:aid,:aname,:msg)"
+            )->execute([':tid'=>$ticketId,':aid'=>$adminId,':aname'=>$adminName,':msg'=>trim($data['reply'])]);
+        }
     }
 
     $pdo->commit();
