@@ -27,11 +27,29 @@ try {
                  FROM inventory");
             $inv = $invRow ? $invRow : ['total_val'=>0,'low_stock'=>0];
 
-            // Recent activities from audit_log
-            $acts = $pdo->query(
-                "SELECT a.action, a.module, a.user_name, a.created_at, a.status
-                 FROM audit_log a ORDER BY a.created_at DESC LIMIT 8"
-            )->fetchAll();
+            // Recent activities from audit_log — limited to the currently
+            // logged-in School Admin's own actions. Falls back to any activity
+            // performed under the 'school_admin' role when a user_id is not
+            // supplied by the client.
+            $uid = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
+            if ($uid > 0) {
+                $stmt = $pdo->prepare(
+                    "SELECT a.action, a.module, a.user_name, a.created_at, a.status
+                     FROM audit_log a
+                     WHERE a.user_id = :uid
+                     ORDER BY a.created_at DESC LIMIT 8"
+                );
+                $stmt->execute([':uid' => $uid]);
+            } else {
+                $stmt = $pdo->prepare(
+                    "SELECT a.action, a.module, a.user_name, a.created_at, a.status
+                     FROM audit_log a
+                     WHERE a.user_role = 'school_admin'
+                     ORDER BY a.created_at DESC LIMIT 8"
+                );
+                $stmt->execute();
+            }
+            $acts = $stmt->fetchAll();
 
             jsonOk([
                 'stats' => [
@@ -265,21 +283,34 @@ try {
             $where = []; $params = [];
             if ($role   !== 'all') { $where[] = 'role = :role';         $params[':role']   = $role; }
             if ($status !== 'all') { $where[] = 'is_active = :active';  $params[':active'] = $status === 'active' ? 1 : 0; }
-            if ($search !== '') { $sv = "%$search%"; $where[] = '(full_name LIKE :s1 OR username LIKE :s2 OR email LIKE :s3)'; $params[':s1']=$params[':s2']=$params[':s3']=$sv; }
 
-            $whereSQL = $where ? 'WHERE '.implode(' AND ',$where) : '';
-
-            // Safely build SELECT list — employee_id and department may not exist yet
-            // (depends on whether um-schema.sql has been run)
+            // Detect optional columns up front so we can safely include
+            // employee_id in the search when it exists on this deployment.
             $availableCols = [];
             try {
                 $cols = $pdo->query("SHOW COLUMNS FROM users")->fetchAll(PDO::FETCH_COLUMN);
                 $availableCols = $cols;
             } catch (PDOException $e) {}
+            $hasEmpId = in_array('employee_id', $availableCols);
 
+            if ($search !== '') {
+                $sv = "%$search%";
+                $searchExpr = 'full_name LIKE :s1 OR username LIKE :s2 OR email LIKE :s3';
+                $params[':s1'] = $params[':s2'] = $params[':s3'] = $sv;
+                if ($hasEmpId) {
+                    $searchExpr .= ' OR employee_id LIKE :s4';
+                    $params[':s4'] = $sv;
+                }
+                $where[] = "($searchExpr)";
+            }
+
+            $whereSQL = $where ? 'WHERE '.implode(' AND ',$where) : '';
+
+            // Safely build SELECT list — employee_id and department may not exist yet
+            // (depends on whether um-schema.sql has been run)
             $selectCols = ['id', 'username', 'full_name', 'email', 'role', 'is_active', 'created_at'];
-            if (in_array('employee_id', $availableCols)) $selectCols[] = 'employee_id';
-            if (in_array('department',  $availableCols)) $selectCols[] = 'department';
+            if ($hasEmpId)                                     $selectCols[] = 'employee_id';
+            if (in_array('department',  $availableCols))       $selectCols[] = 'department';
             $selectSQL = implode(', ', $selectCols);
 
             $stmt = $pdo->prepare("SELECT $selectSQL FROM users $whereSQL ORDER BY created_at DESC");

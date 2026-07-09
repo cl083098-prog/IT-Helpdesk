@@ -43,7 +43,6 @@
         initFeedbackFilters();
         initUserManagementFilters();
         initReportsSection();
-        initShortcutTiles();
         initSaNotifBell();
         await navigateTo('dashboard');
     }
@@ -106,15 +105,9 @@
         if (loaders[section]) await loaders[section]();
     }
 
-    function initShortcutTiles() {
-        document.querySelectorAll('.shortcut-tile[data-goto]').forEach(tile => {
-            tile.addEventListener('click', () => navigateTo(tile.dataset.goto));
-        });
-    }
-
     // ─── Dashboard ────────────────────────────────────────────────────────────
     async function loadDashboard() {
-        const json = await apiFetch(`${API}?action=get_dashboard`);
+        const json = await apiFetch(`${API}?action=get_dashboard&user_id=${encodeURIComponent(USER_ID || '')}`);
         if (!json?.success) return;
 
         const s = json.stats;
@@ -198,58 +191,112 @@
     }
 
     async function openTicketDetail(ticketId) {
-        const modal = document.getElementById('ticketDetailModal');
-        const body  = document.getElementById('ticketDetailBody');
-        if (!modal || !body) return;
-        body.innerHTML = '<div class="loading-msg">Loading…</div>';
-        modal.classList.add('active');
+    const modal = document.getElementById('ticketDetailModal');
+    const body  = document.getElementById('ticketDetailBody');
+    if (!modal || !body) return;
+    body.innerHTML = '<div class="loading-msg">Loading…</div>';
+    modal.classList.add('active');
 
-        const json = await apiFetch(`${API}?action=get_ticket_detail&ticket_id=${ticketId}`);
-        if (!json?.success) { body.innerHTML = '<div class="empty-msg">Could not load ticket.</div>'; return; }
-        const t = json.ticket;
+    const json = await apiFetch(`${API}?action=get_ticket_detail&ticket_id=${ticketId}`);
+    if (!json?.success) { body.innerHTML = '<div class="empty-msg">Could not load ticket.</div>'; return; }
+    const t = json.ticket;
 
-        const convHtml = t.conversations?.length ? t.conversations.map(c => `
-            <div class="conv-item">
-                <div class="conv-author">${escHtml(c.author_name)} <span class="conv-time">${formatDate(c.created_at)}</span></div>
-                <div class="conv-msg">${escHtml(c.message)}</div>
-            </div>`).join('') : '<div class="empty-msg">No conversation history.</div>';
+    // ── Peso formatter (mirrors formatPeso) ───────────────────────────────
+    const peso = v => '₱' + parseFloat(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        const approvalHtml = t.approval ? `
-            <div class="detail-section-title">Department Head Approval</div>
-            <div class="approval-block">
-                <div class="detail-grid">
-                    <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${(t.approval.decision||'').toLowerCase().replace(' ','-')}">${escHtml(t.approval.decision)}</span></span></div>
-                    <div class="detail-item"><span class="detail-label">Decided By</span><span class="detail-value">${escHtml(t.approval.decided_by)}</span></div>
-                    <div class="detail-item"><span class="detail-label">Decided At</span><span class="detail-value">${formatDate(t.approval.decided_at)}</span></div>
-                    ${t.approval.estimated_cost ? `<div class="detail-item"><span class="detail-label">Estimated Cost</span><span class="detail-value">${formatPeso(t.approval.estimated_cost)}</span></div>` : ''}
-                    ${t.approval.rejection_note ? `<div class="detail-item"><span class="detail-label">Rejection Note</span><span class="detail-value">${escHtml(t.approval.rejection_note)}</span></div>` : ''}
-                </div>
-            </div>` : '';
+    // ── Conversation thread ───────────────────────────────────────────────
+    const convHtml = t.conversations?.length ? t.conversations.map(c => `
+        <div class="conv-item">
+            <div class="conv-author">${escHtml(c.author_name)} <span class="conv-time">${formatDate(c.created_at)}</span></div>
+            <div class="conv-msg">${escHtml(c.message)}</div>
+        </div>`).join('') : '<div class="empty-msg">No conversation history.</div>';
 
-        body.innerHTML = `
+    // ── Approval section ──────────────────────────────────────────────────
+    const approvalHtml = t.approval ? `
+        <div class="detail-section-title">Department Head Approval</div>
+        <div class="approval-block">
             <div class="detail-grid">
-                <div class="detail-item"><span class="detail-label">Ticket ID</span><span class="detail-value">#${escHtml(t.ticket_code)}</span></div>
-                <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${(t.status||'').toLowerCase()}">${escHtml(t.status)}</span></span></div>
-                <div class="detail-item"><span class="detail-label">Priority</span><span class="detail-value"><span class="badge badge-${(t.priority||'').toLowerCase()}">${escHtml(t.priority)}</span></span></div>
-                <div class="detail-item"><span class="detail-label">Category</span><span class="detail-value">${escHtml(t.category)}</span></div>
-                <div class="detail-item"><span class="detail-label">Equipment/Item</span><span class="detail-value">${escHtml(t.equipment_item)}</span></div>
-                <div class="detail-item"><span class="detail-label">Requester</span><span class="detail-value">${escHtml(t.requester)}</span></div>
-                <div class="detail-item"><span class="detail-label">Department</span><span class="detail-value">${escHtml(t.department)}</span></div>
-                <div class="detail-item"><span class="detail-label">Assigned To</span><span class="detail-value">${escHtml(t.assigned_to||'Awaiting')}</span></div>
-                <div class="detail-item"><span class="detail-label">Date Submitted</span><span class="detail-value">${formatDate(t.submitted_at)}</span></div>
-                <div class="detail-item"><span class="detail-label">Approval Status</span><span class="detail-value"><span class="badge badge-${(t.approval_status||'').toLowerCase().replace(' ','-')}">${escHtml(t.approval_status||'Not Required')}</span></span></div>
+                <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${(t.approval.decision||'').toLowerCase().replace(' ','-')}">${escHtml(t.approval.decision)}</span></span></div>
+                <div class="detail-item"><span class="detail-label">Decided By</span><span class="detail-value">${escHtml(t.approval.decided_by)}</span></div>
+                <div class="detail-item"><span class="detail-label">Decided At</span><span class="detail-value">${formatDate(t.approval.decided_at)}</span></div>
+                ${t.approval.estimated_cost ? `<div class="detail-item"><span class="detail-label">Estimated Cost</span><span class="detail-value">${formatPeso(t.approval.estimated_cost)}</span></div>` : ''}
+                ${t.approval.rejection_note ? `<div class="detail-item"><span class="detail-label">Rejection Note</span><span class="detail-value">${escHtml(t.approval.rejection_note)}</span></div>` : ''}
             </div>
-            <div class="detail-section-title">Issue Details</div>
-            <div class="detail-item"><span class="detail-label">Title</span><span class="detail-value">${escHtml(t.title)}</span></div>
-            <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Description</span><span class="detail-value">${escHtml(t.description||'—')}</span></div>
-            <div class="sla-block" style="margin-top:16px;">
-                <div class="sla-row"><span class="sla-lbl"><i class="fas fa-hourglass-half"></i> Expected Resolution</span><span class="sla-val">${t.priority==='High'||t.priority==='Critical' ? '30 min' : '2 business days'}</span></div>
-                <div class="sla-row"><span class="sla-lbl"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-val">${t.resolution_due_at ? formatDate(t.resolution_due_at) : '—'}</span></div>
+        </div>` : '';
+
+    // ── SLA (v4 fix) — read ACTUAL hours; never hardcode from priority ────
+    const slaHours = Number(t.sla_resolution_hours) || 0;
+    const slaLabel = slaHours > 0
+        ? (slaHours < 1 ? Math.round(slaHours * 60) + ' min' : slaHours + ' hour(s)')
+        : '—';
+    const slaDeadline = t.resolution_due_at ? formatDate(t.resolution_due_at) : '—';
+
+    // ── Repair block (v4 addition) — read-only view of what the IT Admin ─
+    // entered, including the receipt image or PDF. Only shown when the
+    // ticket has any repair info recorded.
+    const hasRepair = t.category === 'Equipment' && (
+        Number(t.external_repair) === 1 ||
+        t.repair_service_cost || t.repair_parts_cost || t.repair_service_fee ||
+        t.repair_total_cost   || t.repair_remarks    || t.repair_receipt_path
+    );
+    let repairHtml = '';
+    if (hasRepair) {
+        const receiptPath = t.repair_receipt_path || '';
+        let receiptHtml = '<em style="color:#6b8399;font-size:0.85rem;">No receipt uploaded.</em>';
+        if (receiptPath) {
+            const url = '../' + receiptPath;
+            const safeUrl = escHtml(url);
+            const isPdf = /\.pdf$/i.test(receiptPath);
+            receiptHtml = isPdf
+                ? `<a href="${safeUrl}" target="_blank" rel="noopener" class="btn-view" style="text-decoration:none;"><i class="fas fa-file-pdf"></i> Open receipt (PDF)</a>`
+                : `<a href="${safeUrl}" target="_blank" rel="noopener"><img src="${safeUrl}" alt="Receipt" style="max-width:100%;max-height:240px;border-radius:12px;border:1px solid #dbe6f0;"></a>`;
+        }
+        repairHtml = `
+            <div class="detail-section-title">External Repair &amp; Maintenance</div>
+            <div class="detail-grid">
+                <div class="detail-item"><span class="detail-label">External Repair Service</span><span class="detail-value">${peso(t.repair_service_cost)}</span></div>
+                <div class="detail-item"><span class="detail-label">Replacement Parts</span><span class="detail-value">${peso(t.repair_parts_cost)}</span></div>
+                <div class="detail-item"><span class="detail-label">Service Fee</span><span class="detail-value">${peso(t.repair_service_fee)}</span></div>
+                <div class="detail-item"><span class="detail-label">Total Maintenance Cost</span><span class="detail-value"><strong>${peso(t.repair_total_cost)}</strong></span></div>
             </div>
-            ${approvalHtml}
-            <div class="detail-section-title">Conversation &amp; Follow-ups</div>
-            ${convHtml}`;
+            <div class="detail-item" style="margin-top:8px;">
+                <span class="detail-label">Repair Remarks</span>
+                <span class="detail-value">${escHtml(t.repair_remarks || '—')}</span>
+            </div>
+            <div class="detail-item" style="margin-top:12px;">
+                <span class="detail-label">Receipt</span>
+                <div class="detail-value" style="margin-top:6px;">${receiptHtml}</div>
+            </div>`;
     }
+
+    // ── Compose ───────────────────────────────────────────────────────────
+    body.innerHTML = `
+        <div class="detail-grid">
+            <div class="detail-item"><span class="detail-label">Ticket ID</span><span class="detail-value">#${escHtml(t.ticket_code)}</span></div>
+            <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${(t.status||'').toLowerCase()}">${escHtml(t.status)}</span></span></div>
+            <div class="detail-item"><span class="detail-label">Priority</span><span class="detail-value"><span class="badge badge-${(t.priority||'').toLowerCase()}">${escHtml(t.priority)}</span></span></div>
+            <div class="detail-item"><span class="detail-label">Category</span><span class="detail-value">${escHtml(t.category)}</span></div>
+            <div class="detail-item"><span class="detail-label">Equipment/Item</span><span class="detail-value">${escHtml(t.equipment_item)}</span></div>
+            <div class="detail-item"><span class="detail-label">Requester</span><span class="detail-value">${escHtml(t.requester)}</span></div>
+            <div class="detail-item"><span class="detail-label">Department</span><span class="detail-value">${escHtml(t.department)}</span></div>
+            <div class="detail-item"><span class="detail-label">Assigned To</span><span class="detail-value">${escHtml(t.assigned_to||'Awaiting')}</span></div>
+            <div class="detail-item"><span class="detail-label">Date Submitted</span><span class="detail-value">${formatDate(t.submitted_at)}</span></div>
+            <div class="detail-item"><span class="detail-label">Date Completed</span><span class="detail-value">${t.completed_at ? formatDate(t.completed_at) : '—'}</span></div>
+            <div class="detail-item"><span class="detail-label">Date Closed</span><span class="detail-value">${t.closed_at ? formatDate(t.closed_at) : '—'}</span></div>
+            <div class="detail-item"><span class="detail-label">Approval Status</span><span class="detail-value"><span class="badge badge-${(t.approval_status||'').toLowerCase().replace(' ','-')}">${escHtml(t.approval_status||'Not Required')}</span></span></div>
+        </div>
+        <div class="detail-section-title">Issue Details</div>
+        <div class="detail-item"><span class="detail-label">Title</span><span class="detail-value">${escHtml(t.title)}</span></div>
+        <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Description</span><span class="detail-value">${escHtml(t.description||'—')}</span></div>
+        <div class="sla-block" style="margin-top:16px;">
+            <div class="sla-row"><span class="sla-lbl"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-val">${slaLabel}</span></div>
+            <div class="sla-row"><span class="sla-lbl"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-val">${slaDeadline}</span></div>
+        </div>
+        ${approvalHtml}
+        ${repairHtml}
+        <div class="detail-section-title">Conversation &amp; Follow-ups</div>
+        ${convHtml}`;
+}
 
     // ─── Inventory ────────────────────────────────────────────────────────────
     function initInventoryFilters() {
@@ -433,34 +480,65 @@
     }
 
     // ─── Reports ──────────────────────────────────────────────────────────────
+    const GENERATE_ENDPOINT = '../api/generate_report.php';
+
     function initReportsSection() {
-        document.querySelectorAll('.export-btn[data-fmt]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.export-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                selectedExportFmt = btn.dataset.fmt;
+        document.getElementById('generateReportBtn')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            if (btn.disabled) return;                     // prevent double-submit
+
+            const reportType   = document.getElementById('reportType')?.value     || 'ServiceRequest';
+            const dateFrom     = document.getElementById('reportDateFrom')?.value || '';
+            const dateTo       = document.getElementById('reportDateTo')?.value   || '';
+            const exportFormat = document.getElementById('exportFormat')?.value   || 'PDF';
+
+            if (dateFrom && dateTo && dateFrom > dateTo) {
+                showToast('⚠️ Start date must be before end date.', true);
+                return;
+            }
+
+            const params = new URLSearchParams({
+                report_type:   reportType,
+                date_from:     dateFrom,
+                date_to:       dateTo,
+                export_format: exportFormat.toUpperCase(),
+                user_id:       USER_ID,
+                role:          'school_admin',
             });
+            const url = `${GENERATE_ENDPOINT}?${params.toString()}`;
+
+            // Lock button briefly so users can't fire duplicate reports/log rows.
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating…';
+
+            try {
+                if (exportFormat.toUpperCase() === 'PDF') {
+                    const w = window.open(url, '_blank');
+                    if (!w) { showToast('⚠️ Please allow pop-ups to view PDF reports.', true); return; }
+                } else {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                showToast(`Requesting ${exportFormat} report…`);
+                setTimeout(loadReports, 800);
+                setTimeout(loadReports, 2500);
+                setTimeout(loadReports, 5000);
+            } finally {
+                setTimeout(() => { btn.disabled = false; btn.innerHTML = originalHtml; }, 1200);
+            }
         });
 
-        document.getElementById('generateReportBtn')?.addEventListener('click', async () => {
-            const reportType = document.getElementById('reportType')?.value     || 'ServiceRequest';
-            const dateFrom   = document.getElementById('reportDateFrom')?.value || '';
-            const dateTo     = document.getElementById('reportDateTo')?.value   || '';
-            const reportName = `${reportType} Report${dateFrom ? ` (${dateFrom} to ${dateTo||'now'})` : ''} — ${selectedExportFmt}`;
-
-            showToast(`Generating ${reportName}…`);
-
-            // Log the report generation
-            await apiFetch(API, {
-                method: 'POST',
-                body: JSON.stringify({ action:'log_report', user_id:USER_ID, report_name:reportName,
-                    report_type:reportType, date_from:dateFrom, date_to:dateTo, export_format:selectedExportFmt })
-            });
-
-            // In a full implementation, generate and download the actual file here.
-            // For now we show a confirmation and refresh the recent reports list.
-            showToast(`✅ ${reportName} logged. Implement file generation for production.`);
-            await loadReports();
+        // Live-refresh when tab regains focus
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden
+                && document.getElementById('section-reports')?.classList.contains('active')) {
+                loadReports();
+            }
         });
     }
 
@@ -468,13 +546,53 @@
         const json = await apiFetch(`${API}?action=get_recent_reports&user_id=${USER_ID}`);
         const tbody = document.getElementById('recentReportsBody');
         if (!tbody) return;
-        if (!json?.data?.length) { tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">No reports generated yet.</td></tr>'; return; }
-        tbody.innerHTML = json.data.map(r => `
+        if (!json?.data?.length) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">No reports generated yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = json.data.map(r => {
+            const p = new URLSearchParams({
+                report_type:   r.report_type    || 'ServiceRequest',
+                date_from:     r.date_from      || '',
+                date_to:       r.date_to        || '',
+                export_format: (r.export_format || 'PDF').toUpperCase(),
+                user_id:       USER_ID,
+                role:          'school_admin',
+                view:          '1',  // suppress duplicate log entry
+            });
+            const viewUrl = `${GENERATE_ENDPOINT}?${p.toString()}`;
+            return `
             <tr>
                 <td>${escHtml(r.report_name)}</td>
                 <td>${formatDate(r.created_at)}</td>
                 <td><span class="badge badge-${r.export_format==='PDF'?'high':r.export_format==='Excel'?'completed':'ongoing'}">${escHtml(r.export_format)}</span></td>
-            </tr>`).join('');
+                <td>
+                    <button class="btn-view"
+                            data-url="${escHtml(viewUrl)}"
+                            data-fmt="${escHtml((r.export_format||'PDF').toUpperCase())}"
+                            title="View / Re-download this report">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        // Wire up View buttons
+        tbody.querySelectorAll('.btn-view[data-url]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const url = btn.dataset.url;
+                const fmt = btn.dataset.fmt;
+                if (fmt === 'PDF') {
+                    const w = window.open(url, '_blank');
+                    if (!w) showToast('⚠️ Please allow pop-ups to view PDF reports.');
+                } else {
+                    const link = document.createElement('a');
+                    link.href = url; link.style.display = 'none';
+                    document.body.appendChild(link); link.click();
+                    document.body.removeChild(link);
+                }
+            });
+        });
     }
 
     // ─── User Management ──────────────────────────────────────────────────────
@@ -518,18 +636,6 @@
         if (roleF) roleF.value = 'all';
         if (statF) statF.value = 'all';
         await loadUsers();
-        await loadAuditSummary();
-    }
-
-    async function loadAuditSummary() {
-        const json = await apiFetch(`${API}?action=get_audit_log`);
-        if (!json?.success) return;
-        const sm = json.summary || {};
-        const s  = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-        s('auditTotal',    sm.total           || 0);
-        s('auditAdminAct', sm.it_admin_actions || 0);
-        s('auditUserAct',  sm.user_actions     || 0);
-        s('auditToday',    sm.today            || 0);
     }
 
     // ─── User Summary Cards ───────────────────────────────────────────────────

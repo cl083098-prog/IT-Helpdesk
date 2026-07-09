@@ -1,0 +1,109 @@
+/* ==========================================================================
+   v3 additions — append to ServiceRequest.css (or an existing .append.css)
+   ========================================================================== */
+
+/* ── Locked status display (Completed / Closed / Pending Confirmation) ──── */
+.td-status-locked {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+}
+.td-status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+.td-status-completed             { background: #e0f5e9; color: #1e7a4a; }
+.td-status-closed                { background: #eef2f6; color: #4a5b6d; }
+.td-status-pending-confirmation  { background: #fff4e0; color: #b56c00; }
+.td-status-cancelled             { background: #fbe4e4; color: #b23434; }
+.td-status-lock-note {
+    font-size: 0.78rem;
+    color: #6b8399;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Receipt upload block ──────────────────────────────────────────────── */
+.td-receipt-preview {
+    padding: 12px;
+    background: #f5f9fe;
+    border: 1px dashed #c9d8e6;
+    border-radius: 12px;
+    text-align: center;
+    color: #6b8399;
+    font-size: 0.85rem;
+}
+.td-receipt-thumb {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 10px;
+    display: block;
+    margin: 0 auto;
+}
+.td-receipt-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #ffffff;
+    border: 1px solid #1f6392;
+    color: #1f6392;
+    border-radius: 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.td-receipt-link:hover { background: #1f6392; color: #ffffff; }
+
+.td-btn-upload,
+.td-btn-remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.td-btn-upload {
+    background: #1f6392;
+    color: #ffffff;
+    border-color: #1f6392;
+}
+.td-btn-upload:hover:not(:disabled) { background: #17517a; border-color: #17517a; }
+.td-btn-upload:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.td-btn-remove {
+    background: #ffffff;
+    color: #b23434;
+    border-color: #e5b5b5;
+}
+.td-btn-remove:hover { background: #b23434; color: #ffffff; border-color: #b23434; }
+
+.td-hint {
+    font-size: 0.75rem;
+    color: #6b8399;
+}
+
+/* Dark-mode friendliness (mirrors existing patterns) */
+body.dark-mode .td-receipt-preview {
+    background: #10263a;
+    border-color: #33556f;
+    color: #a4bcd0;
+}
+body.dark-mode .td-btn-upload         { background: #2b7fb8; border-color: #2b7fb8; }
+body.dark-mode .td-btn-upload:hover   { background: #3a95cf; border-color: #3a95cf; }
+body.dark-mode .td-btn-remove         { background: transparent; color: #ea9b9b; border-color: #a86868; }
+body.dark-mode .td-btn-remove:hover   { background: #b23434; color: #fff; border-color: #b23434; }
+body.dark-mode .td-status-lock-note   { color: #a4bcd0; }

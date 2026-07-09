@@ -51,7 +51,6 @@
         bindResetPasswordModal();
         bindDetailModal();
         initModalBackdrops();
-        initSidebarLogout();
         initActivityLogSection();
     }
 
@@ -105,13 +104,6 @@
         });
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') { document.querySelectorAll('.um-modal-overlay.active').forEach(m => m.classList.remove('active')); document.body.style.overflow=''; }
-        });
-    }
-
-    function initSidebarLogout() {
-        document.getElementById('sidebarLogoutBtn')?.addEventListener('click', () => {
-            sessionStorage.removeItem('currentUser');
-            window.location.replace('Login.html');
         });
     }
 

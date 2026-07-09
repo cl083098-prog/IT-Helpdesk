@@ -192,7 +192,7 @@
         if (!tbody) return;
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No service requests found.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="12">No service requests found.</td></tr>';
             updateStats();
             updateSelectAllCheckboxes();
             updateBulkActionBar();
@@ -205,11 +205,17 @@
             const priorityClass = getPriorityClass(ticket.priority);
             const statusClass   = getStatusClass(ticket.status);
             const isSelected    = selectedTickets.has(ticket.id);
+            const isClosed      = ticket.status === 'Closed';
+            // Closed tickets are read-only: no bulk-select checkbox, no delete icon.
+            const checkboxCell = isClosed
+                ? `<i class="fas fa-lock" title="Closed — read-only" style="color:#95a5a6;font-size:0.8rem;"></i>`
+                : `<input type="checkbox" class="ticket-checkbox" data-id="${escapeHtml(ticket.id)}" ${isSelected ? 'checked' : ''}>`;
+            const deleteBtn = isClosed
+                ? ''
+                : `<i class="fas fa-trash-alt delete-ticket-icon" title="Delete" data-id="${escapeHtml(ticket.id)}"></i>`;
             return `
-                <tr class="${isSelected ? 'selected' : ''}" data-id="${escapeHtml(ticket.id)}">
-                    <td style="text-align:center;">
-                        <input type="checkbox" class="ticket-checkbox" data-id="${escapeHtml(ticket.id)}" ${isSelected ? 'checked' : ''}>
-                    </td>
+                <tr class="${isSelected ? 'selected' : ''}${isClosed ? ' ticket-closed' : ''}" data-id="${escapeHtml(ticket.id)}">
+                    <td style="text-align:center;">${checkboxCell}</td>
                     <td><a href="#" class="ticket-id-link view-ticket-link" data-id="${escapeHtml(ticket.id)}">${escapeHtml(ticket.id)}</a></td>
                     <td>${escapeHtml(ticket.category)}</td>
                     <td>${escapeHtml(ticket.requester)}</td>
@@ -224,7 +230,7 @@
                         <button class="sr-view-btn view-ticket-link" data-id="${escapeHtml(ticket.id)}">
                             <i class="fas fa-eye"></i> View
                         </button>
-                        <i class="fas fa-trash-alt delete-ticket-icon" title="Delete" data-id="${escapeHtml(ticket.id)}"></i>
+                        ${deleteBtn}
                     </td>
                 </tr>`;
         }).join('');
@@ -255,8 +261,10 @@
     }
 
     function updateSelectAllCheckboxes() {
-        const total      = getFilteredTickets().length;
-        const selected   = getFilteredTickets().filter(t => selectedTickets.has(t.id)).length;
+        // Closed tickets are read-only and can't be part of a bulk operation.
+        const editable   = getFilteredTickets().filter(t => t.status !== 'Closed');
+        const total      = editable.length;
+        const selected   = editable.filter(t => selectedTickets.has(t.id)).length;
         const allChosen  = total > 0 && selected === total;
         const sh = document.getElementById('selectAllHeaderCheckbox');
         const sr = document.getElementById('selectAllCheckbox');
@@ -266,6 +274,7 @@
 
     function selectAll(checked) {
         getFilteredTickets().forEach(t => {
+            if (t.status === 'Closed') return;   // never bulk-select closed tickets
             if (checked) selectedTickets.add(t.id);
             else         selectedTickets.delete(t.id);
         });
@@ -493,7 +502,21 @@
                 <div class="td-info-note"><i class="fas fa-info-circle"></i> This consumable item will be allocated to the selected department upon request completion.</div>
             </div>` : '';
 
-        const extRepairBlock = `
+        // External Repair & Maintenance only applies to Equipment tickets —
+        // there's nothing to repair on a consumable request. Same reasoning
+        // as Consumable Item Selection only appearing for Consumable tickets.
+
+        // ── Receipt preview data (must be declared BEFORE extRepairBlock uses it) ──
+        const receiptExists  = !!tk.repair_receipt_path;
+        const receiptUrl     = receiptExists ? '../' + tk.repair_receipt_path : '';
+        const receiptIsPdf   = receiptExists && /\.pdf$/i.test(tk.repair_receipt_path);
+        const receiptPreview = !receiptExists
+            ? '<em class="td-hint">No receipt uploaded yet.</em>'
+            : (receiptIsPdf
+                ? `<a href="${receiptUrl}" target="_blank" rel="noopener" class="td-receipt-link"><i class="fas fa-file-pdf"></i> Open receipt (PDF)</a>`
+                : `<a href="${receiptUrl}" target="_blank" rel="noopener"><img src="${receiptUrl}" alt="Receipt" class="td-receipt-thumb"></a>`);
+
+        const extRepairBlock = tk.category === 'Equipment' ? `
             <div class="td-section">
                 <div class="td-section-title"><i class="fas fa-tools"></i> External Repair &amp; Maintenance</div>
                 <label class="td-checkbox-label"><input type="checkbox" id="tdExtRepairChk" ${tk.external_repair?'checked':''}>
@@ -512,8 +535,22 @@
                     </div>
                     <div class="td-cost-field" style="margin-top:12px;"><label class="td-field-label">Remarks</label>
                         <textarea class="td-input td-textarea" id="tdRepRemarks">${escapeHtml(tk.repair_remarks||'')}</textarea></div>
+
+                    <!-- ── Receipt upload ──────────────────────────────────── -->
+                    <div class="td-receipt-block" style="margin-top:14px;">
+                        <label class="td-field-label"><i class="fas fa-receipt"></i> Receipt (photo or PDF)</label>
+                        <div class="td-receipt-preview" id="tdReceiptPreview">${receiptPreview}</div>
+                        <div class="td-receipt-actions" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <input type="file" id="tdReceiptInput" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;">
+                            <button type="button" class="td-btn-upload" id="tdReceiptUploadBtn" data-dbid="${tk.id}">
+                                <i class="fas fa-upload"></i> ${receiptExists ? 'Replace receipt' : 'Upload receipt'}
+                            </button>
+                            ${receiptExists ? `<button type="button" class="td-btn-remove" id="tdReceiptRemoveBtn" data-dbid="${tk.id}"><i class="fas fa-trash-alt"></i> Remove</button>` : ''}
+                            <span class="td-hint" style="font-size:0.75rem;color:#6b8399;">JPG · PNG · WEBP · PDF · max 5 MB</span>
+                        </div>
+                    </div>
                 </div>
-            </div>`;
+            </div>` : '';
 
         const convHtml = (tk.conversations||[]).map(c => {
             const isAdmin = c.message_type==='reply'||c.message_type==='status_change';
@@ -572,10 +609,18 @@
                 <div class="td-field-row"><span class="td-field-label">Assigned IT Officer</span>
                     <span class="td-field-val ${!tk.assigned_to?'td-warn-text':''}">${tk.assigned_to?escapeHtml(tk.assigned_to):'<i class="fas fa-exclamation-triangle"></i> Awaiting assigned IT Officer'}</span></div>
                 <div class="td-field-group" style="margin-top:12px;"><label class="td-field-label">Update Status</label>
-                    <select class="td-select" id="tdStatusSelect">
-                        <option value="Pending" ${tk.status==='Pending'?'selected':''}>Pending</option>
-                        <option value="Ongoing" ${tk.status==='Ongoing'?'selected':''}>Ongoing</option>
-                    </select></div>
+                    ${(tk.status==='Pending' || tk.status==='Ongoing') ? `
+                        <select class="td-select" id="tdStatusSelect" data-original="${escapeHtml(tk.status)}">
+                            <option value="Pending" ${tk.status==='Pending'?'selected':''}>Pending</option>
+                            <option value="Ongoing" ${tk.status==='Ongoing'?'selected':''}>Ongoing</option>
+                        </select>
+                    ` : `
+                        <div class="td-status-locked">
+                            <span class="td-status-badge td-status-${(tk.status||'').toLowerCase().replace(/\\s+/g,'-')}">${escapeHtml(tk.status)}</span>
+                            <span class="td-status-lock-note"><i class="fas fa-lock"></i> Locked — status cannot be changed here</span>
+                        </div>
+                    `}
+                </div>
                 <div class="td-field-group" style="margin-top:12px;"><label class="td-field-label">Assign IT Officer</label>
                     <select class="td-select" id="tdAssignSelect"><option value="">Select an item…</option>${officerOpts}</select></div>
                 ${tk.status==='Ongoing'?`<button class="td-btn-complete" id="tdMarkCompleteBtn"
@@ -611,6 +656,52 @@
                 if (tot) tot.value = '₱' + (['tdSvcCost','tdPartsCost','tdSvcFee'].reduce((s,i)=>s+(parseFloat(document.getElementById(i)?.value)||0),0)).toFixed(2);
             });
         });
+
+        // ── Receipt upload wiring ─────────────────────────────────────────────
+        document.getElementById('tdReceiptUploadBtn')?.addEventListener('click', () => {
+            document.getElementById('tdReceiptInput')?.click();
+        });
+        document.getElementById('tdReceiptInput')?.addEventListener('change', async e => {
+            const file = e.target.files?.[0]; if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { showToast('File too large (max 5 MB).', 'error'); return; }
+            const allowed = ['image/jpeg','image/png','image/webp','application/pdf'];
+            if (!allowed.includes(file.type)) { showToast('Unsupported file type.', 'error'); return; }
+
+            const dbid = document.getElementById('tdReceiptUploadBtn').dataset.dbid;
+            const fd = new FormData();
+            fd.append('ticket_id', dbid);
+            fd.append('admin_id',  cu.id);
+            fd.append('receipt',   file);
+
+            const btn = document.getElementById('tdReceiptUploadBtn');
+            const oldLabel = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading…';
+            try {
+                const res  = await fetch('../api/upload_receipt.php', { method: 'POST', body: fd });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.message || 'Upload failed');
+                showToast('Receipt uploaded.', 'success');
+                // Refresh the detail panel so the preview + Replace/Remove buttons update
+                viewTicket(dbid);
+            } catch (err) {
+                showToast(err.message, 'error');
+                btn.disabled = false; btn.innerHTML = oldLabel;
+            }
+        });
+        document.getElementById('tdReceiptRemoveBtn')?.addEventListener('click', async e => {
+            if (!confirm('Remove the uploaded receipt?')) return;
+            const dbid = e.currentTarget.dataset.dbid;
+            try {
+                const res = await fetch('../api/save_ticket_detail.php', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ ticket_id: dbid, admin_id: cu.id, admin_name: cu.name || 'IT Admin', remove_receipt: 1 })
+                });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.message || 'Remove failed');
+                showToast('Receipt removed.', 'success');
+                viewTicket(dbid);
+            } catch (err) { showToast(err.message, 'error'); }
+        });
         document.getElementById('tdEditSlaBtn')?.addEventListener('click', () => {
             document.getElementById('tdSlaDisplayText').style.display='none';
             document.getElementById('tdSlaEditRow').style.display='flex';
@@ -627,27 +718,85 @@
             document.getElementById('tdSlaEditRow').style.display='none';
         });
 
-        // ── Mark as Completed → show confirmation modal then close overlay ────
-        document.getElementById('tdMarkCompleteBtn')?.addEventListener('click', e => {
+        // ── Mark as Completed → save current edits, then show confirmation modal ─
+        document.getElementById('tdMarkCompleteBtn')?.addEventListener('click', async e => {
             const btn = e.currentTarget;
+            // Persist any in-flight edits FIRST. Without this, closing the
+            // detail overlay would throw away whatever the user changed in the
+            // form (assigned officer, cost fields, SLA, etc.).
+            btn.disabled = true;
+            const saved = await _saveDetail(tk.id, cu, { silent: true, closeAfter: false, reloadList: true });
+            btn.disabled = false;
+            if (!saved) return;                         // save already surfaced an error toast
+
             document.getElementById('cmTicketId').textContent  = '#' + btn.dataset.code;
             document.getElementById('cmRequester').textContent = btn.dataset.requester;
             document.getElementById('cmIssue').textContent     = btn.dataset.issue;
             const sendBtn = document.getElementById('btnSendConfirmation');
             sendBtn.dataset.dbId    = btn.dataset.dbid;
             sendBtn.dataset.display = '#' + btn.dataset.code;
-            _closeDetailOverlay();                           // close detail first
+            _closeDetailOverlay();                       // close detail after successful save
             document.getElementById('completionModal').style.display = 'flex';
         });
 
         document.getElementById('tdSaveChangesBtn')?.addEventListener('click', () => _saveDetail(tk.id, cu));
         document.getElementById('tdSendReplyBtn')?.addEventListener('click', () => _sendReply(tk.id, cu));
+
+        // ── Closed tickets are read-only ─────────────────────────────────────
+        // Disable every editable control in the overlay, hide the reply/save
+        // actions, and prepend a banner explaining why. Delete + bulk actions
+        // for closed rows are already blocked in renderTable / selectAll.
+        if (tk.status === 'Closed') {
+            _applyClosedReadOnly();
+        }
     }
 
-    async function _saveDetail(ticketId, cu) {
+    function _applyClosedReadOnly() {
+        const body = document.getElementById('tdBody');
+        if (!body) return;
+
+        // Disable every form control inside the detail overlay.
+        body.querySelectorAll('input, select, textarea, button').forEach(el => {
+            // Keep the outer Close/Cancel button usable.
+            if (el.id === 'tdCancelBtn') return;
+            el.disabled = true;
+        });
+
+        // Hide the buttons that mutate the ticket entirely.
+        ['tdSaveChangesBtn', 'tdSendReplyBtn', 'tdMarkCompleteBtn',
+         'tdEditSlaBtn',    'tdSlaSaveBtn',   'tdSlaCancelBtn']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+
+        // Hide the reply composer wrapper — no point showing an empty textarea.
+        const replyArea = body.querySelector('.td-reply-area');
+        if (replyArea) replyArea.style.display = 'none';
+
+        // Prepend a read-only banner at the top of the body so it's obvious.
+        if (!body.querySelector('.td-closed-banner')) {
+            const banner = document.createElement('div');
+            banner.className = 'td-closed-banner';
+            banner.style.cssText = 'background:#fef3c7;border:1.5px solid #fcd34d;border-radius:12px;'
+                + 'padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;'
+                + 'color:#7c5215;font-size:0.85rem;font-family:Inter,sans-serif;';
+            banner.innerHTML = '<i class="fas fa-lock" style="color:#b8860b;font-size:1rem;"></i>'
+                + '<div><strong>This ticket is closed and cannot be edited.</strong>'
+                + '<div style="font-size:0.78rem;margin-top:2px;opacity:0.85;">'
+                + 'Closed tickets are locked for historical accuracy.</div></div>';
+            body.prepend(banner);
+        }
+    }
+
+    async function _saveDetail(ticketId, cu, opts = {}) {
+        const { silent = false, closeAfter = true, reloadList = true } = opts;
+        const statusEl = document.getElementById('tdStatusSelect');
         const payload = {
             ticket_id: ticketId, admin_id: cu.id, admin_name: cu.name||'IT Admin',
-            status:              document.getElementById('tdStatusSelect')?.value,
+            // Only send status if the select is present AND the value actually
+            // differs from the ticket's original status. This kills the ghost
+            // "downgrade Completed -> Pending" bug at the source.
+            ...(statusEl && statusEl.value && statusEl.value !== statusEl.dataset.original
+                ? { status: statusEl.value }
+                : {}),
             assigned_to:         document.getElementById('tdAssignSelect')?.value,
             external_repair:     document.getElementById('tdExtRepairChk')?.checked ? 1 : 0,
             repair_service_cost: document.getElementById('tdSvcCost')?.value||null,
@@ -662,14 +811,32 @@
         try {
             const res  = await fetch('../api/save_ticket_detail.php', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
             const json = await res.json();
-            if (json.success) { showToast('Changes saved.', 'success'); loadTicketsFromDB(); _closeDetailOverlay(); }
-            else showToast('Save failed: ' + json.message, 'error');
-        } catch { showToast('Network error.', 'error'); }
+            if (json.success) {
+                if (!silent)     showToast('Changes saved.', 'success');
+                if (reloadList)  loadTicketsFromDB();
+                if (closeAfter)  _closeDetailOverlay();
+                return true;
+            }
+            showToast('Save failed: ' + json.message, 'error');
+            return false;
+        } catch {
+            showToast('Network error.', 'error');
+            return false;
+        }
     }
 
     async function _sendReply(ticketId, cu) {
         const reply = document.getElementById('tdReplyInput')?.value.trim();
         if (!reply) { showToast('Please type a reply first.', 'warning'); return; }
+
+        // Persist any in-flight edits to the detail form BEFORE sending the
+        // reply. Without this step, the reply POST would come back, we'd
+        // re-fetch the ticket, and the re-render would wipe out whatever the
+        // user had typed into status/assignee/repair costs/consumable/SLA.
+        // We save silently: no toast, no close, no list reload — the reply
+        // handler handles the visible feedback and the re-open below.
+        await _saveDetail(ticketId, cu, { silent: true, closeAfter: false, reloadList: false });
+
         try {
             const res  = await fetch('../api/save_ticket_detail.php', {method:'POST',headers:{'Content-Type':'application/json'},
                 body: JSON.stringify({ticket_id:ticketId, admin_id:cu.id, admin_name:cu.name||'IT Admin', reply})});
@@ -677,6 +844,7 @@
             if (json.success) {
                 document.getElementById('tdReplyInput').value = '';
                 showToast('Reply sent.', 'success');
+                loadTicketsFromDB();
                 const t = ticketsData.find(t => t.dbId === ticketId);
                 if (t) viewTicket(t.id);
             } else showToast('Failed: ' + json.message, 'error');
