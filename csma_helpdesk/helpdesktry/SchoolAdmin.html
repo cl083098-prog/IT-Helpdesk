@@ -119,16 +119,6 @@
                 <div class="stat-card"><div class="stat-title">Inventory Value</div><div class="stat-number" data-stat="inv_value">₱0</div></div>
             </div>
 
-            <!-- Shortcut tiles -->
-            <div class="shortcut-grid">
-                <div class="shortcut-tile" data-goto="service-requests"><i class="fas fa-ticket-alt"></i><span>Service Requests</span></div>
-                <div class="shortcut-tile" data-goto="inventory"><i class="fas fa-boxes"></i><span>Inventory</span></div>
-                <div class="shortcut-tile" data-goto="cost-analysis"><i class="fas fa-chart-pie"></i><span>Cost Analysis</span></div>
-                <div class="shortcut-tile" data-goto="user-management"><i class="fas fa-users"></i><span>User Management</span></div>
-                <div class="shortcut-tile" data-goto="feedback"><i class="fas fa-star"></i><span>Feedback</span></div>
-                <div class="shortcut-tile" data-goto="reports"><i class="fas fa-file-alt"></i><span>Reports</span></div>
-            </div>
-
             <!-- Recent activities -->
             <div class="panel">
                 <div class="panel-header">
@@ -343,6 +333,7 @@
                                 <option value="CostAnalysis">Cost Analysis Report</option>
                                 <option value="UserManagement">User Management Report</option>
                                 <option value="Feedback">Feedback Report</option>
+                                <option value="ActivityLog">Activity Log Report</option>
                             </select>
                         </div>
                         <div class="form-row">
@@ -357,11 +348,11 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Export Format</label>
-                            <div class="export-format-group" id="exportFormatGroup">
-                                <button class="export-btn active" data-fmt="PDF"><i class="fas fa-file-pdf"></i> PDF</button>
-                                <button class="export-btn" data-fmt="Excel"><i class="fas fa-file-excel"></i> Excel</button>
-                                <button class="export-btn" data-fmt="CSV"><i class="fas fa-file-csv"></i> CSV</button>
-                            </div>
+                            <select class="filter-select" id="exportFormat" style="width:100%">
+                                <option value="PDF">📄 PDF Document</option>
+                                <option value="Excel">📊 Excel Spreadsheet</option>
+                                <option value="CSV">📋 CSV File</option>
+                            </select>
                         </div>
                         <button class="btn-primary-sa" id="generateReportBtn">
                             <i class="fas fa-download"></i> Generate Report
@@ -373,8 +364,8 @@
                     <div class="panel-header"><h3><i class="fas fa-clock"></i> Recent Reports</h3></div>
                     <div class="table-wrapper">
                         <table class="sa-table" id="recentReportsTable">
-                            <thead><tr><th>Report Name</th><th>Date Generated</th><th>Format</th></tr></thead>
-                            <tbody id="recentReportsBody"><tr><td colspan="3" class="loading-msg">Loading…</td></tr></tbody>
+                            <thead><tr><th>Report Name</th><th>Date Generated</th><th>Format</th><th style="width:110px;">Actions</th></tr></thead>
+                            <tbody id="recentReportsBody"><tr><td colspan="4" class="loading-msg">Loading…</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -425,7 +416,7 @@
                         <table class="sa-table" id="umTable">
                             <thead>
                                 <tr>
-                                    <th>ID</th><th>Full Name</th><th>Email</th>
+                                    <th>Employee ID</th><th>Full Name</th><th>Email</th>
                                     <th>Role</th><th>Status</th><th>Date Joined</th><th>Actions</th>
                                 </tr>
                             </thead>
@@ -448,7 +439,9 @@
                     <select class="filter-select" id="auditRoleFilter">
                         <option value="all">All Roles</option>
                         <option value="admin">IT Administrator</option>
+                        <option value="dept_head">Department Head</option>
                         <option value="requester">Faculty / Staff</option>
+                        <option value="school_admin">School Admin</option>
                     </select>
                     <input type="date" class="filter-select" id="auditDateFrom">
                     <input type="date" class="filter-select" id="auditDateTo">

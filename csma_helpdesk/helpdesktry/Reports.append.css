@@ -1,0 +1,66 @@
+/* =====================================================================
+ * APPEND THIS TO THE END OF Reports.css
+ * Adds styling for the new export-format dropdown, format badges,
+ * and small tweaks needed by the functional Reports module.
+ * =================================================================== */
+
+/* Export-format dropdown — matches other .form-input controls */
+#exportFormat.form-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%231c4c6e' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+/* Format badges inside the Recent Reports table */
+.format-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.format-badge.format-pdf   { background: #fdecea; color: #c0392b; }
+.format-badge.format-excel { background: #e8f6ef; color: #1e8449; }
+.format-badge.format-csv   { background: #eaf2fb; color: #1c4c6e; }
+
+/* Toast success / error variants (fallback if not already styled) */
+.toast-message.toast-success { background: #1e8449; }
+.toast-message.toast-error   { background: #c0392b; }
+
+/* Small hint text under form inputs */
+.form-hint {
+    display: block;
+    margin-top: 6px;
+    color: #7a8a99;
+    font-size: 0.78rem;
+}
+
+/* View button in Recent Reports action column
+   Mirrors .sr-view-btn used across IT Admin tables (ServiceRequest.css)
+   — identical padding, radius, colors, and hover behavior. */
+.btn-view-report {
+    background: #eef3fc;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1f6392;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+.btn-view-report:hover {
+    background: #1f6392;
+    color: white;
+}

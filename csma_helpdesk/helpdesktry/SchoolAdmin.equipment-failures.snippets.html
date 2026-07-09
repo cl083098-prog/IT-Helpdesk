@@ -1,0 +1,116 @@
+<!-- ============================================================================
+     SchoolAdmin.html — Equipment Failures integration
+     ============================================================================
+     Paste (A) into the <nav class="nav-menu"> block in SchoolAdmin.html,
+     right after the "cost-analysis" nav-item (before the Feedback item).
+
+     Paste (B) as a new <section> in the <main> area, right after
+     <section id="section-cost-analysis"> and before <section id="section-feedback">.
+
+     Paste (C) at the end of <body>, right before the closing </body>.
+     ============================================================================ -->
+
+<!-- ═══ (A) SIDEBAR NAV ITEM ══════════════════════════════════════════════════ -->
+<a href="#" class="nav-item" data-section="equipment-failures">
+    <i class="fas fa-microchip"></i><span>Equipment Failures</span>
+</a>
+
+
+<!-- ═══ (B) SECTION CONTAINER ═════════════════════════════════════════════════ -->
+<section id="section-equipment-failures" class="sa-section">
+    <p class="sa-section-intro">
+        Document recurring device issues, repair actions, and maintenance history
+        to identify frequently failing devices and plan preventive maintenance.
+    </p>
+
+    <!-- Summary metrics -->
+    <div class="stats-row" id="efSummaryRow">
+        <div class="stat-card"><div class="stat-title">Total Failures</div><div class="stat-number" id="efTotal">0</div></div>
+        <div class="stat-card"><div class="stat-title">Total Repair Cost</div><div class="stat-number" id="efTotalCost">₱0.00</div></div>
+        <div class="stat-card"><div class="stat-title">Avg Resolution Time</div><div class="stat-number" id="efAvgDays">0</div></div>
+        <div class="stat-card sa-alert-card"><div class="stat-title">Pending</div><div class="stat-number" id="efPending">0</div></div>
+        <div class="stat-card sa-warn-card"><div class="stat-title">In Progress</div><div class="stat-number" id="efInProgress">0</div></div>
+        <div class="stat-card"><div class="stat-title">Resolved</div><div class="stat-number" id="efResolved">0</div></div>
+    </div>
+
+    <!-- Filter row -->
+    <div class="filter-row">
+        <div class="search-wrapper">
+            <i class="fas fa-search"></i>
+            <input type="text" id="efSearch" class="search-input" placeholder="Search by equipment name or issue…">
+        </div>
+        <select id="efDept" class="filter-select" style="min-width:170px;">
+            <option value="all">All Departments</option>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Business">Business</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Arts &amp; Sciences">Arts &amp; Sciences</option>
+        </select>
+        <select id="efStatus" class="filter-select" style="min-width:150px;">
+            <option value="all">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+        </select>
+        <input type="date" id="efFrom" class="date-input">
+        <input type="date" id="efTo"   class="date-input">
+    </div>
+
+    <!-- Read-only table with Action column (View button only) -->
+    <div class="panel">
+        <div class="table-wrapper">
+            <table class="sa-table" id="efTable">
+                <thead>
+                    <tr>
+                        <th>Equipment Name</th>
+                        <th>Department</th>
+                        <th>Date of Failure</th>
+                        <th>Issue</th>
+                        <th>Action Taken</th>
+                        <th>Resolution Date</th>
+                        <th>Cost (₱)</th>
+                        <th>Status</th>
+                        <th style="width:100px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="efTableBody">
+                    <tr><td colspan="9" class="loading-msg">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══ (C) VIEW-ONLY DETAIL MODAL (place before </body>) ═════════════════════ -->
+<div id="efDetailModal" class="modal-overlay">
+    <div class="failure-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-file-alt"></i> Failure Record Details</h3>
+            <button class="modal-close" id="efDetailCloseX">&times;</button>
+        </div>
+        <div class="modal-body" id="efDetailBody"></div>
+        <div class="modal-footer">
+            <button class="btn-save" id="efDetailCloseBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══ (D) LOAD THE STYLE + SCRIPT (place before </body>, after SchoolAdmin.js) ══ -->
+<link rel="stylesheet" href="EquipmentFailures.append.css">
+<script src="SchoolAdmin.equipment-failures.js"></script>
+
+
+<!-- OPTIONAL small style, paste inside SchoolAdmin.css or at end of the head:
+<style>
+.sa-section-intro {
+    color: #6b8399;
+    font-size: 0.85rem;
+    margin: 0 0 16px 4px;
+    max-width: 720px;
+    line-height: 1.5;
+}
+</style>
+-->

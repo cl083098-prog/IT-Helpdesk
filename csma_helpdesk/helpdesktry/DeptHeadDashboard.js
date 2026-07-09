@@ -215,8 +215,8 @@
         if (!body) return;
 
         const statusClass = { 'Pending Approval': 'badge-pending', 'Approved': 'badge-approved', 'Rejected': 'badge-rejected' }[ticket.approval_status] || 'badge-pending';
-        const slaResponseH = Number(ticket.sla_response_hours) || 8;
-        const slaResText   = ticket.response_due_at ? formatDate(ticket.response_due_at) : '—';
+        const slaResolutionH = Number(ticket.sla_resolution_hours) || 48;
+        const slaResText     = ticket.resolution_due_at ? formatDate(ticket.resolution_due_at) : '—';
 
         body.innerHTML = `
             <div class="approval-detail-header">
@@ -237,7 +237,7 @@
             </div>
             <div class="sla-card">
                 <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${slaResponseH < 1 ? Math.round(slaResponseH * 60) + ' min' : slaResponseH + ' hour(s)'}</span></div>
-                <div class="sla-row"><span class="sla-label"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-value">${slaResText}</span></div>
+                <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${slaResolutionH < 1 ? Math.round(slaResolutionH * 60) + ' min' : slaResolutionH + ' hour(s)'}</span></div>
             </div>
             ${ticket.estimated_cost ? `<div class="card-estimated-cost" style="margin-bottom:12px;"><i class="fas fa-peso-sign"></i> Estimated Cost: ₱${Number(ticket.estimated_cost).toLocaleString('en-PH',{minimumFractionDigits:2})}</div>` : ''}
             ${ticket.rejection_note ? `<div class="approval-warning" style="margin-bottom:12px;"><i class="fas fa-info-circle"></i> <div><strong>Rejection Note:</strong> ${escapeHtml(ticket.rejection_note)}</div></div>` : ''}
@@ -295,19 +295,22 @@
             return;
         }
 
-        container.innerHTML = filtered.slice(0, 5).map(t => `
-            <div class="ticket-item ${getPriorityClass(t.priority)}" data-request-id="${t.id}">
+        container.innerHTML = filtered.slice(0, 5).map(t => {
+            const priority = t.priority || 'Low';
+            const status   = t.status   || 'Pending';
+            return `
+            <div class="ticket-item ${getPriorityClass(priority)}" data-request-id="${t.id}">
                 <div class="ticket-id-row">
                     <span class="ticket-id-text">#${escapeHtml(t.ticket_code)}</span>
-                    <span class="priority-badge ${t.priority.toLowerCase()}">${escapeHtml(t.priority)}</span>
+                    <span class="priority-badge ${priority.toLowerCase()}">${escapeHtml(priority)}</span>
                 </div>
                 <div class="ticket-desc">${escapeHtml(t.title)}</div>
                 <div class="ticket-meta">
-                    <span class="status-chip status-${t.status.toLowerCase()}">${escapeHtml(t.status)}</span>
+                    <span class="status-chip status-${status.toLowerCase()}">${escapeHtml(status)}</span>
                     &nbsp;· ${formatDate(t.submitted_at)}
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
 
         container.querySelectorAll('.ticket-item[data-request-id]').forEach(el => {
             el.addEventListener('click', () => openMyRequestDetail(Number(el.dataset.requestId)));
@@ -669,18 +672,22 @@
         const filtered = filter === 'all' ? myTickets : myTickets.filter(t => t.status === filter);
         if (counter) counter.textContent = `${filtered.length} request${filtered.length !== 1 ? 's' : ''}`;
         if (filtered.length === 0) { grid.innerHTML = '<div class="empty-state">No requests found.</div>'; return; }
-        grid.innerHTML = filtered.map(t => `
-            <div class="ticket-item ${getPriorityClass(t.priority)}" data-request-id="${t.id}" style="cursor:pointer;">
+        grid.innerHTML = filtered.map(t => {
+            const priority = t.priority || 'Low';
+            const status   = t.status   || 'Pending';
+            return `
+            <div class="ticket-item ${getPriorityClass(priority)}" data-request-id="${t.id}" style="cursor:pointer;">
                 <div class="ticket-id-row">
                     <span class="ticket-id-text">#${escapeHtml(t.ticket_code)}</span>
-                    <span class="priority-badge ${t.priority.toLowerCase()}">${escapeHtml(t.priority)}</span>
+                    <span class="priority-badge ${priority.toLowerCase()}">${escapeHtml(priority)}</span>
                 </div>
                 <div class="ticket-desc">${escapeHtml(t.title)}</div>
                 <div class="ticket-meta">
-                    <span class="status-chip status-${t.status.toLowerCase()}">${escapeHtml(t.status)}</span>
+                    <span class="status-chip status-${status.toLowerCase()}">${escapeHtml(status)}</span>
                     &nbsp;· ${formatDate(t.submitted_at)}
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
         grid.querySelectorAll('.ticket-item').forEach(el => {
             el.addEventListener('click', () => {
                 closeModal('fullListModal');
@@ -708,10 +715,9 @@
                         <div class="notification-content"><p><strong>${escapeHtml(n.title)}</strong><br>${escapeHtml(n.message)}</p></div>
                     </div>`).join('');
         }
-        document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
-            document.querySelectorAll('.notification-item.unread').forEach(el => el.classList.remove('unread'));
-            if (badge) badge.style.display = 'none';
-        });
+        // NOTE: 'Mark all read' click handler is bound once in initNotificationBell(),
+        // NOT here. Previously this function re-bound it on every refreshAll(), so the
+        // handler ran N times per click after N refreshes.
     }
 
     // ─── UI helpers ───────────────────────────────────────────────────────────
@@ -725,6 +731,13 @@
             if (!e.target.closest('#notificationWrapper')) {
                 document.getElementById('notificationPanel')?.classList.remove('open');
             }
+        });
+        // Bind 'Mark all read' exactly once — buildNotifications() used to bind
+        // it on every refresh, which produced N handlers after N refreshes.
+        document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
+            document.querySelectorAll('.notification-item.unread').forEach(el => el.classList.remove('unread'));
+            const badge = document.getElementById('notificationBadge');
+            if (badge) badge.style.display = 'none';
         });
     }
 

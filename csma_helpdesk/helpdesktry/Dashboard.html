@@ -262,9 +262,6 @@
                 <h1>Admin Dashboard</h1>
             </div>
             <div class="user-actions">
-                <button class="notification-icon" id="notificationBell" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                </button>
                 <div class="theme-toggle-wrapper">
                     <i class="fas fa-moon" id="themeIcon"></i>
                     <label class="switch">
@@ -345,6 +342,7 @@
 
 <script src="Sidebar.js"></script>
 <script src="Dashboard.js"></script>
+<script src="admin-notifications.js"></script>
 
 <script>
     // Modal helpers — pull LIVE data set by Dashboard.js (window.getDashboardData())
@@ -396,11 +394,11 @@
                 ${data.map(ticket => `
                     <div class="modal-ticket-item ${window.getPriorityClass(ticket.priority)}">
                         <div class="modal-ticket-id">
-                            ${ticket.id}
-                            <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${ticket.priority}</span>
+                            ${window.escapeHtmlDashboard(ticket.id)}
+                            <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${window.escapeHtmlDashboard(ticket.priority)}</span>
                         </div>
                         <div class="modal-ticket-desc">${window.escapeHtmlDashboard(ticket.title)}</div>
-                        <div class="modal-ticket-meta">Requester: ${window.escapeHtmlDashboard(ticket.requester)} · ${ticket.time}</div>
+                        <div class="modal-ticket-meta">Requester: ${window.escapeHtmlDashboard(ticket.requester)} · ${window.escapeHtmlDashboard(ticket.time)}</div>
                     </div>
                 `).join('')}
             </div>
@@ -420,11 +418,11 @@
                 ${data.map(ticket => `
                     <div class="modal-ticket-item ${window.getPriorityClass(ticket.priority)}">
                         <div class="modal-ticket-id">
-                            ${ticket.id}
-                            <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${ticket.priority}</span>
+                            ${window.escapeHtmlDashboard(ticket.id)}
+                            <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${window.escapeHtmlDashboard(ticket.priority)}</span>
                         </div>
                         <div class="modal-ticket-desc">${window.escapeHtmlDashboard(ticket.title)}</div>
-                        <div class="modal-ticket-meta">Requester: ${window.escapeHtmlDashboard(ticket.requester)} · ${ticket.days}</div>
+                        <div class="modal-ticket-meta">Requester: ${window.escapeHtmlDashboard(ticket.requester)} · ${window.escapeHtmlDashboard(ticket.days)}</div>
                     </div>
                 `).join('')}
             </div>
@@ -443,10 +441,10 @@
             <div class="modal-activity-list">
                 ${data.map(activity => `
                     <div class="modal-activity-item">
-                        <div class="modal-activity-icon"><i class="fas ${activity.icon}"></i></div>
+                        <div class="modal-activity-icon"><i class="fas ${window.escapeHtmlDashboard(activity.icon)}"></i></div>
                         <div class="modal-activity-details">
                             <div class="modal-activity-title">${window.escapeHtmlDashboard(activity.title)}</div>
-                            <div class="modal-activity-time">${activity.time}</div>
+                            <div class="modal-activity-time">${window.escapeHtmlDashboard(activity.time)}</div>
                         </div>
                     </div>
                 `).join('')}

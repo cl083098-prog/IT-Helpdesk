@@ -28,6 +28,14 @@ try {
 
             $filter = $_GET['filter'] ?? 'all'; // all | pending | approved | rejected
 
+            // FIX: previously joined `ticket_approvals` on (ticket_id, dept_head_id)
+            // directly, which produces one row per approval record. If a ticket
+            // has been decided more than once (e.g. `ON DUPLICATE KEY UPDATE`
+            // silently no-oped because ticket_approvals has no UNIQUE key on
+            // that pair), the same ticket appeared twice in the UI.
+            // We now pick only the most recent approval per ticket via a
+            // correlated subquery, so the SELECT is guaranteed at most one
+            // row per ticket regardless of what's in ticket_approvals.
             $sql = "SELECT
                         t.id, t.ticket_code, t.title, t.priority, t.category,
                         t.equipment_item, t.description, t.submitted_at,
@@ -40,7 +48,14 @@ try {
                     JOIN users u       ON u.id = t.requester_id
                     JOIN departments d ON d.id = t.department_id
                     LEFT JOIN ticket_approvals ta
-                        ON ta.ticket_id = t.id AND ta.dept_head_id = :dhid
+                        ON ta.id = (
+                            SELECT ta2.id
+                            FROM ticket_approvals ta2
+                            WHERE ta2.ticket_id = t.id
+                              AND ta2.dept_head_id = :dhid_sub
+                            ORDER BY ta2.decided_at DESC, ta2.id DESC
+                            LIMIT 1
+                        )
                     WHERE d.name = :dept
                       AND t.category IN ('Equipment', 'Consumable')";
 
@@ -51,7 +66,7 @@ try {
             $sql .= " ORDER BY t.submitted_at DESC";
 
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([':dhid' => $deptHeadId, ':dept' => $department]);
+            $stmt->execute([':dhid_sub' => $deptHeadId, ':dept' => $department]);
             jsonSuccess(['approvals' => $stmt->fetchAll(), 'department' => $department]);
             break;
 

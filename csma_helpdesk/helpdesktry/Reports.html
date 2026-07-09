@@ -8,6 +8,60 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="Sidebar.css">
     <link rel="stylesheet" href="Reports.css">
+    <style>
+        /* Recent Reports — View button (system-consistent pill style) */
+        .btn-view-report {
+            background: #eef3fc;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #1f6392;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .btn-view-report:hover {
+            background: #1f6392;
+            color: #ffffff;
+        }
+        .btn-view-report i { font-size: 0.72rem; }
+
+        /* Format badges in the Recent Reports table */
+        .format-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .format-badge.format-pdf   { background: #fdecea; color: #c0392b; }
+        .format-badge.format-excel { background: #d5f5e3; color: #1e8449; }
+        .format-badge.format-csv   { background: #eef3fc; color: #1f6392; }
+
+        /* Export format dropdown arrow */
+        #exportFormat.form-input {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%231f6392' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+        .form-hint {
+            display: block;
+            margin-top: 6px;
+            color: #7a8a99;
+            font-size: 0.78rem;
+        }
+    </style>
 </head>
 <body>
 <div class="dashboard-wrapper">
@@ -59,17 +113,18 @@
             <div class="section-header">
                 <h2><i class="fas fa-sliders-h"></i> Configure Report</h2>
             </div>
-            
+
             <div class="config-form">
                 <div class="form-row">
                     <div class="form-group">
                         <label><i class="fas fa-file-alt"></i> Report Type *</label>
                         <select id="reportType" class="form-input">
-                            <option value="service_requests">Service Requests Summary</option>
-                            <option value="inventory">Inventory Status Report</option>
-                            <option value="equipment_failures">Equipment Failures Analysis</option>
-                            <option value="cost_analysis">Cost Analysis Report</option>
-                            <option value="budget_planning">Budget Planning Report</option>
+                            <option value="ServiceRequest">Service Requests Summary</option>
+                            <option value="Inventory">Inventory Status Report</option>
+                            <option value="EquipmentFailures">Equipment Failures Analysis</option>
+                            <option value="CostAnalysis">Cost Analysis Report</option>
+                            <option value="BudgetPlanning">Budget Planning Report</option>
+                            <option value="ActivityLog">Activity Log Report</option>
                         </select>
                         <small class="form-hint">Select the type of report you want to generate</small>
                     </div>
@@ -86,28 +141,23 @@
                     </div>
                 </div>
 
+                <!-- Export Format: DROPDOWN (replaces radio buttons) -->
                 <div class="form-row">
                     <div class="form-group">
                         <label><i class="fas fa-download"></i> Export Format *</label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="exportFormat" value="pdf" checked>
-                                <span><i class="fas fa-file-pdf"></i> PDF Document</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="exportFormat" value="excel">
-                                <span><i class="fas fa-file-excel"></i> Excel Spreadsheet</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="exportFormat" value="csv">
-                                <span><i class="fas fa-file-csv"></i> CSV File</span>
-                            </label>
-                        </div>
+                        <select id="exportFormat" class="form-input">
+                            <option value="PDF">📄 PDF Document</option>
+                            <option value="Excel">📊 Excel Spreadsheet</option>
+                            <option value="CSV">📋 CSV File</option>
+                        </select>
+                        <small class="form-hint">Choose the file format for the generated report</small>
                     </div>
                 </div>
 
                 <div class="form-actions">
-                    <button id="generateReportBtn" class="btn-generate"><i class="fas fa-chart-line"></i> Generate Report</button>
+                    <button id="generateReportBtn" class="btn-generate">
+                        <i class="fas fa-chart-line"></i> Generate Report
+                    </button>
                 </div>
             </div>
         </div>
@@ -116,9 +166,11 @@
         <div class="recent-reports-container">
             <div class="section-header">
                 <h2><i class="fas fa-history"></i> Recent Reports</h2>
-                <button id="clearReportsBtn" class="btn-secondary"><i class="fas fa-trash-alt"></i> Clear All</button>
+                <button id="refreshReportsBtn" class="btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
             </div>
-            
+
             <div class="data-table-wrapper">
                 <table class="data-table" id="recentReportsTable">
                     <thead>
@@ -126,14 +178,14 @@
                             <th>Report Name</th>
                             <th>Date Generated</th>
                             <th>Format</th>
-                            <th style="width: 100px;">Actions</th>
+                            <th style="width:110px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="recentReportsBody">
                         <tr class="empty-row">
                             <td colspan="4" style="text-align:center; padding:40px;">
                                 <i class="fas fa-file-alt" style="font-size: 2rem; color: #95a5a6; margin-bottom: 10px; display: block;"></i>
-                                No reports generated yet. Configure and generate your first report above.
+                                Loading recent reports…
                             </td>
                         </tr>
                     </tbody>
@@ -147,7 +199,7 @@
 <div id="toastMsg" class="toast-message"></div>
 
 <script src="Sidebar.js"></script>
-<script src="Reports.js"></script>
+<script src="Reports.js?v=3"></script>
 <script src="admin-notifications.js"></script>
 </body>
 </html>
