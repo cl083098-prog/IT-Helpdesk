@@ -505,17 +505,6 @@
         // External Repair & Maintenance only applies to Equipment tickets —
         // there's nothing to repair on a consumable request. Same reasoning
         // as Consumable Item Selection only appearing for Consumable tickets.
-
-        // ── Receipt preview data (must be declared BEFORE extRepairBlock uses it) ──
-        const receiptExists  = !!tk.repair_receipt_path;
-        const receiptUrl     = receiptExists ? '../' + tk.repair_receipt_path : '';
-        const receiptIsPdf   = receiptExists && /\.pdf$/i.test(tk.repair_receipt_path);
-        const receiptPreview = !receiptExists
-            ? '<em class="td-hint">No receipt uploaded yet.</em>'
-            : (receiptIsPdf
-                ? `<a href="${receiptUrl}" target="_blank" rel="noopener" class="td-receipt-link"><i class="fas fa-file-pdf"></i> Open receipt (PDF)</a>`
-                : `<a href="${receiptUrl}" target="_blank" rel="noopener"><img src="${receiptUrl}" alt="Receipt" class="td-receipt-thumb"></a>`);
-
         const extRepairBlock = tk.category === 'Equipment' ? `
             <div class="td-section">
                 <div class="td-section-title"><i class="fas fa-tools"></i> External Repair &amp; Maintenance</div>
@@ -535,20 +524,6 @@
                     </div>
                     <div class="td-cost-field" style="margin-top:12px;"><label class="td-field-label">Remarks</label>
                         <textarea class="td-input td-textarea" id="tdRepRemarks">${escapeHtml(tk.repair_remarks||'')}</textarea></div>
-
-                    <!-- ── Receipt upload ──────────────────────────────────── -->
-                    <div class="td-receipt-block" style="margin-top:14px;">
-                        <label class="td-field-label"><i class="fas fa-receipt"></i> Receipt (photo or PDF)</label>
-                        <div class="td-receipt-preview" id="tdReceiptPreview">${receiptPreview}</div>
-                        <div class="td-receipt-actions" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="file" id="tdReceiptInput" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;">
-                            <button type="button" class="td-btn-upload" id="tdReceiptUploadBtn" data-dbid="${tk.id}">
-                                <i class="fas fa-upload"></i> ${receiptExists ? 'Replace receipt' : 'Upload receipt'}
-                            </button>
-                            ${receiptExists ? `<button type="button" class="td-btn-remove" id="tdReceiptRemoveBtn" data-dbid="${tk.id}"><i class="fas fa-trash-alt"></i> Remove</button>` : ''}
-                            <span class="td-hint" style="font-size:0.75rem;color:#6b8399;">JPG · PNG · WEBP · PDF · max 5 MB</span>
-                        </div>
-                    </div>
                 </div>
             </div>` : '';
 
@@ -581,6 +556,29 @@
             </div>
             <div class="td-section td-sla-section">
                 <div class="td-section-title"><i class="fas fa-clock"></i> Service Level Agreement (SLA)</div>
+                ${(() => {
+                    // v8: Stock badge is INFORMATIONAL. IT Admin can always edit
+                    // SLA. Auto-extension for Out of Stock / Low Stock items
+                    // happens at submission time in submit_ticket.php.
+                    const stock = tk.stock_status || 'N/A';
+                    const stockBadgeCls = stock === 'Out of Stock' ? 'td-stock-out'
+                                        : stock === 'Low Stock'    ? 'td-stock-low'
+                                        : stock === 'In Stock'     ? 'td-stock-ok'
+                                                                   : 'td-stock-na';
+                    const stockLabel = stock === 'N/A' ? 'Not tracked'
+                                     : `${stock}${tk.stock_quantity !== null && tk.stock_quantity !== undefined ? ` · ${tk.stock_quantity} on hand` : ''}`;
+                    const autoExtendedNote = (stock === 'Out of Stock' || stock === 'Low Stock')
+                        ? `<div class="td-sla-auto-note"><i class="fas fa-info-circle"></i> SLA was auto-extended at submission because the item is <strong>${escapeHtml(stock)}</strong>.</div>`
+                        : '';
+                    return `
+                <div class="td-field-row">
+                    <span class="td-field-label">Item Stock Status</span>
+                    <span class="td-field-val">
+                        <span class="td-stock-badge ${stockBadgeCls}">${escapeHtml(stockLabel)}</span>
+                        ${tk.stock_item_name ? `<span class="td-stock-name">${escapeHtml(tk.stock_item_name)}</span>` : ''}
+                    </span>
+                </div>
+                ${autoExtendedNote}
                 <div class="td-field-row">
                     <span class="td-field-label">Expected Resolution Time</span>
                     <span class="td-field-val" id="tdSlaDisplayText">
@@ -594,6 +592,8 @@
                     <button class="td-btn-sla-save" id="tdSlaSaveBtn">Apply</button>
                     <button class="td-btn-sla-cancel" id="tdSlaCancelBtn">Cancel</button>
                 </div>
+                `;
+                })()}
                 <div class="td-field-row"><span class="td-field-label">SLA Deadline</span><span class="td-field-val">${fmtDT(tk.resolution_due_at)}</span></div>
             </div>
             ${approvalBlock}
@@ -616,7 +616,7 @@
                         </select>
                     ` : `
                         <div class="td-status-locked">
-                            <span class="td-status-badge td-status-${(tk.status||'').toLowerCase().replace(/\\s+/g,'-')}">${escapeHtml(tk.status)}</span>
+                            <span class="td-status-badge td-status-${(tk.status||'').toLowerCase().replace(/\s+/g,'-')}">${escapeHtml(tk.status)}</span>
                             <span class="td-status-lock-note"><i class="fas fa-lock"></i> Locked — status cannot be changed here</span>
                         </div>
                     `}
@@ -655,52 +655,6 @@
                 const tot = document.getElementById('tdRepTotal');
                 if (tot) tot.value = '₱' + (['tdSvcCost','tdPartsCost','tdSvcFee'].reduce((s,i)=>s+(parseFloat(document.getElementById(i)?.value)||0),0)).toFixed(2);
             });
-        });
-
-        // ── Receipt upload wiring ─────────────────────────────────────────────
-        document.getElementById('tdReceiptUploadBtn')?.addEventListener('click', () => {
-            document.getElementById('tdReceiptInput')?.click();
-        });
-        document.getElementById('tdReceiptInput')?.addEventListener('change', async e => {
-            const file = e.target.files?.[0]; if (!file) return;
-            if (file.size > 5 * 1024 * 1024) { showToast('File too large (max 5 MB).', 'error'); return; }
-            const allowed = ['image/jpeg','image/png','image/webp','application/pdf'];
-            if (!allowed.includes(file.type)) { showToast('Unsupported file type.', 'error'); return; }
-
-            const dbid = document.getElementById('tdReceiptUploadBtn').dataset.dbid;
-            const fd = new FormData();
-            fd.append('ticket_id', dbid);
-            fd.append('admin_id',  cu.id);
-            fd.append('receipt',   file);
-
-            const btn = document.getElementById('tdReceiptUploadBtn');
-            const oldLabel = btn.innerHTML;
-            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading…';
-            try {
-                const res  = await fetch('../api/upload_receipt.php', { method: 'POST', body: fd });
-                const json = await res.json();
-                if (!json.success) throw new Error(json.message || 'Upload failed');
-                showToast('Receipt uploaded.', 'success');
-                // Refresh the detail panel so the preview + Replace/Remove buttons update
-                viewTicket(dbid);
-            } catch (err) {
-                showToast(err.message, 'error');
-                btn.disabled = false; btn.innerHTML = oldLabel;
-            }
-        });
-        document.getElementById('tdReceiptRemoveBtn')?.addEventListener('click', async e => {
-            if (!confirm('Remove the uploaded receipt?')) return;
-            const dbid = e.currentTarget.dataset.dbid;
-            try {
-                const res = await fetch('../api/save_ticket_detail.php', {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ ticket_id: dbid, admin_id: cu.id, admin_name: cu.name || 'IT Admin', remove_receipt: 1 })
-                });
-                const json = await res.json();
-                if (!json.success) throw new Error(json.message || 'Remove failed');
-                showToast('Receipt removed.', 'success');
-                viewTicket(dbid);
-            } catch (err) { showToast(err.message, 'error'); }
         });
         document.getElementById('tdEditSlaBtn')?.addEventListener('click', () => {
             document.getElementById('tdSlaDisplayText').style.display='none';
@@ -788,12 +742,13 @@
 
     async function _saveDetail(ticketId, cu, opts = {}) {
         const { silent = false, closeAfter = true, reloadList = true } = opts;
+        // v7: only include `status` in payload if the select is present AND
+        // the value actually differs from the ticket's original status.
+        // Prevents the "select falls back to Pending on a Pending Confirmation
+        // ticket → Save Changes downgrades it" bug at the source.
         const statusEl = document.getElementById('tdStatusSelect');
         const payload = {
             ticket_id: ticketId, admin_id: cu.id, admin_name: cu.name||'IT Admin',
-            // Only send status if the select is present AND the value actually
-            // differs from the ticket's original status. This kills the ghost
-            // "downgrade Completed -> Pending" bug at the source.
             ...(statusEl && statusEl.value && statusEl.value !== statusEl.dataset.original
                 ? { status: statusEl.value }
                 : {}),

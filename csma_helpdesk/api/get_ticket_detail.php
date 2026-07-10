@@ -86,6 +86,52 @@ try {
         exit;
     }
 
+    // ── v7: attach live stock status of the linked inventory item ────────────
+    // Used by the client to decide whether the IT Admin can extend SLA.
+    // Same rules as submit_ticket.php's checkInventoryStock:
+    //   quantity <= 0             → 'Out of Stock'
+    //   quantity <= low threshold → 'Low Stock'
+    //   otherwise                 → 'In Stock'
+    // If no matching inventory row is found we return 'N/A'.
+    $ticket['stock_status']   = 'N/A';
+    $ticket['stock_quantity'] = null;
+    $ticket['stock_item_name']= null;
+    try {
+        $inv = null;
+        // Strongest link first: consumable_item_id (set by IT Admin later)
+        if (!empty($ticket['consumable_item_id'])) {
+            $si = $pdo->prepare("SELECT id, name, quantity, low_stock_pct, oversupply_threshold
+                                 FROM inventory WHERE id = :id LIMIT 1");
+            $si->execute([':id' => (int)$ticket['consumable_item_id']]);
+            $inv = $si->fetch();
+        }
+        // Fallback: fuzzy match on equipment_item text
+        if (!$inv && !empty($ticket['equipment_item'])) {
+            $si = $pdo->prepare(
+                "SELECT id, name, quantity, low_stock_pct, oversupply_threshold
+                 FROM inventory
+                 WHERE :q LIKE CONCAT('%', name, '%') OR name LIKE CONCAT('%', :q2, '%')
+                 ORDER BY CHAR_LENGTH(name) DESC LIMIT 1"
+            );
+            $si->execute([':q' => $ticket['equipment_item'], ':q2' => $ticket['equipment_item']]);
+            $inv = $si->fetch();
+        }
+        if ($inv) {
+            $qty       = (int)$inv['quantity'];
+            $lowPct    = (int)($inv['low_stock_pct']       ?? 20);
+            $oversupp  = (int)($inv['oversupply_threshold']?? 0);
+            $threshold = $oversupp > 0 ? ($lowPct / 100.0) * $oversupp : 0;
+
+            if     ($qty <= 0)                          $status = 'Out of Stock';
+            elseif ($threshold > 0 && $qty <= $threshold) $status = 'Low Stock';
+            else                                        $status = 'In Stock';
+
+            $ticket['stock_status']    = $status;
+            $ticket['stock_quantity']  = $qty;
+            $ticket['stock_item_name'] = $inv['name'];
+        }
+    } catch (PDOException $e) { /* keep defaults on error */ }
+
     // ── Conversation & follow-ups ─────────────────────────────────────────────
     // Conversation query — handle missing message_type column gracefully
     $convSelect = $hasMsgType ? 'author_name, message, message_type, created_at' : 'author_name, message, created_at';

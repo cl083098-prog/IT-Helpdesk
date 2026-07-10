@@ -8,6 +8,7 @@
 //      confirm_resolved action.
 
 require_once 'config.php';
+require_once 'notifications_helper.php';
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -28,6 +29,21 @@ if (!$ticketId) {
 $action = trim($data['action'] ?? '');
 
 if ($action === 'send_confirmation') {
+    // ── v9 fix: ensure audit_log exists BEFORE starting the transaction. ──
+    // MySQL treats DDL (CREATE TABLE, ALTER TABLE, DROP TABLE) as statements
+    // that implicitly commit any active transaction. Running "CREATE TABLE
+    // IF NOT EXISTS audit_log" inside a transaction — even when the table
+    // already existed — would silently end the transaction, so the later
+    // $pdo->commit() call threw "There is no active transaction" and the
+    // whole request came back as HTTP 500. This is the exact toast the user
+    // was seeing after clicking "Send Confirmation Request".
+    //
+    // CREATE TABLE IF NOT EXISTS is idempotent and safe to run every time
+    // in autocommit mode.
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT DEFAULT NULL, user_name VARCHAR(100) NOT NULL DEFAULT '', user_role VARCHAR(50) NOT NULL DEFAULT '', module VARCHAR(80) NOT NULL DEFAULT '', action VARCHAR(150) NOT NULL DEFAULT '', detail TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL, status ENUM('Success','Failed','Warning') DEFAULT 'Success', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+    } catch (PDOException $ddlErr) { /* audit table missing is non-fatal */ }
+
     try {
         $pdo->beginTransaction();
 
@@ -38,7 +54,8 @@ if ($action === 'send_confirmation') {
         $adminName = $data['admin_name'] ?? 'IT Admin';
         $adminId   = (int)($data['admin_id'] ?? 0);
 
-        // Log with message_type if column exists, fall back gracefully
+        // Log with message_type if column exists, fall back gracefully.
+        // NOTE: keep this inside the transaction — it's a normal INSERT, not DDL.
         try {
             $pdo->prepare(
                 "INSERT INTO ticket_activity (ticket_id, author_id, author_name, message, message_type)
@@ -61,20 +78,40 @@ if ($action === 'send_confirmation') {
             ]);
         }
 
-        // Fetch ticket details for audit log
+        // Fetch ticket details for the audit log entry
         $tcRow = $pdo->prepare("SELECT t.ticket_code, t.title, u.full_name AS requester_name FROM tickets t JOIN users u ON u.id = t.requester_id WHERE t.id = :id");
         $tcRow->execute([':id' => $ticketId]);
         $tc = $tcRow->fetch();
-        $tcCode = $tc['ticket_code'] ?? $ticketId;
-        $tcTitle = $tc['title'] ?? '—';
-
-        try {
-            $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT DEFAULT NULL, user_name VARCHAR(100) NOT NULL DEFAULT '', user_role VARCHAR(50) NOT NULL DEFAULT '', module VARCHAR(80) NOT NULL DEFAULT '', action VARCHAR(150) NOT NULL DEFAULT '', detail TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL, status ENUM('Success','Failed','Warning') DEFAULT 'Success', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
-            $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,:urole,'ServiceRequest','Marked ticket as Pending Confirmation',:det,:ip,'Success')")
-                ->execute([':uid'=>$adminId,':uname'=>$adminName,':urole'=>'admin',':det'=>"Ticket: #$tcCode — $tcTitle | Status changed to Pending Confirmation | Confirmation request sent to requester: {$tc['requester_name']}",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
-        } catch (PDOException $al) {}
+        $tcCode = $tc['ticket_code']    ?? $ticketId;
+        $tcTitle = $tc['title']         ?? '—';
+        $requesterName = $tc['requester_name'] ?? '';
 
         $pdo->commit();
+
+        // ── Audit log write happens AFTER commit. ─────────────────────────
+        // Best-effort — a missing table, permissions error, or ENUM mismatch
+        // must never bubble up as an HTTP 500 that hides the fact that the
+        // status change actually succeeded.
+        try {
+            $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,:urole,'ServiceRequest','Marked ticket as Pending Confirmation',:det,:ip,'Success')")
+                ->execute([
+                    ':uid'   => $adminId,
+                    ':uname' => $adminName,
+                    ':urole' => 'admin',
+                    ':det'   => "Ticket: #$tcCode — $tcTitle | Status changed to Pending Confirmation | Confirmation request sent to requester: $requesterName",
+                    ':ip'    => $_SERVER['REMOTE_ADDR'] ?? '',
+                ]);
+        } catch (PDOException $al) { /* audit log is best-effort */ }
+
+        // ── Notify requester that action is needed ─────────────────────────
+        pushNotification($pdo, [
+            'target_user' => (int)($pdo->query("SELECT requester_id FROM tickets WHERE id = " . (int)$ticketId)->fetchColumn() ?: 0),
+            'target_role' => 'requester',
+            'event_type'  => 'confirmation_needed',
+            'title'       => "Please confirm resolution of #$tcCode",
+            'description' => "IT Admin has marked \"$tcTitle\" as completed. Please confirm the issue is fully resolved, or re-open the ticket if it's not.",
+            'ticket_id'   => (int)$ticketId,
+        ]);
 
         echo json_encode([
             'success'    => true,

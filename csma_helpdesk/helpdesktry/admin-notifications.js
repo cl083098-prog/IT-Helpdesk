@@ -55,12 +55,32 @@
         // Mark all read
         document.getElementById('adminMarkAllReadBtn')?.addEventListener('click', async () => {
             const cu = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-            await fetch(`${API_BASE}/admin-notifications.php?action=mark_all_read`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: cu.id })
-            });
-            loadAdminNotifications();
+            // v11: check server response; only update UI on real success.
+            // Previous version had an empty catch that swallowed errors
+            // silently, so a failed mark-read still stripped the .unread
+            // class visually — user thought it was read but the DB wasn't
+            // touched, and the notification returned on next login.
+            let ok = false;
+            try {
+                const res  = await fetch(`${API_BASE}/admin-notifications.php?action=mark_all_read`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: cu.id })
+                });
+                const json = await res.json();
+                ok = !!json.success;
+                if (!ok) console.warn('[notifs] mark_all_read failed:', json.message);
+            } catch (e) {
+                console.warn('[notifs] mark_all_read network error:', e.message);
+            }
+            if (ok) {
+                loadAdminNotifications();
+            } else {
+                // Show a small transient message inside the dropdown so the user knows
+                const list = document.getElementById('adminNotifList');
+                if (list) list.insertAdjacentHTML('afterbegin',
+                    '<div class="admin-notif-empty" style="color:#b23434;">Could not mark all as read — please try again.</div>');
+            }
         });
     }
 
@@ -109,13 +129,21 @@
             el.addEventListener('click', async () => {
                 if (!el.classList.contains('unread')) return;
                 const cu = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+                // v11: only strip the .unread class if the server confirms the write.
+                let ok = false;
                 try {
-                    await fetch(`${API_BASE}/admin-notifications.php?action=mark_one`, {
+                    const res  = await fetch(`${API_BASE}/admin-notifications.php?action=mark_one`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ notif_id: el.dataset.id, user_id: cu.id })
                     });
-                } catch {}
+                    const json = await res.json();
+                    ok = !!json.success;
+                    if (!ok) console.warn('[notifs] mark_one failed:', json.message);
+                } catch (e) {
+                    console.warn('[notifs] mark_one network error:', e.message);
+                }
+                if (!ok) return; // leave it visually unread — user can retry
                 el.classList.remove('unread');
                 const badge = document.getElementById('adminNotifBadge');
                 if (badge) {

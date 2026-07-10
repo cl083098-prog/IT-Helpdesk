@@ -191,112 +191,58 @@
     }
 
     async function openTicketDetail(ticketId) {
-    const modal = document.getElementById('ticketDetailModal');
-    const body  = document.getElementById('ticketDetailBody');
-    if (!modal || !body) return;
-    body.innerHTML = '<div class="loading-msg">Loading…</div>';
-    modal.classList.add('active');
+        const modal = document.getElementById('ticketDetailModal');
+        const body  = document.getElementById('ticketDetailBody');
+        if (!modal || !body) return;
+        body.innerHTML = '<div class="loading-msg">Loading…</div>';
+        modal.classList.add('active');
 
-    const json = await apiFetch(`${API}?action=get_ticket_detail&ticket_id=${ticketId}`);
-    if (!json?.success) { body.innerHTML = '<div class="empty-msg">Could not load ticket.</div>'; return; }
-    const t = json.ticket;
+        const json = await apiFetch(`${API}?action=get_ticket_detail&ticket_id=${ticketId}`);
+        if (!json?.success) { body.innerHTML = '<div class="empty-msg">Could not load ticket.</div>'; return; }
+        const t = json.ticket;
 
-    // ── Peso formatter (mirrors formatPeso) ───────────────────────────────
-    const peso = v => '₱' + parseFloat(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const convHtml = t.conversations?.length ? t.conversations.map(c => `
+            <div class="conv-item">
+                <div class="conv-author">${escHtml(c.author_name)} <span class="conv-time">${formatDate(c.created_at)}</span></div>
+                <div class="conv-msg">${escHtml(c.message)}</div>
+            </div>`).join('') : '<div class="empty-msg">No conversation history.</div>';
 
-    // ── Conversation thread ───────────────────────────────────────────────
-    const convHtml = t.conversations?.length ? t.conversations.map(c => `
-        <div class="conv-item">
-            <div class="conv-author">${escHtml(c.author_name)} <span class="conv-time">${formatDate(c.created_at)}</span></div>
-            <div class="conv-msg">${escHtml(c.message)}</div>
-        </div>`).join('') : '<div class="empty-msg">No conversation history.</div>';
+        const approvalHtml = t.approval ? `
+            <div class="detail-section-title">Department Head Approval</div>
+            <div class="approval-block">
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${(t.approval.decision||'').toLowerCase().replace(' ','-')}">${escHtml(t.approval.decision)}</span></span></div>
+                    <div class="detail-item"><span class="detail-label">Decided By</span><span class="detail-value">${escHtml(t.approval.decided_by)}</span></div>
+                    <div class="detail-item"><span class="detail-label">Decided At</span><span class="detail-value">${formatDate(t.approval.decided_at)}</span></div>
+                    ${t.approval.estimated_cost ? `<div class="detail-item"><span class="detail-label">Estimated Cost</span><span class="detail-value">${formatPeso(t.approval.estimated_cost)}</span></div>` : ''}
+                    ${t.approval.rejection_note ? `<div class="detail-item"><span class="detail-label">Rejection Note</span><span class="detail-value">${escHtml(t.approval.rejection_note)}</span></div>` : ''}
+                </div>
+            </div>` : '';
 
-    // ── Approval section ──────────────────────────────────────────────────
-    const approvalHtml = t.approval ? `
-        <div class="detail-section-title">Department Head Approval</div>
-        <div class="approval-block">
+        body.innerHTML = `
             <div class="detail-grid">
-                <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${(t.approval.decision||'').toLowerCase().replace(' ','-')}">${escHtml(t.approval.decision)}</span></span></div>
-                <div class="detail-item"><span class="detail-label">Decided By</span><span class="detail-value">${escHtml(t.approval.decided_by)}</span></div>
-                <div class="detail-item"><span class="detail-label">Decided At</span><span class="detail-value">${formatDate(t.approval.decided_at)}</span></div>
-                ${t.approval.estimated_cost ? `<div class="detail-item"><span class="detail-label">Estimated Cost</span><span class="detail-value">${formatPeso(t.approval.estimated_cost)}</span></div>` : ''}
-                ${t.approval.rejection_note ? `<div class="detail-item"><span class="detail-label">Rejection Note</span><span class="detail-value">${escHtml(t.approval.rejection_note)}</span></div>` : ''}
+                <div class="detail-item"><span class="detail-label">Ticket ID</span><span class="detail-value">#${escHtml(t.ticket_code)}</span></div>
+                <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${(t.status||'').toLowerCase()}">${escHtml(t.status)}</span></span></div>
+                <div class="detail-item"><span class="detail-label">Priority</span><span class="detail-value"><span class="badge badge-${(t.priority||'').toLowerCase()}">${escHtml(t.priority)}</span></span></div>
+                <div class="detail-item"><span class="detail-label">Category</span><span class="detail-value">${escHtml(t.category)}</span></div>
+                <div class="detail-item"><span class="detail-label">Equipment/Item</span><span class="detail-value">${escHtml(t.equipment_item)}</span></div>
+                <div class="detail-item"><span class="detail-label">Requester</span><span class="detail-value">${escHtml(t.requester)}</span></div>
+                <div class="detail-item"><span class="detail-label">Department</span><span class="detail-value">${escHtml(t.department)}</span></div>
+                <div class="detail-item"><span class="detail-label">Assigned To</span><span class="detail-value">${escHtml(t.assigned_to||'Awaiting')}</span></div>
+                <div class="detail-item"><span class="detail-label">Date Submitted</span><span class="detail-value">${formatDate(t.submitted_at)}</span></div>
+                <div class="detail-item"><span class="detail-label">Approval Status</span><span class="detail-value"><span class="badge badge-${(t.approval_status||'').toLowerCase().replace(' ','-')}">${escHtml(t.approval_status||'Not Required')}</span></span></div>
             </div>
-        </div>` : '';
-
-    // ── SLA (v4 fix) — read ACTUAL hours; never hardcode from priority ────
-    const slaHours = Number(t.sla_resolution_hours) || 0;
-    const slaLabel = slaHours > 0
-        ? (slaHours < 1 ? Math.round(slaHours * 60) + ' min' : slaHours + ' hour(s)')
-        : '—';
-    const slaDeadline = t.resolution_due_at ? formatDate(t.resolution_due_at) : '—';
-
-    // ── Repair block (v4 addition) — read-only view of what the IT Admin ─
-    // entered, including the receipt image or PDF. Only shown when the
-    // ticket has any repair info recorded.
-    const hasRepair = t.category === 'Equipment' && (
-        Number(t.external_repair) === 1 ||
-        t.repair_service_cost || t.repair_parts_cost || t.repair_service_fee ||
-        t.repair_total_cost   || t.repair_remarks    || t.repair_receipt_path
-    );
-    let repairHtml = '';
-    if (hasRepair) {
-        const receiptPath = t.repair_receipt_path || '';
-        let receiptHtml = '<em style="color:#6b8399;font-size:0.85rem;">No receipt uploaded.</em>';
-        if (receiptPath) {
-            const url = '../' + receiptPath;
-            const safeUrl = escHtml(url);
-            const isPdf = /\.pdf$/i.test(receiptPath);
-            receiptHtml = isPdf
-                ? `<a href="${safeUrl}" target="_blank" rel="noopener" class="btn-view" style="text-decoration:none;"><i class="fas fa-file-pdf"></i> Open receipt (PDF)</a>`
-                : `<a href="${safeUrl}" target="_blank" rel="noopener"><img src="${safeUrl}" alt="Receipt" style="max-width:100%;max-height:240px;border-radius:12px;border:1px solid #dbe6f0;"></a>`;
-        }
-        repairHtml = `
-            <div class="detail-section-title">External Repair &amp; Maintenance</div>
-            <div class="detail-grid">
-                <div class="detail-item"><span class="detail-label">External Repair Service</span><span class="detail-value">${peso(t.repair_service_cost)}</span></div>
-                <div class="detail-item"><span class="detail-label">Replacement Parts</span><span class="detail-value">${peso(t.repair_parts_cost)}</span></div>
-                <div class="detail-item"><span class="detail-label">Service Fee</span><span class="detail-value">${peso(t.repair_service_fee)}</span></div>
-                <div class="detail-item"><span class="detail-label">Total Maintenance Cost</span><span class="detail-value"><strong>${peso(t.repair_total_cost)}</strong></span></div>
+            <div class="detail-section-title">Issue Details</div>
+            <div class="detail-item"><span class="detail-label">Title</span><span class="detail-value">${escHtml(t.title)}</span></div>
+            <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Description</span><span class="detail-value">${escHtml(t.description||'—')}</span></div>
+            <div class="sla-block" style="margin-top:16px;">
+                <div class="sla-row"><span class="sla-lbl"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-val">${(() => { const h = Number(t.sla_resolution_hours) || 0; return h > 0 ? (h < 1 ? Math.round(h*60) + ' min' : h + ' hour(s)') : '—'; })()}</span></div>
+                <div class="sla-row"><span class="sla-lbl"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-val">${t.resolution_due_at ? formatDate(t.resolution_due_at) : '—'}</span></div>
             </div>
-            <div class="detail-item" style="margin-top:8px;">
-                <span class="detail-label">Repair Remarks</span>
-                <span class="detail-value">${escHtml(t.repair_remarks || '—')}</span>
-            </div>
-            <div class="detail-item" style="margin-top:12px;">
-                <span class="detail-label">Receipt</span>
-                <div class="detail-value" style="margin-top:6px;">${receiptHtml}</div>
-            </div>`;
+            ${approvalHtml}
+            <div class="detail-section-title">Conversation &amp; Follow-ups</div>
+            ${convHtml}`;
     }
-
-    // ── Compose ───────────────────────────────────────────────────────────
-    body.innerHTML = `
-        <div class="detail-grid">
-            <div class="detail-item"><span class="detail-label">Ticket ID</span><span class="detail-value">#${escHtml(t.ticket_code)}</span></div>
-            <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${(t.status||'').toLowerCase()}">${escHtml(t.status)}</span></span></div>
-            <div class="detail-item"><span class="detail-label">Priority</span><span class="detail-value"><span class="badge badge-${(t.priority||'').toLowerCase()}">${escHtml(t.priority)}</span></span></div>
-            <div class="detail-item"><span class="detail-label">Category</span><span class="detail-value">${escHtml(t.category)}</span></div>
-            <div class="detail-item"><span class="detail-label">Equipment/Item</span><span class="detail-value">${escHtml(t.equipment_item)}</span></div>
-            <div class="detail-item"><span class="detail-label">Requester</span><span class="detail-value">${escHtml(t.requester)}</span></div>
-            <div class="detail-item"><span class="detail-label">Department</span><span class="detail-value">${escHtml(t.department)}</span></div>
-            <div class="detail-item"><span class="detail-label">Assigned To</span><span class="detail-value">${escHtml(t.assigned_to||'Awaiting')}</span></div>
-            <div class="detail-item"><span class="detail-label">Date Submitted</span><span class="detail-value">${formatDate(t.submitted_at)}</span></div>
-            <div class="detail-item"><span class="detail-label">Date Completed</span><span class="detail-value">${t.completed_at ? formatDate(t.completed_at) : '—'}</span></div>
-            <div class="detail-item"><span class="detail-label">Date Closed</span><span class="detail-value">${t.closed_at ? formatDate(t.closed_at) : '—'}</span></div>
-            <div class="detail-item"><span class="detail-label">Approval Status</span><span class="detail-value"><span class="badge badge-${(t.approval_status||'').toLowerCase().replace(' ','-')}">${escHtml(t.approval_status||'Not Required')}</span></span></div>
-        </div>
-        <div class="detail-section-title">Issue Details</div>
-        <div class="detail-item"><span class="detail-label">Title</span><span class="detail-value">${escHtml(t.title)}</span></div>
-        <div class="detail-item" style="margin-top:8px;"><span class="detail-label">Description</span><span class="detail-value">${escHtml(t.description||'—')}</span></div>
-        <div class="sla-block" style="margin-top:16px;">
-            <div class="sla-row"><span class="sla-lbl"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-val">${slaLabel}</span></div>
-            <div class="sla-row"><span class="sla-lbl"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-val">${slaDeadline}</span></div>
-        </div>
-        ${approvalHtml}
-        ${repairHtml}
-        <div class="detail-section-title">Conversation &amp; Follow-ups</div>
-        ${convHtml}`;
-}
 
     // ─── Inventory ────────────────────────────────────────────────────────────
     function initInventoryFilters() {
@@ -934,8 +880,19 @@
             if (!e.target.closest('#saNotifWrapper')) dropdown.classList.remove('open');
         });
         document.getElementById('saMarkAllReadBtn')?.addEventListener('click', async () => {
-            await apiFetch(API, { method:'POST', body:JSON.stringify({ action:'mark_notifications_read', user_id:USER_ID }) });
-            loadSaNotifications();
+            // v11: verify server persisted the change before refreshing.
+            let ok = false;
+            try {
+                const json = await apiFetch(API, { method:'POST', body:JSON.stringify({ action:'mark_notifications_read', user_id:USER_ID }) });
+                ok = !!(json && json.success);
+            } catch (e) { console.warn('[sa-notif] mark all failed:', e.message); }
+            if (ok) {
+                loadSaNotifications();
+            } else {
+                const list = document.getElementById('saNotifList');
+                if (list) list.insertAdjacentHTML('afterbegin',
+                    '<div class="admin-notif-empty" style="color:#b23434;">Could not mark all as read — please try again.</div>');
+            }
         });
 
         // Auto-load on init and poll every 60s
@@ -957,7 +914,7 @@
 
         const fmtRel = d => { if (!d) return ''; const s = Math.floor((Date.now()-new Date(d))/1000); if(s<60) return 'Just now'; if(s<3600) return Math.floor(s/60)+' min ago'; if(s<86400) return Math.floor(s/3600)+' hr ago'; return Math.floor(s/86400)+' days ago'; };
         list.innerHTML = notifs.slice(0,6).map(n => `
-            <div class="admin-notif-item${n.is_read?'':' unread'}">
+            <div class="admin-notif-item${n.is_read?'':' unread'}" data-id="${n.id}">
                 <div class="admin-notif-dot"></div>
                 <div class="admin-notif-text">
                     <div class="admin-notif-title">${escHtml(n.title)}</div>
@@ -965,6 +922,30 @@
                     <div class="admin-notif-time">${fmtRel(n.created_at)}</div>
                 </div>
             </div>`).join('');
+
+        // v11: per-item mark-as-read (was missing entirely — you could only
+        // mark-all-read before, never a single item).
+        list.querySelectorAll('.admin-notif-item.unread[data-id]').forEach(el => {
+            el.addEventListener('click', async () => {
+                if (!el.classList.contains('unread')) return;
+                let ok = false;
+                try {
+                    const json = await apiFetch(API, {
+                        method: 'POST',
+                        body:   JSON.stringify({ action:'mark_notifications_read', user_id: USER_ID, notif_id: el.dataset.id })
+                    });
+                    ok = !!(json && json.success);
+                } catch (e) { console.warn('[sa-notif] mark one failed:', e.message); }
+                if (!ok) return;
+                el.classList.remove('unread');
+                const badge = document.getElementById('saNotifBadge');
+                if (badge && badge.style.display !== 'none') {
+                    const cur = Math.max(0, parseInt(badge.textContent, 10) - 1);
+                    if (cur === 0) badge.style.display = 'none';
+                    else            badge.textContent = cur > 9 ? '9+' : String(cur);
+                }
+            });
+        });
     }
 
     // ─── Reset Password Panel (School Admin → IT Admin only) ────────────────

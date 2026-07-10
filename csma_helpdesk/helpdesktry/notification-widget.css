@@ -1,0 +1,199 @@
+/* ==========================================================================
+   Universal notification widget — matches the CSMA system palette
+   (Inter font, #1f6392 primary, #f5f9fe surface, 20–24px radii).
+   ========================================================================== */
+
+.nw-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 12px;
+    font-family: 'Inter', sans-serif;
+}
+
+/* ── Bell button ───────────────────────────────────────────────────────── */
+.nw-bell {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    color: #1c4c6e;
+    cursor: pointer;
+    font-size: 1.05rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.nw-bell:hover { background: rgba(31, 99, 146, 0.08); color: #1f6392; }
+
+.nw-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #b23434;
+    color: #fff;
+    border-radius: 9px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #f5f9fe;
+}
+
+/* ── Dropdown ──────────────────────────────────────────────────────────── */
+.nw-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 380px;
+    max-height: 480px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(28, 76, 110, 0.18), 0 4px 8px rgba(28, 76, 110, 0.08);
+    border: 1px solid #e0eaf3;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+}
+.nw-dropdown.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.nw-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid #eef2f6;
+    background: #f5f9fe;
+    color: #1c4c6e;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.nw-header i { margin-right: 6px; color: #1f6392; }
+.nw-mark-all {
+    background: transparent;
+    border: none;
+    color: #1f6392;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+.nw-mark-all:hover { background: rgba(31, 99, 146, 0.1); }
+
+/* ── List ──────────────────────────────────────────────────────────────── */
+.nw-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 4px 0;
+}
+.nw-list::-webkit-scrollbar { width: 6px; }
+.nw-list::-webkit-scrollbar-thumb { background: #cddbe9; border-radius: 3px; }
+
+.nw-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: #6b8399;
+    font-size: 0.85rem;
+}
+
+.nw-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 1px solid #f2f5f9;
+    cursor: default;
+    transition: background 0.12s ease;
+}
+.nw-item:last-child      { border-bottom: none; }
+.nw-item.unread          { background: #f0f6fc; cursor: pointer; }
+.nw-item.unread:hover    { background: #e6effa; }
+
+.nw-dot {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2f6;
+    color: #6b8399;
+    border-radius: 50%;
+    font-size: 0.85rem;
+}
+.nw-dot.unread {
+    background: #d0e3f2;
+    color: #1f6392;
+}
+
+.nw-body { flex: 1; min-width: 0; }
+.nw-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1c4c6e;
+    line-height: 1.35;
+    margin-bottom: 3px;
+}
+.nw-desc {
+    font-size: 0.78rem;
+    color: #4a6376;
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.nw-time {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: #8aa5bf;
+}
+
+/* ── Dark mode ─────────────────────────────────────────────────────────── */
+body.dark-mode .nw-bell             { color: #cddbe9; }
+body.dark-mode .nw-bell:hover       { background: rgba(127, 177, 214, 0.12); color: #7fb1d6; }
+body.dark-mode .nw-badge            { box-shadow: 0 0 0 2px #0f2436; }
+body.dark-mode .nw-dropdown         { background: #17324a; border-color: #26445e; }
+body.dark-mode .nw-header           { background: #10263a; color: #cddbe9; border-color: #26445e; }
+body.dark-mode .nw-header i         { color: #7fb1d6; }
+body.dark-mode .nw-mark-all         { color: #7fb1d6; }
+body.dark-mode .nw-mark-all:hover   { background: rgba(127, 177, 214, 0.15); }
+body.dark-mode .nw-item             { border-color: #22405a; }
+body.dark-mode .nw-item.unread      { background: #1a3852; }
+body.dark-mode .nw-item.unread:hover{ background: #204464; }
+body.dark-mode .nw-dot              { background: #22405a; color: #a4bcd0; }
+body.dark-mode .nw-dot.unread       { background: #2f5675; color: #cddbe9; }
+body.dark-mode .nw-title            { color: #e8f0f7; }
+body.dark-mode .nw-desc             { color: #a4bcd0; }
+body.dark-mode .nw-time             { color: #7d95ab; }
+body.dark-mode .nw-empty            { color: #a4bcd0; }
+body.dark-mode .nw-list::-webkit-scrollbar-thumb { background: #345876; }
+
+/* ── Mobile ────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .nw-dropdown {
+        position: fixed;
+        top: 60px;
+        right: 8px;
+        left: 8px;
+        width: auto;
+        max-height: 70vh;
+    }
+}

@@ -1,22 +1,24 @@
 <?php
 // api/save_ticket_detail.php
-// Saves all IT Admin changes from the Request Details panel in one call.
-// v3 changes:
-//   • When SLA custom hours change, ALSO update `sla_resolution_hours` so
-//     every role (requester, dept head, admin) sees the same value.
-//   • Status guard now blocks BOTH direct-set of forbidden states AND
-//     downgrades from a Completed/Closed ticket to Pending/Ongoing.
+// Saves all IT Admin changes from the Request Details panel in one call:
+//   - Status update (with Pending Confirmation guard)
+//   - Assigned IT Officer
+//   - External Repair & Maintenance costs
+//   - Consumable item selection
+//   - SLA custom hours
+//   - Add reply/follow-up
 
 require_once 'config.php';
+require_once 'notifications_helper.php';
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
-$data      = json_decode(file_get_contents('php://input'), true);
-$ticketId  = (int)($data['ticket_id'] ?? 0);
-$adminId   = (int)($data['admin_id']  ?? 0);
+$data     = json_decode(file_get_contents('php://input'), true);
+$ticketId = (int)($data['ticket_id'] ?? 0);
+$adminId  = (int)($data['admin_id']  ?? 0);
 $adminName = trim($data['admin_name'] ?? 'IT Admin');
 
 if (!$ticketId) {
@@ -26,19 +28,24 @@ if (!$ticketId) {
 }
 
 try {
-    // Detect optional columns
+    // Detect optional columns to avoid crashes on fresh installs
     $ticketCols   = $pdo->query("SHOW COLUMNS FROM tickets")->fetchAll(PDO::FETCH_COLUMN);
     $actCols      = $pdo->query("SHOW COLUMNS FROM ticket_activity")->fetchAll(PDO::FETCH_COLUMN);
     $hasExtRepair = in_array('external_repair',    $ticketCols);
-    $hasReceipt   = in_array('repair_receipt_path',$ticketCols);
     $hasConsumable= in_array('consumable_item_id', $ticketCols);
     $hasSlaCustom = in_array('sla_custom_hours',   $ticketCols);
     $hasMsgType   = in_array('message_type',       $actCols);
 
-    // Read the current ticket so we can guard downgrades
-    $current = $pdo->prepare("SELECT status FROM tickets WHERE id = :id");
-    $current->execute([':id' => $ticketId]);
-    $currentStatus = (string)($current->fetchColumn() ?: '');
+    // v11: Read current values BEFORE the update so we can dedupe notifications.
+    // Without this, every silent auto-save from the detail panel produced a
+    // fresh unread notification even when nothing actually changed — the user
+    // saw the same "Status changed to Ongoing" alert reappear on every login.
+    $curStmt = $pdo->prepare(
+        "SELECT status, assigned_to, sla_custom_hours, sla_resolution_hours
+         FROM tickets WHERE id = :id"
+    );
+    $curStmt->execute([':id' => $ticketId]);
+    $curTicket = $curStmt->fetch() ?: [];
 
     $pdo->beginTransaction();
 
@@ -46,45 +53,32 @@ try {
     $params = [':id' => $ticketId];
 
     // ── Status update ─────────────────────────────────────────────────────────
-    // Only accept status when the ticket is currently editable AND the
-    // requested value is one of the editable states. This prevents the
-    // "select falls back to Pending" bug from silently downgrading a
-    // Completed/Closed ticket.
-    $EDITABLE_STATES = ['Pending', 'Ongoing'];
-    $LOCKED_STATES   = ['Completed', 'Pending Confirmation', 'Closed', 'Cancelled'];
-
-    if (isset($data['status']) && $data['status'] !== '') {
+    if (isset($data['status'])) {
         $newStatus = $data['status'];
-
-        // Block trying to set a forbidden status directly
-        if (in_array($newStatus, ['Completed', 'Pending Confirmation', 'Closed'], true)) {
+        // Guard: 'Completed' must go through send_confirmation flow, not direct set
+        $forbidden = ['Completed', 'Pending Confirmation', 'Closed'];
+        if (in_array($newStatus, $forbidden, true)) {
             $pdo->rollBack();
             echo json_encode(['success'=>false,'message'=>"Use 'Send Confirmation Request' to complete a ticket."]);
             exit;
         }
+        $sets[]            = 'status = :status';
+        $params[':status'] = $newStatus;
 
-        // Block downgrading a locked ticket
-        if (in_array($currentStatus, $LOCKED_STATES, true) && $newStatus !== $currentStatus) {
-            // Silently ignore — the client sent a stale value from a select
-            // that couldn't represent the true status.
-        } elseif (in_array($newStatus, $EDITABLE_STATES, true) && $newStatus !== $currentStatus) {
-            $sets[]            = 'status = :status';
-            $params[':status'] = $newStatus;
-
-            $pdo->prepare(
-                "INSERT INTO ticket_activity (ticket_id,author_id,author_name,message,message_type)
-                 VALUES(:tid,:aid,:aname,:msg,'status_change')"
-            )->execute([':tid'=>$ticketId,':aid'=>$adminId,':aname'=>$adminName,':msg'=>"Status changed to: $newStatus"]);
-        }
+        // Log status change
+        $pdo->prepare(
+            "INSERT INTO ticket_activity (ticket_id,author_id,author_name,message,message_type)
+             VALUES(:tid,:aid,:aname,:msg,'status_change')"
+        )->execute([':tid'=>$ticketId,':aid'=>$adminId,':aname'=>$adminName,':msg'=>"Status changed to: $newStatus"]);
     }
 
     // ── Assign IT Officer ─────────────────────────────────────────────────────
     if (array_key_exists('assigned_to', $data)) {
-        $sets[]                 = 'assigned_to = :assigned_to';
+        $sets[]               = 'assigned_to = :assigned_to';
         $params[':assigned_to'] = $data['assigned_to'] ?: null;
     }
 
-    // ── External repair fields ────────────────────────────────────────────────
+    // ── External repair fields (only if columns exist) ───────────────────────
     if ($hasExtRepair) {
         $repairFields = [
             'external_repair'     => ':extRepair',
@@ -95,7 +89,7 @@ try {
         ];
         foreach ($repairFields as $col => $param) {
             if (array_key_exists($col, $data)) {
-                $sets[]         = "$col = $param";
+                $sets[]        = "$col = $param";
                 $params[$param] = $data[$col] !== '' ? $data[$col] : null;
             }
         }
@@ -107,52 +101,45 @@ try {
             $sets[]              = 'repair_total_cost = :repTotal';
             $params[':repTotal'] = $total > 0 ? $total : null;
         }
-        // Allow deletion of the receipt via explicit null
-        if ($hasReceipt && array_key_exists('remove_receipt', $data) && $data['remove_receipt']) {
-            $sets[]                 = 'repair_receipt_path = NULL';
-        }
     }
 
-    // ── Consumable item selection ────────────────────────────────────────────
+    // ── Consumable item selection (only if columns exist) ────────────────────
     if ($hasConsumable) {
         if (array_key_exists('consumable_item_id', $data)) {
-            $sets[]               = 'consumable_item_id = :consItem';
-            $params[':consItem']  = $data['consumable_item_id'] ?: null;
+            $sets[]              = 'consumable_item_id = :consItem';
+            $params[':consItem'] = $data['consumable_item_id'] ?: null;
         }
         if (array_key_exists('consumable_qty_needed', $data)) {
-            $sets[]              = 'consumable_qty_needed = :consQty';
-            $params[':consQty']  = (int)$data['consumable_qty_needed'] ?: null;
+            $sets[]            = 'consumable_qty_needed = :consQty';
+            $params[':consQty'] = (int)$data['consumable_qty_needed'] ?: null;
         }
         if (array_key_exists('consumable_dept_id', $data)) {
-            $sets[]                = 'consumable_dept_id = :consDept';
-            $params[':consDept']   = $data['consumable_dept_id'] ?: null;
+            $sets[]              = 'consumable_dept_id = :consDept';
+            $params[':consDept'] = $data['consumable_dept_id'] ?: null;
         }
     }
 
-    // ── SLA hours: keep every role's view identical ──────────────────────────
-    // v3: `sla_custom_hours` is the admin-editable value.  When it changes we
-    // ALSO write the same number to `sla_resolution_hours` and recompute
-    // `resolution_due_at` — so requesters, dept heads, and admins all see one
-    // consistent SLA.
+    // ── SLA custom hours (only if column exists) ─────────────────────────────
+    // CRITICAL: sync sla_resolution_hours too. Every role EXCEPT IT Admin reads
+    // sla_resolution_hours; if we only write sla_custom_hours the IT Admin's
+    // edit never propagates and each user sees a different SLA number.
     if ($hasSlaCustom && isset($data['sla_custom_hours']) && $data['sla_custom_hours'] !== '') {
         $customHours = (float)$data['sla_custom_hours'];
-        if ($customHours >= 0.5) {
-            $sets[]                = 'sla_custom_hours    = :slaCustom';
-            $params[':slaCustom']  = $customHours;
-            $sets[]                = 'sla_resolution_hours = :slaResH';
-            $params[':slaResH']    = $customHours;
-            $sets[]                = 'resolution_due_at   = DATE_ADD(submitted_at, INTERVAL :slaH HOUR)';
-            $params[':slaH']       = $customHours;
-        }
+        $sets[]                = 'sla_custom_hours     = :slaCustom';
+        $params[':slaCustom']  = $customHours;
+        $sets[]                = 'sla_resolution_hours = :slaResH';
+        $params[':slaResH']    = $customHours;
+        $sets[]                = 'resolution_due_at    = DATE_ADD(submitted_at, INTERVAL :slaH HOUR)';
+        $params[':slaH']       = $customHours;
     }
 
-    // ── Apply UPDATE if anything to save ─────────────────────────────────────
+    // ── Apply UPDATE if there's anything to save ──────────────────────────────
     if (!empty($sets)) {
         $pdo->prepare("UPDATE tickets SET " . implode(', ', $sets) . " WHERE id = :id")
             ->execute($params);
     }
 
-    // ── Add reply / follow-up ────────────────────────────────────────────────
+    // ── Add reply / follow-up ─────────────────────────────────────────────────
     if (!empty(trim($data['reply'] ?? ''))) {
         if ($hasMsgType) {
             $pdo->prepare(
@@ -168,10 +155,98 @@ try {
     }
 
     $pdo->commit();
-    echo json_encode(['success'=>true]);
+
+    // ── Notifications (best-effort, after main tx has committed) ─────────────
+    try {
+        $tk = $pdo->prepare("SELECT t.ticket_code, t.title, t.requester_id, u.full_name AS requester_name
+                             FROM tickets t JOIN users u ON u.id = t.requester_id
+                             WHERE t.id = :id");
+        $tk->execute([':id' => $ticketId]);
+        $tkRow = $tk->fetch();
+        if ($tkRow) {
+            $shortTitle = mb_strimwidth($tkRow['title'], 0, 60, '…');
+            $tcCode     = $tkRow['ticket_code'];
+            $reqId      = (int)$tkRow['requester_id'];
+
+            // Status change → notify requester (only when it ACTUALLY changed)
+            $curStatus = (string)($curTicket['status'] ?? '');
+            if (isset($data['status']) && $data['status'] !== '' &&
+                in_array($data['status'], ['Pending','Ongoing'], true) &&
+                $data['status'] !== $curStatus) {
+                pushNotification($pdo, [
+                    'target_user' => $reqId,
+                    'target_role' => 'requester',
+                    'event_type'  => 'status_change',
+                    'title'       => "Ticket #$tcCode is now $data[status]",
+                    'description' => "Your request \"$shortTitle\" has been updated to $data[status] by $adminName.",
+                    'ticket_id'   => $ticketId,
+                ]);
+            }
+
+            // Assignment → notify assignee + requester (only on ACTUAL change)
+            $curAssigned = (string)($curTicket['assigned_to'] ?? '');
+            $newAssigned = (string)($data['assigned_to'] ?? '');
+            if (array_key_exists('assigned_to', $data) && $newAssigned !== '' && $newAssigned !== $curAssigned) {
+                pushNotification($pdo, [
+                    'target_user' => $reqId,
+                    'target_role' => 'requester',
+                    'event_type'  => 'assigned',
+                    'title'       => "IT Officer assigned to #$tcCode",
+                    'description' => "$newAssigned has been assigned to your request \"$shortTitle\".",
+                    'ticket_id'   => $ticketId,
+                ]);
+                // Try to notify the officer directly if the string matches a user's full_name
+                try {
+                    $offStmt = $pdo->prepare("SELECT id FROM users WHERE full_name = :n AND role = 'admin' LIMIT 1");
+                    $offStmt->execute([':n' => $newAssigned]);
+                    $offId = (int)($offStmt->fetchColumn() ?: 0);
+                    if ($offId > 0) {
+                        pushNotification($pdo, [
+                            'target_user' => $offId,
+                            'target_role' => 'admin',
+                            'event_type'  => 'assigned_to_you',
+                            'title'       => "Ticket #$tcCode assigned to you",
+                            'description' => "You've been assigned \"$shortTitle\".",
+                            'ticket_id'   => $ticketId,
+                        ]);
+                    }
+                } catch (PDOException $ee) {}
+            }
+
+            // SLA change → notify requester (only on ACTUAL change)
+            if (isset($data['sla_custom_hours']) && $data['sla_custom_hours'] !== '') {
+                $newSla = (float)$data['sla_custom_hours'];
+                $curSla = (float)($curTicket['sla_custom_hours'] ?? $curTicket['sla_resolution_hours'] ?? 0);
+                if (abs($newSla - $curSla) > 0.001) {
+                    pushNotification($pdo, [
+                        'target_user' => $reqId,
+                        'target_role' => 'requester',
+                        'event_type'  => 'sla_change',
+                        'title'       => "SLA updated on #$tcCode",
+                        'description' => "The resolution SLA for \"$shortTitle\" is now {$data['sla_custom_hours']} hour(s).",
+                        'ticket_id'   => $ticketId,
+                    ]);
+                }
+            }
+
+            // Reply → notify requester
+            if (!empty(trim($data['reply'] ?? ''))) {
+                pushNotification($pdo, [
+                    'target_user' => $reqId,
+                    'target_role' => 'requester',
+                    'event_type'  => 'reply',
+                    'title'       => "New reply on #$tcCode",
+                    'description' => "$adminName replied: " . mb_strimwidth(trim($data['reply']), 0, 90, '…'),
+                    'ticket_id'   => $ticketId,
+                ]);
+            }
+        }
+    } catch (PDOException $notifErr) { /* notification failures are non-fatal */ }
+
+    echo json_encode(['success'=>true,'message'=>'Changes saved successfully.']);
 
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     http_response_code(500);
-    echo json_encode(['success'=>false,'message'=>'Database error: '.$e->getMessage()]);
+    echo json_encode(['success'=>false,'message'=>'DB error: ' . $e->getMessage()]);
 }
