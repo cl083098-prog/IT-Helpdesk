@@ -1,0 +1,80 @@
+/* ==========================================================================
+   v7 additions — append to ServiceRequest.css (or your ServiceRequest.v3.append.css)
+   Uses tokens already in the base sheet — no new palette.
+   ========================================================================== */
+
+/* ── Stock badges ──────────────────────────────────────────────────────── */
+.td-stock-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-right: 8px;
+}
+.td-stock-ok  { background: #e0f5e9; color: #1e7a4a; }        /* In Stock */
+.td-stock-low { background: #fff4e0; color: #b56c00; }        /* Low Stock */
+.td-stock-out { background: #fbe4e4; color: #b23434; }        /* Out of Stock */
+.td-stock-na  { background: #eef2f6; color: #6b8399; }        /* N/A */
+
+.td-stock-name {
+    font-size: 0.78rem;
+    color: #6b8399;
+    font-style: italic;
+}
+
+/* ── SLA auto-extended info banner ─────────────────────────────────────── */
+.td-sla-auto-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 10px;
+    padding: 8px 14px;
+    background: #fff8e6;
+    border-left: 3px solid #d4a017;
+    border-radius: 8px;
+    color: #7c5215;
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+.td-sla-auto-note i        { color: #d4a017; font-size: 0.85rem; flex-shrink: 0; }
+.td-sla-auto-note strong   { color: #7c5215; font-weight: 700; }
+body.dark-mode .td-sla-auto-note   { background: #2a2110; color: #f4d99a; border-left-color: #d4a017; }
+body.dark-mode .td-sla-auto-note i,
+body.dark-mode .td-sla-auto-note strong { color: #f4d99a; }
+
+/* ── Locked status display (Completed / Closed / Pending Confirmation) ── */
+.td-status-locked {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+}
+.td-status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+.td-status-completed             { background: #e0f5e9; color: #1e7a4a; }
+.td-status-closed                { background: #eef2f6; color: #4a5b6d; }
+.td-status-pending-confirmation  { background: #fff4e0; color: #b56c00; }
+.td-status-cancelled             { background: #fbe4e4; color: #b23434; }
+.td-status-lock-note {
+    font-size: 0.78rem;
+    color: #6b8399;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Dark-mode friendliness */
+body.dark-mode .td-stock-badge.td-stock-na  { background: #1a2f42; color: #a4bcd0; }
+body.dark-mode .td-sla-lock-note            { background: #10263a; color: #a4bcd0; }
+body.dark-mode .td-sla-lock-note i          { color: #7fb1d6; }
+body.dark-mode .td-status-lock-note         { color: #a4bcd0; }
+body.dark-mode .td-stock-name               { color: #a4bcd0; }

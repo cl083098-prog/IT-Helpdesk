@@ -215,7 +215,7 @@
         if (!body) return;
 
         const statusClass = { 'Pending Approval': 'badge-pending', 'Approved': 'badge-approved', 'Rejected': 'badge-rejected' }[ticket.approval_status] || 'badge-pending';
-        const slaResolutionH = Number(ticket.sla_resolution_hours) || 48;
+        const slaResolutionH = Number(ticket.sla_resolution_hours) || 0;
         const slaResText     = ticket.resolution_due_at ? formatDate(ticket.resolution_due_at) : '—';
 
         body.innerHTML = `
@@ -236,8 +236,8 @@
                 <span class="info-value" style="margin-top:6px;display:block;">${escapeHtml(ticket.description || 'No description.')}</span>
             </div>
             <div class="sla-card">
-                <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${slaResponseH < 1 ? Math.round(slaResponseH * 60) + ' min' : slaResponseH + ' hour(s)'}</span></div>
-                <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${slaResolutionH < 1 ? Math.round(slaResolutionH * 60) + ' min' : slaResolutionH + ' hour(s)'}</span></div>
+                <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${slaResolutionH > 0 ? (slaResolutionH < 1 ? Math.round(slaResolutionH * 60) + ' min' : slaResolutionH + ' hour(s)') : '—'}</span></div>
+                <div class="sla-row"><span class="sla-label"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-value">${slaResText}</span></div>
             </div>
             ${ticket.estimated_cost ? `<div class="card-estimated-cost" style="margin-bottom:12px;"><i class="fas fa-peso-sign"></i> Estimated Cost: ₱${Number(ticket.estimated_cost).toLocaleString('en-PH',{minimumFractionDigits:2})}</div>` : ''}
             ${ticket.rejection_note ? `<div class="approval-warning" style="margin-bottom:12px;"><i class="fas fa-info-circle"></i> <div><strong>Rejection Note:</strong> ${escapeHtml(ticket.rejection_note)}</div></div>` : ''}
@@ -358,7 +358,7 @@
                     <span class="info-value" style="margin-top:6px;display:block;">${escapeHtml(ticket.description || '—')}</span>
                 </div>
                 <div class="sla-card">
-                    <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution</span><span class="sla-value">${ticket.priority === 'High' || ticket.priority === 'Critical' ? '30 minutes' : '2 business days'}</span></div>
+                    <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${(() => { const h = Number(ticket.sla_resolution_hours) || 0; return h > 0 ? (h < 1 ? Math.round(h*60) + ' min' : h + ' hour(s)') : '—'; })()}</span></div>
                     <div class="sla-row"><span class="sla-label"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-value">${ticket.resolution_due_at ? formatDate(ticket.resolution_due_at) : '—'}</span></div>
                 </div>
                 ${resolveBtn}

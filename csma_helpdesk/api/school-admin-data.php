@@ -405,12 +405,20 @@ try {
             break;
 
         case 'mark_notifications_read':
-            $body   = jsonBody();
-            $userId = (int)($body['user_id'] ?? 0);
-            $pdo->prepare(
-                "UPDATE notifications SET is_read=1 WHERE target_user=:uid OR target_role='school_admin'"
-            )->execute([':uid' => $userId]);
-            jsonOk(['message' => 'All notifications marked as read.']);
+            $body    = jsonBody();
+            $userId  = (int)($body['user_id']  ?? 0);
+            $notifId = (int)($body['notif_id'] ?? 0);
+            if ($notifId > 0) {
+                // v11: single-item mark. Was missing — School Admin could only mark ALL.
+                $pdo->prepare("UPDATE notifications SET is_read=1 WHERE id=:id")
+                    ->execute([':id' => $notifId]);
+                jsonOk(['message' => 'Notification marked as read.']);
+            } else {
+                $pdo->prepare(
+                    "UPDATE notifications SET is_read=1 WHERE target_user=:uid OR target_role='school_admin'"
+                )->execute([':uid' => $userId]);
+                jsonOk(['message' => 'All notifications marked as read.']);
+            }
             break;
 
         // ── Reports: log a generated report ──────────────────────────────────

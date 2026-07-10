@@ -39,7 +39,7 @@ try {
             $sql = "SELECT
                         t.id, t.ticket_code, t.title, t.priority, t.category,
                         t.equipment_item, t.description, t.submitted_at,
-                        t.approval_status, t.status, t.sla_response_hours,
+                        t.approval_status, t.status, t.sla_response_hours, t.sla_resolution_hours,
                         t.response_due_at, t.resolution_due_at,
                         u.full_name AS requester_name,
                         d.name AS department_name,

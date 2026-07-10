@@ -5,6 +5,7 @@
 // ── NEW: SLA is extended when the requested item is out of stock or low stock.
 
 require_once 'config.php';
+require_once 'notifications_helper.php';
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -244,6 +245,48 @@ try {
                 ':ip'    => $_SERVER['REMOTE_ADDR'] ?? '',
             ]);
     } catch (PDOException $al) {}
+
+    // ── Notifications (best-effort, after main tx has committed) ─────────────
+    $requesterName = $data['requester_name'] ?? 'Requester';
+    $title         = $data['title'] ?? '—';
+    $shortTitle    = mb_strimwidth($title, 0, 60, '…');
+    $reqId         = (int)($data['requester_id'] ?? 0);
+    $deptId        = (int)($data['department_id'] ?? 0);
+    $ticketLink    = null;   // client uses this to route into their dashboard
+
+    // 1. Confirm to the requester
+    pushNotification($pdo, [
+        'target_user' => $reqId,
+        'target_role' => 'requester',
+        'event_type'  => 'ticket_submitted',
+        'title'       => "Ticket #$ticketCode submitted",
+        'description' => $needsApproval
+            ? "Your request \"$shortTitle\" was submitted and is awaiting Department Head approval."
+            : "Your request \"$shortTitle\" was submitted and routed to the IT Admin.",
+        'link_url'    => $ticketLink,
+        'ticket_id'   => $newTicketId,
+    ]);
+
+    if ($needsApproval && $deptId > 0) {
+        // 2. Alert the Department Head that a new request needs approval
+        pushNotificationToDeptHead($pdo, $deptId,
+            "Approval needed for #$ticketCode",
+            "$requesterName submitted \"$shortTitle\" for your department. Please review and approve.",
+            'approval_needed',
+            null,
+            $newTicketId
+        );
+    } else {
+        // 3. Alert IT Admin (broadcast) — new ticket is ready to work on
+        pushNotificationToRole($pdo, 'admin',
+            "New ticket #$ticketCode",
+            "$requesterName reported: \"$shortTitle\" (Priority: $priority)"
+                . ($slaExtended ? " — $slaExtended" : ''),
+            'ticket_submitted',
+            null,
+            $newTicketId
+        );
+    }
 
     echo json_encode([
         'success'             => true,

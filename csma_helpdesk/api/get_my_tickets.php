@@ -9,7 +9,9 @@ try {
     $stmt = $pdo->prepare(
         "SELECT t.id, t.ticket_code, t.title, t.category, t.equipment_item, t.request_type,
                 t.priority, t.status, t.approval_status, t.description, t.location, t.preferred_date,
-                d.name AS department, t.assigned_to, t.response_due_at, t.resolution_due_at, t.submitted_at,
+                d.name AS department, t.assigned_to,
+                t.sla_response_hours, t.sla_resolution_hours,
+                t.response_due_at, t.resolution_due_at, t.submitted_at,
                 ta.rejection_note
          FROM tickets t
          JOIN departments d ON d.id = t.department_id

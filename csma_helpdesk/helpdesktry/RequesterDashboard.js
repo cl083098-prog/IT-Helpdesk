@@ -96,6 +96,14 @@
                 requestType:   t.request_type,
                 location:      t.location || '',
                 description:   t.description || '',
+                // SLA fields — MUST flow through untouched. If they get dropped
+                // here the render code reads undefined and the SLA row goes
+                // blank while IT Admin's edit never appears to propagate.
+                sla_response_hours:   t.sla_response_hours,
+                sla_resolution_hours: t.sla_resolution_hours,
+                response_due_at:      t.response_due_at,
+                resolution_due_at:    t.resolution_due_at,
+                submitted_at:         t.submitted_at,
                 conversations: (t.conversations || []).map(c => ({
                     author_name:  c.author_name,
                     message_text: c.message,
@@ -123,15 +131,40 @@
     }
 
     async function loadNotifications() {
-        // Built from recent tickets — no separate PHP endpoint needed
-        notifications = requesterTickets.slice(0, 5).map(t => ({
-            id:      t.request_id,
-            title:   `Ticket ${t.id}`,
-            message: `"${t.title}" is ${t.status}`,
-            time:    formatDate(t.date),
-            icon:    'fa-ticket-alt',
-            read:    false
-        }));
+        // v11: Read from the notifications table (via ../api/notifications.php),
+        // not from local requesterTickets. The old code hard-coded `read:false`
+        // on every notification and re-created the array on every page load —
+        // that's why every login made everything unread again.
+        try {
+            const res  = await fetch(`../api/notifications.php?action=get&user_id=${currentUser.id}&user_role=requester`);
+            const json = await res.json();
+            if (json.success) {
+                notifications = (json.data || []).map(n => ({
+                    id:      n.id,
+                    title:   n.title,
+                    message: n.description || '',
+                    time:    n.created_at,
+                    icon:    ({
+                        'ticket_submitted':    'fa-paper-plane',
+                        'approval_needed':     'fa-clipboard-check',
+                        'approval_approved':   'fa-circle-check',
+                        'approval_rejected':   'fa-circle-xmark',
+                        'status_change':       'fa-sync-alt',
+                        'confirmation_needed': 'fa-user-check',
+                        'sla_change':          'fa-clock',
+                        'assigned':            'fa-user-plus',
+                        'reply':               'fa-reply',
+                        'ticket_closed':       'fa-check-circle',
+                        'ticket_reopened':     'fa-undo',
+                    }[n.event_type] || 'fa-bell'),
+                    read:    !!parseInt(n.is_read, 10)
+                }));
+                return;
+            }
+        } catch (e) { /* fall through to fallback */ }
+
+        // Fallback (shows nothing if the endpoint is unavailable)
+        notifications = [];
     }
 
     async function loadStats() {
@@ -329,11 +362,47 @@
         renderActivityTimeline();
     }
 
-    // ─── Notifications (local only — no separate PHP endpoint) ────────────────
+    // ─── Notifications ────────────────────────────────────────────────────────
     async function markAllNotificationsRead() {
-        notifications.forEach(n => n.read = true);
+        // v11: persist to DB, verify server acknowledged, then refresh.
+        // The old code only updated local `notifications[].read` which was
+        // wiped on the next page load — that's why notifs came back unread
+        // on re-login.
+        let ok = false;
+        try {
+            const res  = await fetch(`../api/notifications.php?action=mark_all_read`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ user_id: currentUser.id, user_role: 'requester', action: 'mark_all_read' })
+            });
+            const json = await res.json();
+            ok = !!json.success;
+        } catch (e) { /* fall through */ }
+
+        if (!ok) {
+            showToast('Could not mark all as read — please try again.', 'error');
+            return;
+        }
+        await loadNotifications();
         renderNotifications();
         showToast('All notifications marked as read.');
+    }
+
+    async function markOneNotificationRead(notifId) {
+        // v11: called when a requester clicks an individual notification.
+        try {
+            const res = await fetch(`../api/notifications.php?action=mark_one`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ action: 'mark_one', notif_id: notifId, user_id: currentUser.id })
+            });
+            const json = await res.json();
+            if (!json.success) return false;
+        } catch (e) { return false; }
+        const n = notifications.find(x => String(x.id) === String(notifId));
+        if (n) n.read = true;
+        renderNotifications();
+        return true;
     }
 
     // ─── Full UI refresh ──────────────────────────────────────────────────────
@@ -675,15 +744,18 @@
                 <div class="notif-icon"><i class="fas ${n.icon || 'fa-bell'}"></i></div>
                 <div class="notif-content">
                     <p><strong>${escapeHtml(n.title)}</strong><br>${escapeHtml(n.message)}</p>
-                    <small>${escapeHtml(n.time)}</small>
+                    <small>${escapeHtml(formatDate(n.time))}</small>
                 </div>
             </div>`).join('');
 
         container.querySelectorAll('.notification-item').forEach(el => {
-            el.addEventListener('click', () => {
-                const id = Number(el.dataset.id);
-                const notif = notifications.find(n => Number(n.id) === id);
-                if (notif && !notif.read) { notif.read = true; renderNotifications(); }
+            el.addEventListener('click', async () => {
+                // v11: was local-only (`notif.read = true`); now persists.
+                const id = el.dataset.id;
+                const notif = notifications.find(n => String(n.id) === String(id));
+                if (notif && !notif.read) {
+                    await markOneNotificationRead(id);
+                }
             });
         });
     }
@@ -704,9 +776,14 @@
             return;
         }
 
-        const slaDeadline = (ticket.priority === 'High' || ticket.priority === 'Critical')
-            ? new Date(new Date(ticket.date).getTime() + 30 * 60000).toLocaleString()
-            : 'Within 2 business days';
+        // SLA — read the ACTUAL backend fields; never fabricate from priority.
+        const slaHoursRaw = Number(ticket.sla_resolution_hours) || 0;
+        const slaExpected = slaHoursRaw > 0
+            ? (slaHoursRaw < 1 ? Math.round(slaHoursRaw * 60) + ' min' : slaHoursRaw + ' hour(s)')
+            : '—';
+        const slaDeadline = ticket.resolution_due_at
+            ? formatDate(ticket.resolution_due_at)
+            : '—';
 
         const convHtml = ticket.conversations && ticket.conversations.length > 0
             ? ticket.conversations.map(msg => `
@@ -762,7 +839,7 @@
                     <span class="info-value">${escapeHtml(ticket.description || 'No description provided.')}</span>
                 </div>
                 <div class="sla-card">
-                    <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution</span><span class="sla-value">${(ticket.priority === 'High' || ticket.priority === 'Critical') ? '30 minutes' : '2 business days'}</span></div>
+                    <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${slaExpected}</span></div>
                     <div class="sla-row"><span class="sla-label"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-value">${slaDeadline}</span></div>
                 </div>
                 ${resolveBtn}
