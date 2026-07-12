@@ -139,13 +139,98 @@
         });
     }
 
+    // ── Toast notification ─────────────────────────────────────────────────
+    let _toastTimer = null;
+
+    function showNwToast(title, description) {
+        let toast = $('nwToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'nwToast';
+            toast.style.cssText = [
+                'position:fixed', 'bottom:24px', 'right:24px', 'z-index:10000',
+                'background:#1a3a52', 'color:#fff', 'border-radius:12px',
+                'box-shadow:0 6px 24px rgba(0,0,0,0.28)', 'padding:14px 18px',
+                'max-width:320px', 'min-width:220px', 'display:flex', 'align-items:flex-start',
+                'gap:12px', 'cursor:pointer', 'transition:opacity 0.3s,transform 0.3s',
+                'opacity:0', 'transform:translateY(16px)', 'pointer-events:none'
+            ].join(';');
+            toast.innerHTML = `
+                <div style="flex-shrink:0;width:34px;height:34px;background:rgba(255,255,255,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-comment-dots" style="font-size:0.95rem;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div id="nwToastTitle" style="font-weight:700;font-size:0.85rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                    <div id="nwToastDesc" style="font-size:0.78rem;opacity:0.82;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"></div>
+                </div>
+                <button id="nwToastClose" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:1.1rem;cursor:pointer;flex-shrink:0;padding:0;line-height:1;">&times;</button>`;
+            document.body.appendChild(toast);
+            toast.addEventListener('click', e => {
+                if (e.target.id !== 'nwToastClose' && !e.target.closest('#nwToastClose')) {
+                    // Open notification bell dropdown on click
+                    const dd = $('nwDropdown');
+                    if (dd) { dd.classList.add('open'); load(); }
+                }
+                hideNwToast();
+            });
+            $('nwToastClose')?.addEventListener('click', e => { e.stopPropagation(); hideNwToast(); });
+        }
+
+        $('nwToastTitle').textContent = title;
+        $('nwToastDesc').textContent  = description || '';
+        toast.style.pointerEvents = 'auto';
+        // Trigger show
+        requestAnimationFrame(() => {
+            toast.style.opacity   = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+
+        clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(hideNwToast, 5000);
+    }
+
+    function hideNwToast() {
+        const toast = $('nwToast');
+        if (!toast) return;
+        toast.style.opacity   = '0';
+        toast.style.transform = 'translateY(16px)';
+        toast.style.pointerEvents = 'none';
+    }
+
     // ── Data load ──────────────────────────────────────────────────────────
+    // Track previously seen unread IDs so we can detect truly new notifications
+    let _seenIds = new Set();
+    let _firstLoad = true;
+
     async function pollUnread() {
         try {
-            const res  = await fetch(`${API}?action=unread_count&user_id=${USER_ID}&user_role=${encodeURIComponent(USER_ROLE)}`);
+            const res  = await fetch(`${API}?action=get&user_id=${USER_ID}&user_role=${encodeURIComponent(USER_ROLE)}`);
             const json = await res.json();
             if (!json.success) return;
-            renderBadge(json.unread || 0);
+
+            const unread = (json.data || []).filter(n => !n.is_read);
+            renderBadge(unread.length);
+
+            // On first load, seed _seenIds without showing toasts
+            if (_firstLoad) {
+                unread.forEach(n => _seenIds.add(n.id));
+                _firstLoad = false;
+                return;
+            }
+
+            // Find genuinely new unread notifications
+            const newOnes = unread.filter(n => !_seenIds.has(n.id));
+            if (newOnes.length > 0) {
+                // Update seen set
+                newOnes.forEach(n => _seenIds.add(n.id));
+
+                // Show a toast for new message/reply notifications first; fallback to any new one
+                const msgNotif = newOnes.find(n => n.event_type === 'reply') || newOnes[0];
+                showNwToast(msgNotif.title, msgNotif.description);
+
+                // Refresh bell dropdown if it's open
+                if ($('nwDropdown')?.classList.contains('open')) renderList(json.data || []);
+            }
         } catch (e) { /* silent */ }
     }
 
@@ -154,8 +239,12 @@
             const res  = await fetch(`${API}?action=get&user_id=${USER_ID}&user_role=${encodeURIComponent(USER_ROLE)}`);
             const json = await res.json();
             if (!json.success) return;
-            renderBadge(json.unread || 0);
+            const unread = (json.data || []).filter(n => !n.is_read).length;
+            renderBadge(unread);
             renderList(json.data || []);
+            // Keep seenIds in sync when bell is manually opened
+            (json.data || []).filter(n => !n.is_read).forEach(n => _seenIds.add(n.id));
+            _firstLoad = false;
         } catch (e) { /* silent */ }
     }
 
@@ -220,7 +309,8 @@
     function boot() {
         inject();
         load();
-        setInterval(pollUnread, POLL_MS);
+        // Poll every 20s for new notifications (triggers toast for new messages)
+        setInterval(pollUnread, 20000);
     }
 
     if (document.readyState === 'loading') {

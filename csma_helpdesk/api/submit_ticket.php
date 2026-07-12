@@ -5,7 +5,6 @@
 // ── NEW: SLA is extended when the requested item is out of stock or low stock.
 
 require_once 'config.php';
-require_once 'notifications_helper.php';
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -27,66 +26,8 @@ foreach ($required as $f) {
 }
 
 const APPROVAL_REQUIRED_CATEGORIES = ['Equipment', 'Consumable'];
-// Categories for which stock availability affects SLA
-const STOCK_SENSITIVE_CATEGORIES   = ['Equipment', 'Consumable'];
 
-function getSLA(PDO $pdo, $cat, $rt, $equip) {
-    $st = $pdo->prepare(
-        "SELECT priority, response_hours, resolution_hours FROM sla_rules
-         WHERE category=:cat AND request_type=:rt
-           AND equipment_keyword IS NOT NULL
-           AND :equip LIKE CONCAT('%', equipment_keyword, '%')
-         ORDER BY CHAR_LENGTH(equipment_keyword) DESC LIMIT 1"
-    );
-    $st->execute([':cat'=>$cat,':rt'=>$rt,':equip'=>$equip]);
-    $r = $st->fetch();
-    if ($r) return $r;
-
-    $st2 = $pdo->prepare(
-        "SELECT priority, response_hours, resolution_hours FROM sla_rules
-         WHERE category=:cat AND request_type=:rt AND equipment_keyword IS NULL LIMIT 1"
-    );
-    $st2->execute([':cat'=>$cat,':rt'=>$rt]);
-    return $st2->fetch() ?: ['priority'=>'Low','response_hours'=>8,'resolution_hours'=>48];
-}
-
-/**
- * checkInventoryStock — returns:
- *   ['found' => bool, 'in_stock' => bool, 'status' => 'In Stock'|'Low Stock'|'Out of Stock'|'Unknown',
- *    'quantity' => int, 'item_name' => string|null]
- * A ticket for an item that is Out of Stock gets its SLA doubled;
- * a Low Stock item gets +50% resolution time.  In Stock keeps the standard SLA.
- * If the item is not in the catalogue we treat it as "Unknown" and leave SLA alone.
- */
-function checkInventoryStock(PDO $pdo, string $equipment): array {
-    $default = ['found'=>false,'in_stock'=>false,'status'=>'Unknown','quantity'=>0,'item_name'=>null];
-    if ($equipment === '') return $default;
-    try {
-        $st = $pdo->prepare(
-            "SELECT id, name, quantity, low_stock_pct, oversupply_threshold
-             FROM inventory
-             WHERE :q LIKE CONCAT('%', name, '%') OR name LIKE CONCAT('%', :q2, '%')
-             ORDER BY CHAR_LENGTH(name) DESC LIMIT 1"
-        );
-        $st->execute([':q'=>$equipment, ':q2'=>$equipment]);
-        $row = $st->fetch();
-        if (!$row) return $default;
-
-        $qty       = (int)$row['quantity'];
-        $threshold = ((int)$row['low_stock_pct'] / 100) * (int)$row['oversupply_threshold'];
-        if ($qty <= 0)            $status = 'Out of Stock';
-        elseif ($qty <= $threshold) $status = 'Low Stock';
-        else                        $status = 'In Stock';
-
-        return [
-            'found'     => true,
-            'in_stock'  => $qty > 0,
-            'status'    => $status,
-            'quantity'  => $qty,
-            'item_name' => $row['name'],
-        ];
-    } catch (PDOException $e) { return $default; }
-}
+require_once 'sla_helper.php';
 
 try {
     $pdo->beginTransaction();
@@ -95,39 +36,44 @@ try {
     $maxRow     = $pdo->query("SELECT MAX(id) AS max_id FROM tickets")->fetch();
     $ticketCode = 'SR-' . str_pad(($maxRow['max_id'] ?? 0) + 1, 4, '0', STR_PAD_LEFT);
 
-    // ── Base SLA ───────────────────────────────────────────────────────────────
-    $sla = getSLA($pdo, $data['category'], $data['request_type'], $data['equipment_item']);
-    $responseHrs   = (int)$sla['response_hours'];
-    $resolutionHrs = (int)$sla['resolution_hours'];
+    // ── SLA — SAME shared function get_sla.php uses for the submit-time preview.
+    //    Preview number == persisted number. This is what keeps the SLA
+    //    consistent across every role from the moment a ticket is created.
+    $sla = calculateSlaForTicket(
+        $pdo,
+        (string)$data['category'],
+        (string)$data['request_type'],
+        (string)($data['equipment_item'] ?? '')
+    );
+    $responseHrs   = (int)ceil($sla['response_hours']);
+    $resolutionHrs = (int)ceil($sla['resolution_hours']);
     $priority      = $sla['priority'];
-
-    // ── NEW: Stock-aware SLA adjustment ────────────────────────────────────────
-    $stockAvail   = null;         // 1 = in stock, 0 = not
-    $slaExtended  = null;         // human-readable reason string (or null)
-    if (in_array($data['category'], STOCK_SENSITIVE_CATEGORIES, true)) {
-        $stock = checkInventoryStock($pdo, (string)$data['equipment_item']);
-        if ($stock['found']) {
-            $stockAvail = $stock['in_stock'] ? 1 : 0;
-            if ($stock['status'] === 'Out of Stock') {
-                // Double the SLA and bump priority to High (procurement needed)
-                $responseHrs   *= 2;
-                $resolutionHrs *= 2;
-                if ($priority === 'Low') $priority = 'Medium';
-                $slaExtended   = "Item out of stock — SLA extended (procurement required).";
-            } elseif ($stock['status'] === 'Low Stock') {
-                // +50% resolution window
-                $resolutionHrs = (int)ceil($resolutionHrs * 1.5);
-                $slaExtended   = "Item stock low ({$stock['quantity']} left) — resolution extended.";
-            }
-        }
-    }
+    $slaExtended   = $sla['sla_extended_reason'];
+    $stockAvail    = $sla['stock_status'] === 'N/A' ? null
+                   : ($sla['stock_status'] === 'Out of Stock' ? 0 : 1);
 
     $now           = new DateTime();
     $responseDue   = (clone $now)->modify("+{$responseHrs} hours")->format('Y-m-d H:i:s');
     $resolutionDue = (clone $now)->modify("+{$resolutionHrs} hours")->format('Y-m-d H:i:s');
 
     // ── Approval routing ──────────────────────────────────────────────────────
-    $needsApproval  = in_array($data['category'], APPROVAL_REQUIRED_CATEGORIES, true);
+    $needsApproval = in_array($data['category'], APPROVAL_REQUIRED_CATEGORIES, true);
+
+    // v28: any dept_head submitting a ticket skips approval — a dept_head
+    // reviewing their own request adds nothing. Simpler and more reliable
+    // than the previous dept_id match, which failed when a dept_head user
+    // had no department_id set (older seed scripts didn't populate it).
+    if ($needsApproval) {
+        try {
+            $usrStmt = $pdo->prepare("SELECT role FROM users WHERE id = :id LIMIT 1");
+            $usrStmt->execute([':id' => (int)$data['requester_id']]);
+            $usr = $usrStmt->fetch();
+            if ($usr && $usr['role'] === 'dept_head') {
+                $needsApproval = false;
+            }
+        } catch (PDOException $eApp) { /* fall through */ }
+    }
+
     $approvalStatus = $needsApproval ? 'Pending Approval' : 'Not Required';
 
     // ── Insert ticket ─────────────────────────────────────────────────────────
@@ -246,15 +192,15 @@ try {
             ]);
     } catch (PDOException $al) {}
 
-    // ── Notifications (best-effort, after main tx has committed) ─────────────
+    // ── v28: Notifications (best-effort, after main tx committed) ────────────
+    // Regressed in v21 rebuild. Re-added so the bell wakes up on every ticket.
+    require_once 'notifications_helper.php';
     $requesterName = $data['requester_name'] ?? 'Requester';
-    $title         = $data['title'] ?? '—';
-    $shortTitle    = mb_strimwidth($title, 0, 60, '…');
-    $reqId         = (int)($data['requester_id'] ?? 0);
+    $shortTitle    = mb_strimwidth((string)($data['title'] ?? '—'), 0, 60, '…');
+    $reqId         = (int)($data['requester_id']  ?? 0);
     $deptId        = (int)($data['department_id'] ?? 0);
-    $ticketLink    = null;   // client uses this to route into their dashboard
 
-    // 1. Confirm to the requester
+    // Confirm to the requester
     pushNotification($pdo, [
         'target_user' => $reqId,
         'target_role' => 'requester',
@@ -263,29 +209,20 @@ try {
         'description' => $needsApproval
             ? "Your request \"$shortTitle\" was submitted and is awaiting Department Head approval."
             : "Your request \"$shortTitle\" was submitted and routed to the IT Admin.",
-        'link_url'    => $ticketLink,
         'ticket_id'   => $newTicketId,
     ]);
 
     if ($needsApproval && $deptId > 0) {
-        // 2. Alert the Department Head that a new request needs approval
         pushNotificationToDeptHead($pdo, $deptId,
             "Approval needed for #$ticketCode",
             "$requesterName submitted \"$shortTitle\" for your department. Please review and approve.",
-            'approval_needed',
-            null,
-            $newTicketId
-        );
+            'approval_needed', null, $newTicketId);
     } else {
-        // 3. Alert IT Admin (broadcast) — new ticket is ready to work on
         pushNotificationToRole($pdo, 'admin',
             "New ticket #$ticketCode",
             "$requesterName reported: \"$shortTitle\" (Priority: $priority)"
                 . ($slaExtended ? " — $slaExtended" : ''),
-            'ticket_submitted',
-            null,
-            $newTicketId
-        );
+            'ticket_submitted', null, $newTicketId);
     }
 
     echo json_encode([

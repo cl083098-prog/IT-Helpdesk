@@ -805,3 +805,90 @@ body.dark-mode .td-conv-admin{background:#172038;border-color:#2a3d5c;}
 body.dark-mode .cfp-box{background:#111827;}
 body.dark-mode .cfp-detail-card{background:#1a2234;border-color:#2d3345;}
 body.dark-mode .cfp-val{color:#c9d6e3;}
+
+/* ── Attached Photos in Request Details (IT Admin) ───────────────────────── */
+.td-attachment-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.td-view-img-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    background: #eaf2fb;
+    color: #1a5276;
+    border: 1px solid #b5d0ea;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.td-view-img-btn:hover {
+    background: #1a5276;
+    color: #fff;
+    border-color: #1a5276;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(26,82,118,.22);
+}
+
+.td-view-img-btn i {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+body.dark-mode .td-view-img-btn {
+    background: #1e293b;
+    color: #93c5fd;
+    border-color: #334155;
+}
+body.dark-mode .td-view-img-btn:hover {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+}
+
+/* ── In-page image viewer modal (same behavior as School Admin) ──────────── */
+.td-img-viewer-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #1a3a52;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 70%;
+}
+
+.td-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: #95a5a6;
+}
+.td-modal-close:hover { color: #c0392b; }
+
+.td-btn-download {
+    background: #eef3fc;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    color: #1f6392;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+.td-btn-download:hover { background: #1f6392; color: #fff; }

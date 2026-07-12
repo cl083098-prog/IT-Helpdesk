@@ -46,6 +46,7 @@
 
     // ─── SLA state (updated by updateSLAPreview) ──────────────────────────────
     let _currentSLA = { priority: 'Low', response_hours: 8, resolution_hours: 48 };
+    let _pendingAttachments = []; // v28: File objects queued for upload after submit
 
     // ─── My Requests tab filter ───────────────────────────────────────────────
     let myRequestsTabFilter = 'all';
@@ -193,13 +194,115 @@
             opt.textContent = dept.name;
             select.appendChild(opt);
         });
+
+        // v25: match by numeric department_id first (most reliable —
+        // survives renames, whitespace differences, case changes).
+        // Fall back to text-name match for older session data that
+        // predates login.php returning department_id.
+        // If both fail, unlock the field so the user can still pick.
+        const myId   = currentUser?.department_id ? String(currentUser.department_id) : '';
+        const myName = (currentUser?.department || '').trim().toLowerCase();
+        let matched  = false;
+
+        if (myId) {
+            const optById = Array.from(select.options).find(o => o.value === myId);
+            if (optById) { select.value = optById.value; matched = true; }
+        }
+        if (!matched && myName) {
+            const optByName = Array.from(select.options).find(o =>
+                o.textContent.trim().toLowerCase() === myName
+            );
+            if (optByName) { select.value = optByName.value; matched = true; }
+        }
+
+        if (matched) {
+            select.setAttribute('disabled', 'disabled');
+            select.setAttribute('title', 'Auto-filled from your user profile');
+        } else {
+            select.removeAttribute('disabled');
+            select.setAttribute('title', currentUser?.department
+                ? "Your profile department \u201C" + currentUser.department + "\u201D wasn't found — please pick one"
+                : 'Please pick a department');
+        }
+    }
+
+    // ─── v15: Category-driven request-type + inventory-item dropdowns ─────────
+    const REQUEST_TYPES_BY_CATEGORY = {
+        'Equipment':      ['Hardware Issue', 'Maintenance', 'Installation', 'Replacement'],
+        'Consumable':     ['Replenishment', 'Refill'],
+        'Network':        ['Network Issue'],
+        'Other':          ['General Request']
+    };
+
+    function updateRequestTypesForCategory(category) {
+        const sel = document.getElementById('requestType');
+        if (!sel) return;
+        const types = REQUEST_TYPES_BY_CATEGORY[category] || [];
+        sel.innerHTML = '<option value="">' + (types.length ? 'Select type' : 'Select category first') + '</option>';
+        types.forEach(t => {
+            const opt       = document.createElement('option');
+            opt.value       = t;
+            opt.textContent = t;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function updateEquipmentItemsForCategory(category) {
+        const selectEl = document.getElementById('equipmentItemSelect');
+        const inputEl  = document.getElementById('equipmentItem');
+        if (!selectEl || !inputEl) return;
+
+        // Only Equipment / Consumable draw from inventory. Other categories
+        // keep the free-text input (there's no catalogue for software titles etc.).
+        if (category !== 'Equipment' && category !== 'Consumable') {
+            selectEl.style.display = 'none';
+            inputEl.style.display  = '';
+            inputEl.value          = '';
+            selectEl.innerHTML     = '<option value="">Select item</option>';
+            return;
+        }
+
+        selectEl.style.display = '';
+        inputEl.style.display  = 'none';
+        inputEl.value          = '';
+        selectEl.innerHTML     = '<option value="">Loading items…</option>';
+
+        try {
+            const res  = await fetch('../api/get_inventory_items.php?category=' + encodeURIComponent(category));
+            const json = await res.json();
+            const items = json?.success ? (json.data || []) : [];
+            if (!items.length) {
+                // Nothing catalogued — fall back to free text so the user can still submit.
+                selectEl.style.display = 'none';
+                inputEl.style.display  = '';
+                selectEl.innerHTML     = '<option value="">Select item</option>';
+                return;
+            }
+            selectEl.innerHTML =
+                '<option value="">Select item</option>' +
+                items.map(i => {
+                    const label = i.name + (i.category ? ' — ' + i.category : '');
+                    return '<option value="' + escapeHtml(i.name) + '">' + escapeHtml(label) + '</option>';
+                }).join('');
+        } catch (e) {
+            selectEl.style.display = 'none';
+            inputEl.style.display  = '';
+            selectEl.innerHTML     = '<option value="">Select item</option>';
+        }
+    }
+
+    function currentEquipmentValue() {
+        const selectEl = document.getElementById('equipmentItemSelect');
+        const inputEl  = document.getElementById('equipmentItem');
+        if (selectEl && selectEl.style.display !== 'none' && selectEl.value) return selectEl.value;
+        return (inputEl?.value || '').trim();
     }
 
     // ─── SLA auto-preview ─────────────────────────────────────────────────────
     async function updateSLAPreview() {
-        const category  = document.getElementById('category')?.value   || '';
+        const category  = document.getElementById('category')?.value    || '';
         const reqType   = document.getElementById('requestType')?.value || '';
-        const equipment = document.getElementById('equipmentItem')?.value || '';
+        const equipment = currentEquipmentValue();
         const display   = document.getElementById('priorityDisplay');
 
         if (!category || !reqType) {
@@ -219,7 +322,6 @@
                 display.innerText = json.sla.priority;
                 display.className = `priority-badge-large ${json.sla.priority.toLowerCase()}`;
             }
-            // Show SLA preview section
             const slaSection = document.getElementById('slaPreviewSection');
             if (slaSection) {
                 slaSection.style.display = 'block';
@@ -228,6 +330,26 @@
                 const reso = document.getElementById('slaResolutionPreview');
                 if (resp) resp.textContent = fmtHours(json.sla.response_hours);
                 if (reso) reso.textContent = fmtHours(json.sla.resolution_hours);
+
+                // v15: show WHY the SLA is what it is when stock affected it.
+                // Uses a small info line inside the SLA card. Same values the
+                // ticket will be persisted with — no drift between preview and
+                // storage because get_sla and submit_ticket call one shared PHP
+                // function to compute the numbers.
+                let noteEl = document.getElementById('slaExtensionNote');
+                if (!noteEl) {
+                    noteEl = document.createElement('div');
+                    noteEl.id = 'slaExtensionNote';
+                    noteEl.className = 'sla-preview-row';
+                    noteEl.style.cssText = 'margin-top:8px;padding:8px 12px;background:#fff8e6;border-left:3px solid #d4a017;border-radius:6px;font-size:0.78rem;color:#7c5215;line-height:1.4;';
+                    slaSection.appendChild(noteEl);
+                }
+                if (json.sla.sla_extended_reason) {
+                    noteEl.innerHTML = '<i class="fas fa-info-circle" style="margin-right:6px;color:#d4a017;"></i>' + escapeHtml(json.sla.sla_extended_reason);
+                    noteEl.style.display = 'flex';
+                } else {
+                    noteEl.style.display = 'none';
+                }
             }
         }
     }
@@ -243,7 +365,7 @@
         e.preventDefault();
         const category    = document.getElementById('category')?.value    || '';
         const department  = document.getElementById('department')?.value  || '';
-        const equipItem   = document.getElementById('equipmentItem')?.value.trim() || '';
+        const equipItem   = currentEquipmentValue();
         const requestType = document.getElementById('requestType')?.value || '';
         const title       = document.getElementById('requestTitle')?.value.trim() || '';
         const description = document.getElementById('description')?.value.trim() || '';
@@ -277,6 +399,25 @@
         if (!data || !data.success) {
             showToast('Submission failed: ' + (data?.message || 'Unknown error'), true);
             return;
+        }
+
+        // v28: upload any selected attachments to the new ticket_id.
+        if (_pendingAttachments.length && data.ticket_id) {
+            const statusEl = document.getElementById('attachmentStatus');
+            let done = 0, failed = 0;
+            for (const file of _pendingAttachments) {
+                try {
+                    const fd = new FormData();
+                    fd.append('ticket_id',   data.ticket_id);
+                    fd.append('uploader_id', USER_ID);
+                    fd.append('file',        file);
+                    const res  = await fetch('../api/upload_attachment.php', { method: 'POST', body: fd });
+                    const j    = await res.json();
+                    if (j.success) done++; else failed++;
+                } catch (e) { failed++; }
+            }
+            _pendingAttachments = [];
+            if (failed > 0) showToast(`${done} photo(s) uploaded, ${failed} failed.`, true);
         }
 
         const deptSelect = document.getElementById('department');
@@ -493,7 +634,35 @@
 
     function closeRequestModal() {
         const modal = document.getElementById('newRequestModal');
-        if (modal) { modal.classList.remove('active'); document.body.style.overflow = ''; document.getElementById('serviceRequestForm')?.reset(); calculatePriority(); }
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            document.getElementById('serviceRequestForm')?.reset();
+            calculatePriority();
+
+            // v25: restore auto-fill by numeric id first, text as fallback.
+            const deptSel = document.getElementById('department');
+            const myId    = currentUser?.department_id ? String(currentUser.department_id) : '';
+            const myName  = (currentUser?.department || '').trim().toLowerCase();
+            if (deptSel) {
+                let match = null;
+                if (myId)   match = Array.from(deptSel.options).find(o => o.value === myId);
+                if (!match && myName) match = Array.from(deptSel.options).find(o =>
+                    o.textContent.trim().toLowerCase() === myName);
+                if (match) deptSel.value = match.value;
+            }
+            updateRequestTypesForCategory('');
+            updateEquipmentItemsForCategory('');
+            const noteEl = document.getElementById('slaExtensionNote');
+            if (noteEl) noteEl.style.display = 'none';
+
+            // v28: clear queued attachments and reset the preview.
+            _pendingAttachments = [];
+            const prev = document.getElementById('attachmentPreview');
+            if (prev) prev.innerHTML = '';
+            const st = document.getElementById('attachmentStatus');
+            if (st) st.textContent = '';
+        }
     }
 
     function closeConfirmationModal() {
@@ -571,9 +740,77 @@
         document.getElementById('newRequestModal')?.addEventListener('click', e => { if (e.target === document.getElementById('newRequestModal')) closeRequestModal(); });
 
         document.getElementById('serviceRequestForm')?.addEventListener('submit', handleFormSubmit);
-        document.getElementById('category')?.addEventListener('change',    updateSLAPreview);
+
+        // v29: drop-zone triggers the picker; also supports drag-and-drop.
+        const dropZone  = document.getElementById('attachmentDropZone');
+        const fileInput = document.getElementById('attachmentFileInput');
+        const preview   = document.getElementById('attachmentPreview');
+        const statusEl  = document.getElementById('attachmentStatus');
+
+        function acceptFiles(files) {
+            for (const f of files) {
+                if (_pendingAttachments.length >= 5) { if (statusEl) statusEl.textContent = 'Max 5 files.'; break; }
+                if (f.size > 5 * 1024 * 1024)         { if (statusEl) statusEl.textContent = `"${f.name}" too large (5 MB max).`; continue; }
+                if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { if (statusEl) statusEl.textContent = `"${f.name}" unsupported.`; continue; }
+                _pendingAttachments.push(f);
+            }
+            renderAttachmentPreviews();
+            if (statusEl && _pendingAttachments.length) statusEl.textContent = `${_pendingAttachments.length} photo(s) selected — will upload after submit`;
+        }
+
+        function renderAttachmentPreviews() {
+            if (!preview) return;
+            preview.innerHTML = '';
+            _pendingAttachments.forEach((f, idx) => {
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'position:relative;width:80px;height:80px;border-radius:10px;overflow:hidden;border:1px solid #dbe6f0;';
+                const img = document.createElement('img');
+                img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                img.src = URL.createObjectURL(f);
+                wrap.appendChild(img);
+                const x = document.createElement('button');
+                x.type = 'button';
+                x.textContent = '×';
+                x.style.cssText = 'position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,0.65);color:#fff;font-size:16px;line-height:20px;cursor:pointer;padding:0;';
+                x.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    _pendingAttachments.splice(idx, 1);
+                    renderAttachmentPreviews();
+                    if (statusEl) statusEl.textContent = _pendingAttachments.length ? `${_pendingAttachments.length} photo(s) selected` : '';
+                });
+                wrap.appendChild(x);
+                preview.appendChild(wrap);
+            });
+        }
+
+        dropZone?.addEventListener('click', () => fileInput?.click());
+        fileInput?.addEventListener('change', (e) => {
+            acceptFiles(Array.from(e.target.files || []));
+            fileInput.value = '';
+        });
+        // Drag-and-drop
+        ['dragenter','dragover'].forEach(ev => dropZone?.addEventListener(ev, e => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.style.background = '#e6effa';
+            dropZone.style.borderColor = '#1f6392';
+        }));
+        ['dragleave','drop'].forEach(ev => dropZone?.addEventListener(ev, e => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.style.background = '#f5f9fe';
+            dropZone.style.borderColor = '#b8cfe3';
+        }));
+        dropZone?.addEventListener('drop', e => {
+            acceptFiles(Array.from(e.dataTransfer?.files || []));
+        });
+        document.getElementById('category')?.addEventListener('change', async e => {
+            const cat = e.target.value;
+            updateRequestTypesForCategory(cat);        // v15: request types depend on category
+            await updateEquipmentItemsForCategory(cat); // v15: item list depends on category
+            updateSLAPreview();
+        });
         document.getElementById('requestType')?.addEventListener('change', updateSLAPreview);
-        document.getElementById('equipmentItem')?.addEventListener('input', updateSLAPreview);
+        document.getElementById('equipmentItem')?.addEventListener('input',  updateSLAPreview);
+        document.getElementById('equipmentItemSelect')?.addEventListener('change', updateSLAPreview);
 
         document.getElementById('modalDoneBtn')?.addEventListener('click',      closeConfirmationModal);
         document.getElementById('modalNewRequestBtn')?.addEventListener('click', () => { closeConfirmationModal(); openRequestModal(); });

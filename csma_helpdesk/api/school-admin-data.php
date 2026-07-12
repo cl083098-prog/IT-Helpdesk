@@ -132,6 +132,18 @@ try {
             $appr->execute([':id' => $id]);
             $ticket['approval'] = $appr->fetch() ?: null;
 
+            // Attachments (images uploaded with the ticket)
+            try {
+                $atStmt = $pdo->prepare(
+                    "SELECT id, file_path, original_name, mime_type, uploaded_at
+                     FROM ticket_attachments WHERE ticket_id = :id ORDER BY uploaded_at ASC"
+                );
+                $atStmt->execute([':id' => $id]);
+                $ticket['attachments'] = $atStmt->fetchAll();
+            } catch (PDOException $e) {
+                $ticket['attachments'] = [];
+            }
+
             jsonOk(['ticket' => $ticket]);
             break;
 

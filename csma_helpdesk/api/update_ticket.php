@@ -88,6 +88,111 @@ if ($action === 'send_confirmation') {
 
         $pdo->commit();
 
+        // ── v14: Inventory deduction ─────────────────────────────────────
+        // If this ticket is a Consumable with a linked inventory item and a
+        // needed qty, and we haven't already deducted (idempotent flag),
+        // deduct now. This is the point of physical handover so the numbers
+        // in inventory match reality from here on.
+        try {
+            $tk = $pdo->prepare(
+                "SELECT category, request_type, consumable_item_id, consumable_qty_needed,
+                        consumable_dept_id, stock_deducted
+                 FROM tickets WHERE id = :id"
+            );
+            $tk->execute([':id' => $ticketId]);
+            $t = $tk->fetch() ?: [];
+
+            // v18: deduct for Consumable AND Equipment tickets.
+            // Consumable: needs both item_id and qty explicitly set (unchanged).
+            // Equipment:  requires item_id; if qty isn't set we default to 1
+            //             but ONLY for request types that actually issue new
+            //             gear from stock (Replacement, Installation). Other
+            //             Equipment types — Hardware Issue, Maintenance —
+            //             are about fixing existing gear, so they never
+            //             auto-deduct even when an item happens to be linked.
+            $cat      = (string)($t['category']    ?? '');
+            $rt       = (string)($t['request_type']?? '');
+            $itemId   = (int)($t['consumable_item_id']    ?? 0);
+            $qty      = (int)($t['consumable_qty_needed'] ?? 0);
+            $already  = (int)($t['stock_deducted']        ?? 0);
+
+            $isConsumable = $cat === 'Consumable';
+            $isEquipment  = $cat === 'Equipment';
+
+            if ($isEquipment && $itemId > 0 && $qty === 0 &&
+                in_array($rt, ['Replacement', 'Installation'], true)) {
+                $qty = 1;
+            }
+
+            $catOk = $isConsumable || $isEquipment;
+
+            if ($catOk && $itemId > 0 && $qty > 0 && !$already) {
+                $pdo->beginTransaction();
+                try {
+                    // Row-lock so concurrent completions don't over-deduct.
+                    $lk = $pdo->prepare("SELECT name, quantity FROM inventory WHERE id = :id FOR UPDATE");
+                    $lk->execute([':id' => $itemId]);
+                    $inv = $lk->fetch();
+
+                    if ($inv) {
+                        $onHand   = (int)$inv['quantity'];
+                        $itemName = $inv['name'];
+                        $newQty   = $onHand - $qty;      // may go negative — see below
+
+                        $pdo->prepare("UPDATE inventory SET quantity = quantity - :q WHERE id = :id")
+                            ->execute([':q' => $qty, ':id' => $itemId]);
+
+                        // Look up destination department name for the allocation log
+                        $deptName = '';
+                        if (!empty($t['consumable_dept_id'])) {
+                            $d = $pdo->prepare("SELECT name FROM departments WHERE id = :id");
+                            $d->execute([':id' => (int)$t['consumable_dept_id']]);
+                            $deptName = (string)($d->fetchColumn() ?: '');
+                        }
+
+                        // Record the movement in the same table `allocate_item` uses,
+                        // so the department's allocation history sees it too.
+                        try {
+                            $pdo->prepare(
+                                "INSERT INTO inventory_allocations
+                                    (item_id, department, quantity, date_allocated, action_type, allocated_by)
+                                 VALUES
+                                    (:iid, :dept, :q, CURRENT_DATE, 'Allocate', :uid)"
+                            )->execute([
+                                ':iid'  => $itemId,
+                                ':dept' => $deptName ?: 'Ticket fulfillment',
+                                ':q'    => $qty,
+                                ':uid'  => $adminId ?: null,
+                            ]);
+                        } catch (PDOException $iaErr) { /* table may not exist on all installs */ }
+
+                        // Mark the ticket so we never deduct twice
+                        $pdo->prepare("UPDATE tickets SET stock_deducted = 1 WHERE id = :id")
+                            ->execute([':id' => $ticketId]);
+
+                        $pdo->commit();
+
+                        // If we drove the balance to zero or negative, warn IT Admin
+                        if ($newQty <= 0) {
+                            try {
+                                pushNotificationToRole($pdo, 'admin',
+                                    "Low stock alert: $itemName",
+                                    "Ticket #$tcCode consumed $qty of $itemName. New on-hand: $newQty."
+                                        . ($newQty < 0 ? ' Balance went negative — please reconcile.' : ''),
+                                    'low_stock',
+                                    null,
+                                    (int)$ticketId
+                                );
+                            } catch (Throwable $ne) {}
+                        }
+                    }
+                } catch (PDOException $de) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    error_log("[stock deduction] ticket #$ticketId failed: " . $de->getMessage());
+                }
+            }
+        } catch (PDOException $tkErr) { /* non-fatal — send_confirmation already committed */ }
+
         // ── Audit log write happens AFTER commit. ─────────────────────────
         // Best-effort — a missing table, permissions error, or ENUM mismatch
         // must never bubble up as an HTTP 500 that hides the fact that the

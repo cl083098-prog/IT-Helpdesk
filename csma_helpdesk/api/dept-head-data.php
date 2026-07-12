@@ -67,7 +67,44 @@ try {
 
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':dhid_sub' => $deptHeadId, ':dept' => $department]);
-            jsonSuccess(['approvals' => $stmt->fetchAll(), 'department' => $department]);
+            $approvals = $stmt->fetchAll();
+
+            // Attach conversations and attachments to each approval ticket
+            if ($approvals) {
+                $ids          = array_column($approvals, 'id');
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+                // Conversations
+                $actStmt = $pdo->prepare(
+                    "SELECT ticket_id, author_name, message, created_at
+                     FROM ticket_activity WHERE ticket_id IN ($placeholders) ORDER BY created_at ASC"
+                );
+                $actStmt->execute($ids);
+                $grouped = [];
+                foreach ($actStmt->fetchAll() as $act) {
+                    $grouped[$act['ticket_id']][] = $act;
+                }
+
+                // Attachments
+                $attMap = [];
+                try {
+                    $atStmt = $pdo->prepare(
+                        "SELECT ticket_id, id, file_path, original_name, mime_type, uploaded_at
+                         FROM ticket_attachments WHERE ticket_id IN ($placeholders) ORDER BY uploaded_at ASC"
+                    );
+                    $atStmt->execute($ids);
+                    foreach ($atStmt->fetchAll() as $at) {
+                        $attMap[$at['ticket_id']][] = $at;
+                    }
+                } catch (PDOException $e) { /* table may not exist yet */ }
+
+                foreach ($approvals as &$t) {
+                    $t['conversations'] = $grouped[$t['id']] ?? [];
+                    $t['attachments']   = $attMap[$t['id']]  ?? [];
+                }
+            }
+
+            jsonSuccess(['approvals' => $approvals, 'department' => $department]);
             break;
 
         // ── Dept head's own submitted tickets ────────────────────────────────
@@ -80,6 +117,7 @@ try {
                         t.request_type, t.priority, t.status, t.approval_status,
                         t.description, t.location, t.preferred_date,
                         d.name AS department, t.assigned_to,
+                        t.sla_response_hours, t.sla_resolution_hours,
                         t.response_due_at, t.resolution_due_at, t.submitted_at
                  FROM tickets t
                  JOIN departments d ON d.id = t.department_id
@@ -105,8 +143,22 @@ try {
                 foreach ($actStmt->fetchAll() as $act) {
                     $grouped[$act['ticket_id']][] = $act;
                 }
+                // Attachments
+                $attMap2 = [];
+                try {
+                    $atStmt2 = $pdo->prepare(
+                        "SELECT ticket_id, id, file_path, original_name, mime_type, uploaded_at
+                         FROM ticket_attachments WHERE ticket_id IN ($placeholders) ORDER BY uploaded_at ASC"
+                    );
+                    $atStmt2->execute($ids);
+                    foreach ($atStmt2->fetchAll() as $at) {
+                        $attMap2[$at['ticket_id']][] = $at;
+                    }
+                } catch (PDOException $e) { /* table may not exist yet */ }
+
                 foreach ($tickets as &$t) {
                     $t['conversations'] = $grouped[$t['id']] ?? [];
+                    $t['attachments']   = $attMap2[$t['id']]  ?? [];
                 }
             }
 
@@ -202,6 +254,28 @@ try {
                 $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,'dept_head','ServiceRequest','Approved ticket',:det,:ip,'Success')")
                     ->execute([':uid'=>$deptHeadId,':uname'=>$deptHeadName,':det'=>"Ticket: #".($tc['ticket_code']??$ticketId)." — ".($tc['title']??'—')." | Requester: ".($tc['req']??'—')." | Approved. Cost estimate: ₱".number_format((float)($data['estimated_cost']??0),2).". Routed to IT Admin.",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
             } catch (PDOException $al) {}
+
+            // v28: notify requester + IT Admin(s)
+            try {
+                require_once 'notifications_helper.php';
+                $tcInfo = $tcRow ? $tc : null;
+                if ($tcInfo) {
+                    $tcCode  = $tcInfo['ticket_code'] ?? $ticketId;
+                    $tcTitle = mb_strimwidth((string)($tcInfo['title'] ?? '—'), 0, 60, '…');
+                    pushNotification($pdo, [
+                        'target_user' => (int)($pdo->query("SELECT requester_id FROM tickets WHERE id=$ticketId")->fetchColumn() ?: 0),
+                        'target_role' => 'requester',
+                        'event_type'  => 'approval_approved',
+                        'title'       => "Approval granted for #$tcCode",
+                        'description' => "Your Department Head approved \"$tcTitle\". The ticket is now with the IT Admin.",
+                        'ticket_id'   => $ticketId,
+                    ]);
+                    pushNotificationToRole($pdo, 'admin',
+                        "Approved: #$tcCode ready to work on",
+                        "\"$tcTitle\" was approved by Dept Head" . (isset($data['estimated_cost']) ? " (est. ₱".number_format((float)$data['estimated_cost'],2).")" : ''),
+                        'ticket_submitted', null, $ticketId);
+                }
+            } catch (Throwable $ne) {}
             jsonSuccess(['message' => 'Ticket approved.']);
             break;
 
@@ -261,6 +335,21 @@ try {
                 $pdo->prepare("INSERT INTO audit_log (user_id,user_name,user_role,module,action,detail,ip_address,status) VALUES(:uid,:uname,'dept_head','ServiceRequest','Rejected ticket',:det,:ip,'Warning')")
                     ->execute([':uid'=>$deptHeadId,':uname'=>$deptHeadNameR,':det'=>"Ticket: #".($tc2['ticket_code']??$ticketId)." — ".($tc2['title']??'—')." | Requester: ".($tc2['req']??'—')." | Rejected. Reason: ".($note?:"No reason provided")." | Ticket closed.",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
             } catch (PDOException $al) {}
+
+            // v28: notify requester of rejection
+            try {
+                require_once 'notifications_helper.php';
+                if ($tc2) {
+                    pushNotification($pdo, [
+                        'target_user' => (int)($pdo->query("SELECT requester_id FROM tickets WHERE id=$ticketId")->fetchColumn() ?: 0),
+                        'target_role' => 'requester',
+                        'event_type'  => 'approval_rejected',
+                        'title'       => "Request #".($tc2['ticket_code']??$ticketId)." rejected",
+                        'description' => "Your Department Head rejected \"" . mb_strimwidth((string)($tc2['title'] ?? '—'), 0, 60, '…') . "\"" . ($note ? ". Reason: $note" : '.'),
+                        'ticket_id'   => $ticketId,
+                    ]);
+                }
+            } catch (Throwable $ne) {}
             jsonSuccess(['message' => 'Ticket rejected.']);
             break;
 

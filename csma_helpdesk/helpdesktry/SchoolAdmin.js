@@ -219,6 +219,20 @@
                 </div>
             </div>` : '';
 
+        // Build attachment section
+        const attachmentHtml = (() => {
+            const imgs = (t.attachments || []).filter(a => a.mime_type && a.mime_type.startsWith('image/'));
+            if (!imgs.length) return '';
+            const btnList = imgs.map((a, i) => {
+                const label = escHtml(a.original_name || `Image ${i+1}`);
+                return `<button class="sa-view-img-btn" data-src="../assets/attachments/${escHtml(a.file_path.split('/').pop())}" data-name="${label}" title="View ${label}">
+                    <i class="fas fa-image"></i> ${label}
+                </button>`;
+            }).join('');
+            return `<div class="detail-section-title"><i class="fas fa-paperclip"></i> Attached Images</div>
+                    <div class="sa-attachment-row">${btnList}</div>`;
+        })();
+
         body.innerHTML = `
             <div class="detail-grid">
                 <div class="detail-item"><span class="detail-label">Ticket ID</span><span class="detail-value">#${escHtml(t.ticket_code)}</span></div>
@@ -239,9 +253,15 @@
                 <div class="sla-row"><span class="sla-lbl"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-val">${(() => { const h = Number(t.sla_resolution_hours) || 0; return h > 0 ? (h < 1 ? Math.round(h*60) + ' min' : h + ' hour(s)') : '—'; })()}</span></div>
                 <div class="sla-row"><span class="sla-lbl"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-val">${t.resolution_due_at ? formatDate(t.resolution_due_at) : '—'}</span></div>
             </div>
+            ${attachmentHtml}
             ${approvalHtml}
             <div class="detail-section-title">Conversation &amp; Follow-ups</div>
             ${convHtml}`;
+
+        // Wire up image viewer buttons
+        body.querySelectorAll('.sa-view-img-btn').forEach(btn => {
+            btn.addEventListener('click', () => openSaImageViewer(btn.dataset.src, btn.dataset.name));
+        });
     }
 
     // ─── Inventory ────────────────────────────────────────────────────────────
@@ -863,6 +883,43 @@
         document.getElementById(id)?.classList.remove('active');
         // Re-enable filters after focus events have settled
         requestAnimationFrame(() => requestAnimationFrame(() => { _saFilterSuppressed = false; }));
+    }
+
+    // ─── Image Viewer ─────────────────────────────────────────────────────────
+    function openSaImageViewer(src, name) {
+        let overlay = document.getElementById('saImgViewerOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'saImgViewerOverlay';
+            overlay.innerHTML = `
+                <div class="sa-img-viewer-box">
+                    <div class="sa-img-viewer-header">
+                        <span id="saImgViewerName" class="sa-img-viewer-title"></span>
+                        <button id="saImgViewerClose" class="sa-modal-close" title="Close">&times;</button>
+                    </div>
+                    <div class="sa-img-viewer-body">
+                        <img id="saImgViewerImg" src="" alt="Attachment" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:auto;">
+                    </div>
+                    <div class="sa-img-viewer-footer">
+                        <a id="saImgViewerDownload" href="" download class="btn-view" style="display:inline-flex;align-items:center;gap:6px;">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                </div>`;
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+            overlay.querySelector('.sa-img-viewer-box').style.cssText = 'background:#fff;border-radius:14px;max-width:860px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.35);overflow:hidden;';
+            overlay.querySelector('.sa-img-viewer-header').style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #e5edf5;';
+            overlay.querySelector('.sa-img-viewer-body').style.cssText = 'padding:20px;text-align:center;background:#f8fafc;';
+            overlay.querySelector('.sa-img-viewer-footer').style.cssText = 'padding:12px 20px;border-top:1px solid #e5edf5;text-align:right;';
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+            document.getElementById('saImgViewerClose').addEventListener('click', () => overlay.style.display = 'none');
+        }
+        document.getElementById('saImgViewerName').textContent = name || 'Image';
+        document.getElementById('saImgViewerImg').src = src;
+        document.getElementById('saImgViewerDownload').href = src;
+        document.getElementById('saImgViewerDownload').download = name || 'attachment';
+        overlay.style.display = 'flex';
     }
 
     // ─── School Admin Notification Bell ─────────────────────────────────────

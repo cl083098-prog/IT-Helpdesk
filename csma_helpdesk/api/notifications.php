@@ -38,17 +38,19 @@ try {
 
         // ── LIST ────────────────────────────────────────────────────────────
         case 'get': {
-            // A user sees:
-            //   • notifications targeted at them personally, or
-            //   • notifications broadcast to their role.
-            // If no role is passed, fall back to per-user only.
+            // v18: For the 'admin' role specifically, a broadcast to
+            // target_role='admin' must have target_user NULL; otherwise it's
+            // a personal notif meant for exactly one admin and shouldn't leak
+            // to their peers. For other roles the boundary matters less (few
+            // dept_heads/school_admins per install) but we apply the same
+            // rule for consistency.
             $sql = "SELECT id, target_role, target_user, event_type, title, description,
                            link_url, ticket_id, is_read, created_at
                     FROM notifications
                     WHERE target_user = :uid";
             $params = [':uid' => $userId];
             if ($role !== '') {
-                $sql .= " OR target_role = :role";
+                $sql .= " OR (target_user IS NULL AND target_role = :role)";
                 $params[':role'] = $role;
             }
             $sql .= " ORDER BY is_read ASC, created_at DESC LIMIT 50";
@@ -69,7 +71,7 @@ try {
                     WHERE is_read = 0 AND (target_user = :uid";
             $params = [':uid' => $userId];
             if ($role !== '') {
-                $sql .= " OR target_role = :role";
+                $sql .= " OR (target_user IS NULL AND target_role = :role)";
                 $params[':role'] = $role;
             }
             $sql .= ")";
@@ -92,7 +94,7 @@ try {
                     WHERE is_read = 0 AND (target_user = :uid";
             $params = [':uid' => $userId];
             if ($role !== '') {
-                $sql .= " OR target_role = :role";
+                $sql .= " OR (target_user IS NULL AND target_role = :role)";
                 $params[':role'] = $role;
             }
             $sql .= ")";
