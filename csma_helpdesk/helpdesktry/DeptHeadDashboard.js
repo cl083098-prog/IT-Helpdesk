@@ -41,6 +41,7 @@
     let pendingFeedbackId   = null;   // ticket id waiting for feedback
     let selectedStarRating  = 0;
     let _currentSLA = { priority: 'Low', response_hours: 8, resolution_hours: 48 };
+    let _pendingAttachments = []; // v28: files queued for upload after submit
 
     // ─── Init ─────────────────────────────────────────────────────────────────
     async function init() {
@@ -218,6 +219,35 @@
         const slaResolutionH = Number(ticket.sla_resolution_hours) || 0;
         const slaResText     = ticket.resolution_due_at ? formatDate(ticket.resolution_due_at) : '—';
 
+        // Attachment images
+        const attachmentHtml = (() => {
+            const imgs = (ticket.attachments || []).filter(a => a.mime_type && a.mime_type.startsWith('image/'));
+            if (!imgs.length) return '';
+            const btns = imgs.map((a, i) => {
+                const label = escapeHtml(a.original_name || `Image ${i+1}`);
+                const src   = `../assets/attachments/${escapeHtml(a.file_path.split('/').pop())}`;
+                return `<button class="dh-view-img-btn" data-src="${src}" data-name="${label}" title="View ${label}">
+                    <i class="fas fa-image"></i> ${label}
+                </button>`;
+            }).join('');
+            return `<div class="dh-section-title"><i class="fas fa-paperclip"></i> Attached Images</div>
+                    <div class="dh-attachment-row">${btns}</div>`;
+        })();
+
+        // Conversation history
+        const convHtml = (() => {
+            const convs = ticket.conversations || [];
+            if (!convs.length) return '<div class="dh-conv-empty">No messages yet.</div>';
+            return convs.map(c => `
+                <div class="dh-conv-item">
+                    <div class="dh-conv-author">
+                        <strong>${escapeHtml(c.author_name)}</strong>
+                        <span class="dh-conv-time">${formatDate(c.created_at)}</span>
+                    </div>
+                    <div class="dh-conv-msg">${escapeHtml(c.message)}</div>
+                </div>`).join('');
+        })();
+
         body.innerHTML = `
             <div class="approval-detail-header">
                 <div class="approval-detail-title">${escapeHtml(ticket.title)}</div>
@@ -241,6 +271,7 @@
             </div>
             ${ticket.estimated_cost ? `<div class="card-estimated-cost" style="margin-bottom:12px;"><i class="fas fa-peso-sign"></i> Estimated Cost: ₱${Number(ticket.estimated_cost).toLocaleString('en-PH',{minimumFractionDigits:2})}</div>` : ''}
             ${ticket.rejection_note ? `<div class="approval-warning" style="margin-bottom:12px;"><i class="fas fa-info-circle"></i> <div><strong>Rejection Note:</strong> ${escapeHtml(ticket.rejection_note)}</div></div>` : ''}
+            ${attachmentHtml}
             ${ticket.approval_status === 'Pending Approval' ? `
             <div class="estimated-cost-input-row">
                 <label for="detailEstCost">Estimated Cost (₱)</label>
@@ -254,7 +285,14 @@
                     <i class="fas fa-check"></i> Approve Request
                 </button>
             </div>` : ''}
+            <div class="dh-section-title" style="margin-top:20px;"><i class="fas fa-comments"></i> Conversation &amp; Updates</div>
+            <div class="dh-conv-thread">${convHtml}</div>
         `;
+
+        // Wire image viewer
+        body.querySelectorAll('.dh-view-img-btn').forEach(btn => {
+            btn.addEventListener('click', () => openDhImageViewer(btn.dataset.src, btn.dataset.name));
+        });
 
         // Wire detail modal action buttons
         document.getElementById('detailApproveBtn')?.addEventListener('click', async () => {
@@ -336,8 +374,27 @@
                 </div>`).join('')
             : '<div style="text-align:center;padding:16px;color:#8aa5bf;">No messages yet.</div>';
 
-        const resolveBtn = ticket.status === 'Completed'
+        // v18: was gated on 'Completed' but IT Admin's Send Confirmation Request
+        // sets the status to 'Pending Confirmation' — so the button never
+        // appeared on the Dept Head's own tickets. Now matches the requester
+        // flow.
+        const resolveBtn = ticket.status === 'Pending Confirmation'
             ? `<button class="btn-confirm-resolved" id="showResolveBtn" style="margin-top:16px;" data-id="${ticket.id}" data-code="${ticket.ticket_code}"><i class="fas fa-check-double"></i> Confirm Issue Resolved</button>` : '';
+
+        // Attachment images for own request
+        const myReqAttachHtml = (() => {
+            const imgs = (ticket.attachments || []).filter(a => a.mime_type && a.mime_type.startsWith('image/'));
+            if (!imgs.length) return '';
+            const btns = imgs.map((a, i) => {
+                const label = escapeHtml(a.original_name || `Image ${i+1}`);
+                const src   = `../assets/attachments/${escapeHtml(a.file_path.split('/').pop())}`;
+                return `<button class="dh-view-img-btn" data-src="${src}" data-name="${label}" title="View ${label}">
+                    <i class="fas fa-image"></i> ${label}
+                </button>`;
+            }).join('');
+            return `<div class="dh-section-title" style="margin-top:0;margin-bottom:8px;"><i class="fas fa-paperclip"></i> Attached Images</div>
+                    <div class="dh-attachment-row" style="margin-bottom:14px;">${btns}</div>`;
+        })();
 
         modalBody.innerHTML = `
             <div class="request-detail-card">
@@ -361,6 +418,7 @@
                     <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${(() => { const h = Number(ticket.sla_resolution_hours) || 0; return h > 0 ? (h < 1 ? Math.round(h*60) + ' min' : h + ' hour(s)') : '—'; })()}</span></div>
                     <div class="sla-row"><span class="sla-label"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-value">${ticket.resolution_due_at ? formatDate(ticket.resolution_due_at) : '—'}</span></div>
                 </div>
+                ${myReqAttachHtml}
                 ${resolveBtn}
             </div>
             <div class="follow-up-section">
@@ -371,6 +429,11 @@
                     <button class="send-followup-btn" id="sendFollowUpBtn"><i class="fas fa-paper-plane"></i> Send</button>
                 </div>
             </div>`;
+
+        // Wire image viewer buttons
+        modalBody.querySelectorAll('.dh-view-img-btn').forEach(btn => {
+            btn.addEventListener('click', () => openDhImageViewer(btn.dataset.src, btn.dataset.name));
+        });
 
         // Resolve confirmation
         document.getElementById('showResolveBtn')?.addEventListener('click', () => {
@@ -516,10 +579,77 @@
         document.getElementById('closeModalBtn')?.addEventListener('click', closeRequestModal);
         document.getElementById('cancelFormBtn')?.addEventListener('click', closeRequestModal);
 
-        ['category','requestType','equipmentItem'].forEach(id => {
-            document.getElementById(id)?.addEventListener('change', updateSLAPreview);
-            document.getElementById(id)?.addEventListener('input', updateSLAPreview);
+        // v29: same drop-zone behaviour as Requester.
+        (function wireAttachments() {
+            const dropZone  = document.getElementById('attachmentDropZone');
+            const fileInput = document.getElementById('attachmentFileInput');
+            const preview   = document.getElementById('attachmentPreview');
+            const statusEl  = document.getElementById('attachmentStatus');
+
+            function accept(files) {
+                for (const f of files) {
+                    if (_pendingAttachments.length >= 5) { if (statusEl) statusEl.textContent = 'Max 5 files.'; break; }
+                    if (f.size > 5 * 1024 * 1024)         { if (statusEl) statusEl.textContent = `"${f.name}" too large (5 MB max).`; continue; }
+                    if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { if (statusEl) statusEl.textContent = `"${f.name}" unsupported.`; continue; }
+                    _pendingAttachments.push(f);
+                }
+                render();
+                if (statusEl && _pendingAttachments.length) statusEl.textContent = `${_pendingAttachments.length} photo(s) selected — will upload after submit`;
+            }
+
+            function render() {
+                if (!preview) return;
+                preview.innerHTML = '';
+                _pendingAttachments.forEach((f, idx) => {
+                    const wrap = document.createElement('div');
+                    wrap.style.cssText = 'position:relative;width:80px;height:80px;border-radius:10px;overflow:hidden;border:1px solid #dbe6f0;';
+                    const img = document.createElement('img');
+                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                    img.src = URL.createObjectURL(f);
+                    wrap.appendChild(img);
+                    const x = document.createElement('button');
+                    x.type = 'button'; x.textContent = '×';
+                    x.style.cssText = 'position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,0.65);color:#fff;font-size:16px;line-height:20px;cursor:pointer;padding:0;';
+                    x.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        _pendingAttachments.splice(idx, 1); render();
+                        if (statusEl) statusEl.textContent = _pendingAttachments.length ? `${_pendingAttachments.length} photo(s) selected` : '';
+                    });
+                    wrap.appendChild(x);
+                    preview.appendChild(wrap);
+                });
+            }
+
+            dropZone?.addEventListener('click', () => fileInput?.click());
+            fileInput?.addEventListener('change', (e) => {
+                accept(Array.from(e.target.files || []));
+                fileInput.value = '';
+            });
+            ['dragenter','dragover'].forEach(ev => dropZone?.addEventListener(ev, e => {
+                e.preventDefault(); e.stopPropagation();
+                dropZone.style.background = '#e6effa';
+                dropZone.style.borderColor = '#1f6392';
+            }));
+            ['dragleave','drop'].forEach(ev => dropZone?.addEventListener(ev, e => {
+                e.preventDefault(); e.stopPropagation();
+                dropZone.style.background = '#f5f9fe';
+                dropZone.style.borderColor = '#b8cfe3';
+            }));
+            dropZone?.addEventListener('drop', e => {
+                accept(Array.from(e.dataTransfer?.files || []));
+            });
+        })();
+
+        // v24: category change cascades to request types + inventory items
+        document.getElementById('category')?.addEventListener('change', async e => {
+            const cat = e.target.value;
+            updateRequestTypesForCategory(cat);
+            await updateEquipmentItemsForCategory(cat);
+            updateSLAPreview();
         });
+        document.getElementById('requestType')?.addEventListener('change',         updateSLAPreview);
+        document.getElementById('equipmentItem')?.addEventListener('input',        updateSLAPreview);
+        document.getElementById('equipmentItemSelect')?.addEventListener('change', updateSLAPreview);
 
         loadDepartments();
 
@@ -527,7 +657,7 @@
             e.preventDefault();
             const category    = document.getElementById('category').value;
             const department  = document.getElementById('department').value;
-            const equipItem   = document.getElementById('equipmentItem').value.trim();
+            const equipItem   = currentEquipmentValue();
             const requestType = document.getElementById('requestType').value;
             const title       = document.getElementById('requestTitle').value.trim();
             const description = document.getElementById('description').value.trim();
@@ -548,12 +678,40 @@
 
             const json = await apiFetch(TICKET_API, { method: 'POST', body: JSON.stringify(payload) });
             if (json?.success) {
+                // v28: upload queued attachments to the new ticket_id.
+                if (_pendingAttachments.length && json.ticket_id) {
+                    for (const file of _pendingAttachments) {
+                        try {
+                            const fd = new FormData();
+                            fd.append('ticket_id',   json.ticket_id);
+                            fd.append('uploader_id', USER_ID);
+                            fd.append('file',        file);
+                            await fetch(`${API_BASE}/upload_attachment.php`, { method: 'POST', body: fd });
+                        } catch (e) {}
+                    }
+                    _pendingAttachments = [];
+                }
                 const deptSelect = document.getElementById('department');
                 const deptName   = deptSelect?.options[deptSelect.selectedIndex]?.text || '';
                 closeRequestModal();
                 populateConfirmModal(json.ticket_code, title, json.priority, deptName);
                 openModal('confirmationModal');
                 document.getElementById('serviceRequestForm')?.reset();
+                // v25: restore auto-fill by numeric id first, text as fallback.
+                const deptEl = document.getElementById('department');
+                const myId   = currentUser?.department_id ? String(currentUser.department_id) : '';
+                const myName = (currentUser?.department || '').trim().toLowerCase();
+                if (deptEl) {
+                    let m = null;
+                    if (myId)   m = Array.from(deptEl.options).find(o => o.value === myId);
+                    if (!m && myName) m = Array.from(deptEl.options).find(o =>
+                        o.textContent.trim().toLowerCase() === myName);
+                    if (m) deptEl.value = m.value;
+                }
+                updateRequestTypesForCategory('');
+                updateEquipmentItemsForCategory('');
+                const noteEl = document.getElementById('slaExtensionNote');
+                if (noteEl) noteEl.style.display = 'none';
                 await refreshAll();
             } else {
                 showToast('Submission failed: ' + (json?.message || 'Unknown error'), true);
@@ -568,7 +726,15 @@
     }
 
     function openRequestModal()  { openModal('newRequestModal'); }
-    function closeRequestModal() { closeModal('newRequestModal'); }
+    function closeRequestModal() {
+        closeModal('newRequestModal');
+        // v28: reset queued attachments
+        _pendingAttachments = [];
+        const prev = document.getElementById('attachmentPreview');
+        if (prev) prev.innerHTML = '';
+        const st = document.getElementById('attachmentStatus');
+        if (st) st.textContent = '';
+    }
 
     function populateConfirmModal(code, title, priority, dept) {
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -591,12 +757,106 @@
             opt.textContent = dept.name;
             select.appendChild(opt);
         });
+
+        // v25: match by numeric department_id first (reliable across
+        // renames/whitespace/case), fall back to text name for older
+        // session data, then unlock the field if neither matches.
+        const myId   = currentUser?.department_id ? String(currentUser.department_id) : '';
+        const myName = (currentUser?.department || '').trim().toLowerCase();
+        let matched  = false;
+
+        if (myId) {
+            const optById = Array.from(select.options).find(o => o.value === myId);
+            if (optById) { select.value = optById.value; matched = true; }
+        }
+        if (!matched && myName) {
+            const optByName = Array.from(select.options).find(o =>
+                o.textContent.trim().toLowerCase() === myName
+            );
+            if (optByName) { select.value = optByName.value; matched = true; }
+        }
+
+        if (matched) {
+            select.setAttribute('disabled', 'disabled');
+            select.setAttribute('title', 'Auto-filled from your user profile');
+        } else {
+            select.removeAttribute('disabled');
+            select.setAttribute('title', currentUser?.department
+                ? "Your profile department \u201C" + currentUser.department + "\u201D wasn't found — please pick one"
+                : 'Please pick a department');
+        }
+    }
+
+    // ─── v24: category-driven dropdowns (ported from v16) ────────────────────
+    const REQUEST_TYPES_BY_CATEGORY = {
+        'Equipment':  ['Hardware Issue', 'Maintenance', 'Installation', 'Replacement'],
+        'Consumable': ['Replenishment', 'Refill'],
+        'Network':    ['Network Issue'],
+        'Other':      ['General Request']
+    };
+
+    function updateRequestTypesForCategory(category) {
+        const sel = document.getElementById('requestType');
+        if (!sel) return;
+        const types = REQUEST_TYPES_BY_CATEGORY[category] || [];
+        sel.innerHTML = '<option value="">' + (types.length ? 'Select type' : 'Select category first') + '</option>';
+        types.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t; opt.textContent = t;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function updateEquipmentItemsForCategory(category) {
+        const selectEl = document.getElementById('equipmentItemSelect');
+        const inputEl  = document.getElementById('equipmentItem');
+        if (!selectEl || !inputEl) return;
+
+        if (category !== 'Equipment' && category !== 'Consumable') {
+            selectEl.style.display = 'none';
+            inputEl.style.display  = '';
+            inputEl.value          = '';
+            selectEl.innerHTML     = '<option value="">Select item</option>';
+            return;
+        }
+        selectEl.style.display = '';
+        inputEl.style.display  = 'none';
+        inputEl.value          = '';
+        selectEl.innerHTML     = '<option value="">Loading items…</option>';
+        try {
+            const res  = await fetch(`${API_BASE}/get_inventory_items.php?category=` + encodeURIComponent(category));
+            const json = await res.json();
+            const items = json?.success ? (json.data || []) : [];
+            if (!items.length) {
+                selectEl.style.display = 'none';
+                inputEl.style.display  = '';
+                selectEl.innerHTML     = '<option value="">Select item</option>';
+                return;
+            }
+            selectEl.innerHTML =
+                '<option value="">Select item</option>' +
+                items.map(i => {
+                    const label = i.name + (i.category ? ' — ' + i.category : '');
+                    return '<option value="' + escapeHtml(i.name) + '">' + escapeHtml(label) + '</option>';
+                }).join('');
+        } catch (e) {
+            selectEl.style.display = 'none';
+            inputEl.style.display  = '';
+            selectEl.innerHTML     = '<option value="">Select item</option>';
+        }
+    }
+
+    function currentEquipmentValue() {
+        const selectEl = document.getElementById('equipmentItemSelect');
+        const inputEl  = document.getElementById('equipmentItem');
+        if (selectEl && selectEl.style.display !== 'none' && selectEl.value) return selectEl.value;
+        return (inputEl?.value || '').trim();
     }
 
     async function updateSLAPreview() {
-        const category  = document.getElementById('category')?.value   || '';
+        const category  = document.getElementById('category')?.value    || '';
         const reqType   = document.getElementById('requestType')?.value || '';
-        const equipment = document.getElementById('equipmentItem')?.value || '';
+        const equipment = currentEquipmentValue();
         const display   = document.getElementById('priorityDisplay');
         const preview   = document.getElementById('slaPreview');
 
@@ -606,7 +866,6 @@
             if (preview) preview.style.display = 'none';
             return;
         }
-
         const json = await apiFetch(`${API_BASE}/get_sla.php`, { method: 'POST', body: JSON.stringify({ category, request_type: reqType, equipment }) });
         if (json?.success) {
             _currentSLA = json.sla;
@@ -614,13 +873,26 @@
             if (display) { display.textContent = p; display.className = `priority-badge-large ${p.toLowerCase()}`; }
             if (preview) {
                 preview.style.display = 'flex';
-                const rh = json.sla.response_hours;
-                const resh = json.sla.resolution_hours;
                 const fmtH = h => h < 1 ? Math.round(h * 60) + ' min' : h + ' hour(s)';
-                const rt = document.getElementById('slaResponseTime');
+                const rt   = document.getElementById('slaResponseTime');
                 const rest = document.getElementById('slaResolutionTime');
-                if (rt)   rt.textContent   = fmtH(rh);
-                if (rest) rest.textContent = fmtH(resh);
+                if (rt)   rt.textContent   = fmtH(json.sla.response_hours);
+                if (rest) rest.textContent = fmtH(json.sla.resolution_hours);
+
+                // Extension banner (yellow) if SLA was extended for stock reason.
+                let noteEl = document.getElementById('slaExtensionNote');
+                if (!noteEl) {
+                    noteEl = document.createElement('div');
+                    noteEl.id = 'slaExtensionNote';
+                    noteEl.style.cssText = 'margin-top:8px;padding:8px 12px;background:#fff8e6;border-left:3px solid #d4a017;border-radius:6px;font-size:0.78rem;color:#7c5215;line-height:1.4;';
+                    preview.appendChild(noteEl);
+                }
+                if (json.sla.sla_extended_reason) {
+                    noteEl.innerHTML = '<i class="fas fa-info-circle" style="margin-right:6px;color:#d4a017;"></i>' + escapeHtml(json.sla.sla_extended_reason);
+                    noteEl.style.display = 'flex';
+                } else {
+                    noteEl.style.display = 'none';
+                }
             }
         }
     }
@@ -798,6 +1070,39 @@
 
     function openModal(id)  { document.getElementById(id)?.classList.add('active'); }
     function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
+
+    // ─── Image Viewer ─────────────────────────────────────────────────────────
+    function openDhImageViewer(src, name) {
+        let overlay = document.getElementById('dhImgViewerOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'dhImgViewerOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+            overlay.innerHTML = `
+                <div style="background:#fff;border-radius:14px;max-width:860px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.35);overflow:hidden;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #e5edf5;">
+                        <span id="dhImgViewerName" style="font-size:0.92rem;font-weight:600;color:#1a3a52;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;"></span>
+                        <button id="dhImgViewerClose" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#6b8399;line-height:1;">&times;</button>
+                    </div>
+                    <div style="padding:20px;text-align:center;background:#f8fafc;">
+                        <img id="dhImgViewerImg" src="" alt="Attachment" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:auto;">
+                    </div>
+                    <div style="padding:12px 20px;border-top:1px solid #e5edf5;text-align:right;">
+                        <a id="dhImgViewerDownload" href="" download style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#1a4a6e;color:#fff;border-radius:7px;font-size:0.82rem;font-weight:600;text-decoration:none;">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+            document.getElementById('dhImgViewerClose').addEventListener('click', () => overlay.style.display = 'none');
+        }
+        document.getElementById('dhImgViewerName').textContent = name || 'Image';
+        document.getElementById('dhImgViewerImg').src = src;
+        document.getElementById('dhImgViewerDownload').href = src;
+        document.getElementById('dhImgViewerDownload').download = name || 'attachment';
+        overlay.style.display = 'flex';
+    }
 
     function showToast(message, isError = false) {
         const toast = document.getElementById('toastMsg');

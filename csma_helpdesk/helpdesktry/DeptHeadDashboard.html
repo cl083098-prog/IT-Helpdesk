@@ -182,16 +182,14 @@
                         <select id="category" required>
                             <option value="">Select category</option>
                             <option value="Equipment">Equipment</option>
-                            <option value="Software">Software</option>
                             <option value="Network">Network</option>
-                            <option value="Account Access">Account Access</option>
                             <option value="Consumable">Consumable</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Department <span class="required-star">*</span></label>
-                        <select id="department" required>
+                        <select id="department" required disabled title="Auto-filled from your user profile">
                             <option value="">Select department</option>
                         </select>
                     </div>
@@ -199,17 +197,15 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Equipment/Item <span class="required-star">*</span></label>
-                        <input type="text" id="equipmentItem" placeholder="e.g., Projector, Printer" required>
+                        <select id="equipmentItemSelect" style="display:none;">
+                            <option value="">Select item</option>
+                        </select>
+                        <input type="text" id="equipmentItem" placeholder="e.g., Projector, Printer">
                     </div>
                     <div class="form-group">
                         <label>Request Type <span class="required-star">*</span></label>
                         <select id="requestType" required>
-                            <option value="">Select type</option>
-                            <option value="Hardware Issue">Hardware Issue</option>
-                            <option value="Software Issue">Software Issue</option>
-                            <option value="Network Issue">Network Issue</option>
-                            <option value="Installation">Installation</option>
-                            <option value="Maintenance">Maintenance</option>
+                            <option value="">Select category first</option>
                         </select>
                     </div>
                 </div>
@@ -241,6 +237,18 @@
                         <span class="priority-badge-large low" id="priorityDisplay">Low</span>
                         <span class="priority-note">Based on category and request type</span>
                     </div>
+                </div>
+                <!-- v29: Photo attachments — drop-zone style, same as Requester. -->
+                <div class="form-group" style="margin-top:8px;">
+                    <label>Attach Photos <span style="color:#8aa5bf;font-weight:400;font-size:0.85em;">(optional)</span></label>
+                    <input type="file" id="attachmentFileInput" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
+                    <div id="attachmentDropZone" style="border:2px dashed #b8cfe3;border-radius:14px;padding:22px 18px;text-align:center;background:#f5f9fe;cursor:pointer;transition:all 0.15s ease;">
+                        <div style="font-size:2rem;color:#1f6392;margin-bottom:6px;line-height:1;"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <div style="font-size:0.9rem;font-weight:600;color:#1a4a6e;">Click to choose photos</div>
+                        <div style="font-size:0.72rem;color:#8aa5bf;margin-top:3px;">JPG, PNG or WEBP — up to 5 files, 5 MB each</div>
+                    </div>
+                    <div id="attachmentPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+                    <div id="attachmentStatus" style="margin-top:6px;font-size:0.75rem;color:#6b8399;min-height:1em;"></div>
                 </div>
                 <div class="sla-preview" id="slaPreview" style="display:none;">
                     <div class="sla-preview-row">

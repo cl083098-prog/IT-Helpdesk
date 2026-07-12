@@ -146,6 +146,18 @@ try {
         return $c;
     }, $conversations);
 
+    // ── v28: Attachments (images uploaded from the submit form) ─────────────
+    try {
+        $atStmt = $pdo->prepare(
+            "SELECT id, file_path, original_name, mime_type, file_size, uploaded_at
+             FROM ticket_attachments WHERE ticket_id = :id ORDER BY uploaded_at ASC"
+        );
+        $atStmt->execute([':id' => $ticketId]);
+        $ticket['attachments'] = $atStmt->fetchAll();
+    } catch (PDOException $e) {
+        $ticket['attachments'] = []; // table may not exist yet
+    }
+
     // ── Dept Head approval ────────────────────────────────────────────────────
     $apprStmt = $pdo->prepare(
         "SELECT ta.decision, ta.estimated_cost, ta.rejection_note, ta.decided_at,

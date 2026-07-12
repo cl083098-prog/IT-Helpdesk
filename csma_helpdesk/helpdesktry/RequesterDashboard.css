@@ -1041,6 +1041,69 @@ input:focus, select:focus, textarea:focus {
     overflow: hidden;
 }
 
+/* v29: Stack the header content vertically for the confirmation modal.
+   Without this override, the default .modal-header (justify-content:
+   space-between) puts the icon, title, and paragraph side-by-side. */
+.confirmation-modal .modal-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 28px 28px 16px;
+    gap: 4px;
+}
+.confirmation-modal .success-icon {
+    font-size: 2.5rem;
+    color: #2a7a55;
+    margin-bottom: 8px;
+}
+.confirmation-modal .modal-header h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a4a6e;
+    margin: 0;
+}
+.confirmation-modal .modal-header p {
+    font-size: 0.85rem;
+    color: #6c86a0;
+    margin: 0;
+}
+.confirmation-modal .modal-footer-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 4px;
+}
+.confirmation-modal .btn-done {
+    background: #1a4a6e;
+    color: white;
+    border: none;
+    padding: 10px 28px;
+    border-radius: 40px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.confirmation-modal .btn-new-request {
+    background: transparent;
+    color: #1a4a6e;
+    border: 1.5px solid #dee4ea;
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.confirmation-modal .btn-done:hover      { background: #1c5680; }
+.confirmation-modal .btn-new-request:hover { background: #f5f9fe; border-color: #1a4a6e; }
+
 .request-summary-card {
     background: #f8fafc;
     border-radius: 16px;

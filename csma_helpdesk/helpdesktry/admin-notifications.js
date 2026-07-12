@@ -84,6 +84,69 @@
         });
     }
 
+    // ── Toast notification for new messages ─────────────────────────────────
+    let _adminToastTimer = null;
+    let _adminSeenIds    = new Set();
+    let _adminFirstLoad  = true;
+
+    function showAdminToast(title, description) {
+        let toast = document.getElementById('adminNwToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'adminNwToast';
+            toast.style.cssText = [
+                'position:fixed', 'bottom:24px', 'right:24px', 'z-index:10000',
+                'background:#1a3a52', 'color:#fff', 'border-radius:12px',
+                'box-shadow:0 6px 24px rgba(0,0,0,0.28)', 'padding:14px 18px',
+                'max-width:320px', 'min-width:220px', 'display:flex', 'align-items:flex-start',
+                'gap:12px', 'cursor:pointer', 'transition:opacity 0.3s,transform 0.3s',
+                'opacity:0', 'transform:translateY(16px)', 'pointer-events:none'
+            ].join(';');
+            toast.innerHTML = `
+                <div style="flex-shrink:0;width:34px;height:34px;background:rgba(255,255,255,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-comment-dots" style="font-size:0.95rem;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div id="adminNwToastTitle" style="font-weight:700;font-size:0.85rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                    <div id="adminNwToastDesc" style="font-size:0.78rem;opacity:0.82;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"></div>
+                </div>
+                <button id="adminNwToastClose" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:1.1rem;cursor:pointer;flex-shrink:0;padding:0;line-height:1;">&times;</button>`;
+            document.body.appendChild(toast);
+
+            const hideToast = () => {
+                toast.style.opacity   = '0';
+                toast.style.transform = 'translateY(16px)';
+                toast.style.pointerEvents = 'none';
+            };
+            toast.addEventListener('click', e => {
+                if (!e.target.closest('#adminNwToastClose')) {
+                    // Open notification dropdown on click
+                    document.getElementById('adminNotifDropdown')?.classList.add('open');
+                    loadAdminNotifications();
+                }
+                hideToast();
+            });
+            document.getElementById('adminNwToastClose')?.addEventListener('click', e => {
+                e.stopPropagation();
+                hideToast();
+            });
+        }
+
+        document.getElementById('adminNwToastTitle').textContent = title;
+        document.getElementById('adminNwToastDesc').textContent  = description || '';
+        toast.style.pointerEvents = 'auto';
+        requestAnimationFrame(() => {
+            toast.style.opacity   = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+        clearTimeout(_adminToastTimer);
+        _adminToastTimer = setTimeout(() => {
+            toast.style.opacity   = '0';
+            toast.style.transform = 'translateY(16px)';
+            toast.style.pointerEvents = 'none';
+        }, 5000);
+    }
+
     // ── Load notifications from API ─────────────────────────────────────────
     async function loadAdminNotifications() {
         const cu = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
@@ -99,11 +162,26 @@
             return;
         }
 
-        const unread = data.filter(n => !n.is_read).length;
+        const unread = data.filter(n => !n.is_read);
+        const unreadCount = unread.length;
         const badge  = document.getElementById('adminNotifBadge');
         if (badge) {
-            badge.textContent    = unread > 9 ? '9+' : unread;
-            badge.style.display  = unread > 0 ? 'inline-block' : 'none';
+            badge.textContent    = unreadCount > 9 ? '9+' : unreadCount;
+            badge.style.display  = unreadCount > 0 ? 'inline-block' : 'none';
+        }
+
+        // ── Toast for genuinely new notifications ──────────────────────────
+        if (_adminFirstLoad) {
+            unread.forEach(n => _adminSeenIds.add(n.id));
+            _adminFirstLoad = false;
+        } else {
+            const newOnes = unread.filter(n => !_adminSeenIds.has(n.id));
+            if (newOnes.length > 0) {
+                newOnes.forEach(n => _adminSeenIds.add(n.id));
+                // Prefer reply/message notifications; fallback to any new one
+                const pick = newOnes.find(n => n.event_type === 'reply') || newOnes[0];
+                showAdminToast(pick.title, pick.description);
+            }
         }
 
         const list = document.getElementById('adminNotifList');
@@ -180,8 +258,8 @@
 
         injectNotificationBell();
         loadAdminNotifications();
-        // Poll every 60 seconds for new notifications
-        setInterval(loadAdminNotifications, 60000);
+        // Poll every 20 seconds for new notifications (enables timely message toasts)
+        setInterval(loadAdminNotifications, 20000);
     }
 
     if (document.readyState === 'loading') {

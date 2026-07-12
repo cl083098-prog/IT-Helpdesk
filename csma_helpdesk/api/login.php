@@ -25,7 +25,7 @@ if (!$username || !$password) {
 
 try {
     $stmt = $pdo->prepare(
-        "SELECT id, username, password, role, full_name, email, department
+        "SELECT id, username, password, role, full_name, email, department, department_id
          FROM users
          WHERE username = :username AND is_active = 1
          LIMIT 1"
@@ -49,7 +49,33 @@ try {
         default        => 'RequesterDashboard.html',
     };
 
-    // ── Log successful login to audit_log ──────────────────────────────────────
+    // v20: send the login response and CLOSE the connection so the browser
+    // stops waiting. On Apache mod_php the previous flush trick sent the
+    // bytes but kept the socket open, so `await res.json()` on the client
+    // could hang waiting for connection close — hitting the 30 s abort
+    // timer even though PHP was done.
+    //
+    // Fix: set Content-Length and Connection: close BEFORE echoing. Browser
+    // now knows the exact body size and doesn't wait for close.
+    $responseBody = json_encode([
+        'success'     => true,
+        'user'        => $user,
+        'redirect_to' => $redirectTo,
+    ]);
+    header('Content-Length: ' . strlen($responseBody));
+    header('Connection: close');
+    echo $responseBody;
+
+    // Push the bytes out and keep going server-side without holding the client.
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        @ignore_user_abort(true);
+        while (@ob_get_level() > 0) @ob_end_flush();
+        @flush();
+    }
+
+    // ── Log successful login to audit_log (best-effort, after response) ────────
     $roleLabels = ['admin'=>'IT Admin','school_admin'=>'School Admin','dept_head'=>'Dept Head','requester'=>'Faculty/Staff'];
     $roleLabel  = $roleLabels[$user['role']] ?? ucfirst($user['role']);
     try {
@@ -70,13 +96,7 @@ try {
             ':detail' => "$roleLabel account authenticated. Redirected to: $redirectTo",
             ':ip'     => $_SERVER['REMOTE_ADDR'] ?? '',
         ]);
-    } catch (PDOException $logErr) { /* Silently ignore if audit_log not yet available */ }
-
-    echo json_encode([
-        'success'     => true,
-        'user'        => $user,
-        'redirect_to' => $redirectTo,
-    ]);
+    } catch (PDOException $logErr) { /* Silently ignore */ }
 
 } catch (PDOException $e) {
     http_response_code(500);

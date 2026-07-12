@@ -459,6 +459,8 @@
     function _closeDetailOverlay() {
         const ov = document.getElementById('tdOverlay');
         if (ov) { ov.classList.remove('active'); document.body.style.overflow = ''; }
+        const imgOv = document.getElementById('tdImgViewerOverlay');
+        if (imgOv) imgOv.style.display = 'none';
     }
 
     function _renderDetail(tk) {
@@ -524,6 +526,32 @@
                     </div>
                     <div class="td-cost-field" style="margin-top:12px;"><label class="td-field-label">Remarks</label>
                         <textarea class="td-input td-textarea" id="tdRepRemarks">${escapeHtml(tk.repair_remarks||'')}</textarea></div>
+                    ${(() => {
+                        // v27: repair-receipt upload UI (restored from the v3
+                        // Equipment Failure work). Uploads a JPG/PNG/WEBP/PDF
+                        // to api/upload_receipt.php, which stores it under
+                        // assets/receipts/ and writes the path to
+                        // tickets.repair_receipt_path.
+                        const receiptExists = !!tk.repair_receipt_path;
+                        const receiptUrl    = receiptExists ? '../' + tk.repair_receipt_path : '';
+                        const receiptIsPdf  = receiptExists && /\.pdf$/i.test(tk.repair_receipt_path);
+                        const receiptPreview = !receiptExists
+                            ? '<div class="td-receipt-empty" id="tdReceiptPreview">No receipt uploaded yet.</div>'
+                            : (receiptIsPdf
+                                ? `<div class="td-receipt-preview" id="tdReceiptPreview"><i class="fas fa-file-pdf" style="font-size:1.4rem;color:#b23434;margin-right:6px;"></i><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener">View PDF receipt</a></div>`
+                                : `<div class="td-receipt-preview" id="tdReceiptPreview"><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(receiptUrl)}" alt="Receipt" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid #dbe6f0;"></a></div>`
+                            );
+                        return `
+                        <div class="td-cost-field" style="margin-top:14px;">
+                            <label class="td-field-label">Repair Receipt</label>
+                            ${receiptPreview}
+                            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                                <input type="file" id="tdReceiptFile" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" style="display:none;">
+                                <button type="button" class="td-btn-secondary" id="tdReceiptUploadBtn"><i class="fas fa-upload"></i> ${receiptExists ? 'Replace receipt' : 'Upload receipt'}</button>
+                                <span class="td-hint" id="tdReceiptStatus" style="font-size:0.75rem;color:#6b8399;">JPG / PNG / WEBP / PDF, max 5 MB.</span>
+                            </div>
+                        </div>`;
+                    })()}
                 </div>
             </div>` : '';
 
@@ -603,6 +631,22 @@
                 <div class="td-section-title">Issue Details</div>
                 <div class="td-field-group"><span class="td-field-label">Title</span><p class="td-issue-title">${escapeHtml(tk.title)}</p></div>
                 <div class="td-field-group"><span class="td-field-label">Issue Description</span><p class="td-issue-desc">${escapeHtml(tk.description||'No description.')}</p></div>
+                ${(() => {
+                    // v28: photos attached by the requester at submit time.
+                    const atts = tk.attachments || [];
+                    if (!atts.length) return '';
+                    const thumbs = atts.map(a => {
+                        const url = '../' + a.file_path;
+                        const name = escapeHtml(a.original_name || 'attachment');
+                        return `<button type="button" class="td-view-img-btn" data-src="${escapeHtml(url)}" data-name="${name}" title="View ${name}">
+                            <i class="fas fa-image"></i> ${name}
+                        </button>`;
+                    }).join('');
+                    return `<div class="td-field-group" style="margin-top:12px;">
+                        <span class="td-field-label"><i class="fas fa-image"></i> Attached Photos (${atts.length})</span>
+                        <div class="td-attachment-row">${thumbs}</div>
+                    </div>`;
+                })()}
             </div>
             <div class="td-section">
                 <div class="td-section-title">Assignment &amp; Actions</div>
@@ -647,6 +691,10 @@
         </div>`;
 
         document.getElementById('tdCancelBtn')?.addEventListener('click', _closeDetailOverlay);
+        const imgBtns = document.querySelectorAll('.td-view-img-btn');
+        imgBtns.forEach(btn => {
+            btn.addEventListener('click', () => openTdImageViewer(btn.dataset.src, btn.dataset.name));
+        });
         document.getElementById('tdExtRepairChk')?.addEventListener('change', e => {
             document.getElementById('tdRepairCosts').style.display = e.target.checked ? 'block' : 'none';
         });
@@ -655,6 +703,36 @@
                 const tot = document.getElementById('tdRepTotal');
                 if (tot) tot.value = '₱' + (['tdSvcCost','tdPartsCost','tdSvcFee'].reduce((s,i)=>s+(parseFloat(document.getElementById(i)?.value)||0),0)).toFixed(2);
             });
+        });
+
+        // v27: receipt upload — click the button, pick a file, POST it.
+        document.getElementById('tdReceiptUploadBtn')?.addEventListener('click', () => {
+            document.getElementById('tdReceiptFile')?.click();
+        });
+        document.getElementById('tdReceiptFile')?.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const statusEl = document.getElementById('tdReceiptStatus');
+            if (file.size > 5 * 1024 * 1024) {
+                if (statusEl) { statusEl.textContent = 'File too large — 5 MB max.'; statusEl.style.color = '#b23434'; }
+                return;
+            }
+            const cu = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const fd = new FormData();
+            fd.append('ticket_id', tk.id);
+            fd.append('admin_id',  cu.id || 0);
+            fd.append('receipt',   file);
+            if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.style.color = '#1f6392'; }
+            try {
+                const res  = await fetch('../api/upload_receipt.php', { method: 'POST', body: fd });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.message || 'upload failed');
+                if (statusEl) { statusEl.textContent = 'Receipt uploaded successfully.'; statusEl.style.color = '#1e7a4a'; }
+                // refresh the ticket detail so the new receipt preview shows
+                await _openDetailOverlay(tk.id);
+            } catch (err) {
+                if (statusEl) { statusEl.textContent = 'Upload failed: ' + err.message; statusEl.style.color = '#b23434'; }
+            }
         });
         document.getElementById('tdEditSlaBtn')?.addEventListener('click', () => {
             document.getElementById('tdSlaDisplayText').style.display='none';
@@ -711,8 +789,11 @@
 
         // Disable every form control inside the detail overlay.
         body.querySelectorAll('input, select, textarea, button').forEach(el => {
-            // Keep the outer Close/Cancel button usable.
+            // Keep the outer Close/Cancel button usable, and keep attachment
+            // "view image" buttons usable — viewing a photo is read-only and
+            // should still work on closed tickets.
             if (el.id === 'tdCancelBtn') return;
+            if (el.classList.contains('td-view-img-btn')) return;
             el.disabled = true;
         });
 
@@ -920,6 +1001,57 @@
         const ticket = ticketsData.find(t => t.id === ticketId);
         if (!ticket) return;
         deleteTicketFromDB(ticket.dbId, ticket.id);
+    }
+
+    // ─── Attachment Image Viewer (same behavior as School Admin) ──────────────
+    function openTdImageViewer(src, name) {
+        if (!src) { showToast('No image source found for this attachment.', 'error'); return; }
+        let overlay = document.getElementById('tdImgViewerOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'tdImgViewerOverlay';
+            overlay.innerHTML = `
+                <div class="td-img-viewer-box">
+                    <div class="td-img-viewer-header">
+                        <span id="tdImgViewerName" class="td-img-viewer-title"></span>
+                        <button id="tdImgViewerClose" class="td-modal-close" title="Close">&times;</button>
+                    </div>
+                    <div class="td-img-viewer-body">
+                        <img id="tdImgViewerImg" src="" alt="Attachment" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:auto;">
+                        <div id="tdImgViewerError" style="display:none;color:#c62828;font-size:0.85rem;padding:20px;">
+                            <i class="fas fa-triangle-exclamation"></i> Could not load this image. The file may be missing on the server.
+                        </div>
+                    </div>
+                    <div class="td-img-viewer-footer">
+                        <a id="tdImgViewerDownload" href="" download class="td-btn-download" style="display:inline-flex;align-items:center;gap:6px;">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                </div>`;
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+            overlay.querySelector('.td-img-viewer-box').style.cssText = 'background:#fff;border-radius:14px;max-width:860px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.35);overflow:hidden;';
+            overlay.querySelector('.td-img-viewer-header').style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #e5edf5;';
+            overlay.querySelector('.td-img-viewer-body').style.cssText = 'padding:20px;text-align:center;background:#f8fafc;';
+            overlay.querySelector('.td-img-viewer-footer').style.cssText = 'padding:12px 20px;border-top:1px solid #e5edf5;text-align:right;';
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+            document.getElementById('tdImgViewerClose').addEventListener('click', () => overlay.style.display = 'none');
+            document.getElementById('tdImgViewerImg').addEventListener('error', function () {
+                this.style.display = 'none';
+                const errEl = document.getElementById('tdImgViewerError');
+                if (errEl) errEl.style.display = 'block';
+                console.error('ServiceRequest: attachment image failed to load:', this.src);
+            });
+        }
+        const imgEl = document.getElementById('tdImgViewerImg');
+        const errEl = document.getElementById('tdImgViewerError');
+        imgEl.style.display = 'block';
+        if (errEl) errEl.style.display = 'none';
+        document.getElementById('tdImgViewerName').textContent = name || 'Image';
+        imgEl.src = src;
+        document.getElementById('tdImgViewerDownload').href = src;
+        document.getElementById('tdImgViewerDownload').download = name || 'attachment';
+        overlay.style.display = 'flex';
     }
 
         // ─── Toast ───────────────────────────────────────────────────────────────

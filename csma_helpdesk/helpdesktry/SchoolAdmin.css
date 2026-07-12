@@ -358,3 +358,86 @@ body.dark-mode .approval-block { background: #172038; }
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
+
+/* =====================================================================
+ * Merged from SchoolAdmin.append.css
+ * Adds styling for the View button on Recent Reports, and for
+ * Attached Images in the Ticket Detail modal.
+ * =================================================================== */
+
+.sa-btn-view-report {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f5f9fe;
+    color: #1c4c6e;
+    border: 1px solid #d0dceb;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+}
+.sa-btn-view-report:hover {
+    background: #1c4c6e;
+    color: #fff;
+    border-color: #1c4c6e;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(28,76,110,.2);
+}
+.sa-btn-view-report i {
+    font-size: 0.72rem;
+}
+
+/* ── Attached Images in Ticket Detail ─────────────────────────────────────── */
+.sa-attachment-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.sa-view-img-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    background: #eaf2fb;
+    color: #1a5276;
+    border: 1px solid #b5d0ea;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sa-view-img-btn:hover {
+    background: #1a5276;
+    color: #fff;
+    border-color: #1a5276;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(26,82,118,.22);
+}
+
+.sa-view-img-btn i {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.sa-img-viewer-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #1a3a52;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 70%;
+}

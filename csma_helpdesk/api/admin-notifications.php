@@ -42,11 +42,18 @@ try {
 
         // ── GET notifications for an IT Admin user ───────────────────────────
         case 'get':
+            // v18 fix: old query used `target_user = :uid OR target_role = 'admin'`
+            // — which leaked notifications targeted at ANOTHER admin (with
+            // target_user = other, target_role='admin') into this admin's bell.
+            // Correct semantics:
+            //   • target_user = me (personal)              → this admin sees
+            //   • target_user IS NULL AND role='admin'     → broadcast to all admins
+            //   • target_user IS NULL AND role IS NULL     → global broadcast
+            //   • target_user = someone else               → hidden from me
             $stmt = $pdo->prepare(
                 "SELECT * FROM notifications
                  WHERE target_user = :uid
-                    OR target_role = 'admin'
-                    OR (target_user IS NULL AND target_role IS NULL)
+                    OR (target_user IS NULL AND (target_role = 'admin' OR target_role IS NULL))
                  ORDER BY created_at DESC
                  LIMIT 30"
             );
@@ -58,9 +65,11 @@ try {
         case 'mark_all_read':
             $body   = json_decode(file_get_contents('php://input'), true) ?? [];
             $uid    = (int)($body['user_id'] ?? $userId);
+            // v18: same scope fix — never touch OTHER admins' personal notifs.
             $pdo->prepare(
                 "UPDATE notifications SET is_read = 1
-                 WHERE target_user = :uid OR target_role = 'admin' OR target_user IS NULL"
+                 WHERE is_read = 0 AND (target_user = :uid
+                    OR (target_user IS NULL AND (target_role = 'admin' OR target_role IS NULL)))"
             )->execute([':uid' => $uid]);
             jsOk(['message' => 'All notifications marked as read.']);
             break;
@@ -73,6 +82,17 @@ try {
             $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = :id")
                 ->execute([':id' => $notifId]);
             jsOk(['message' => 'Notification marked as read.']);
+            break;
+
+        // ── Unread count (for lightweight polling) ───────────────────────────
+        case 'unread_count':
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM notifications
+                 WHERE is_read = 0 AND (target_user = :uid
+                    OR (target_user IS NULL AND (target_role = 'admin' OR target_role IS NULL)))"
+            );
+            $stmt->execute([':uid' => $userId]);
+            jsOk(['unread' => (int)$stmt->fetchColumn()]);
             break;
 
         // ── Push a new notification (called internally by other API files) ───

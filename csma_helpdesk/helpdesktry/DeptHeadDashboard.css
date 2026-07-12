@@ -550,3 +550,114 @@ body.dark-mode .filter-chip-active { background: #2c7cb6; color: white; }
     .stats-row .stat-card:last-child { grid-column: span 2; }
     .approval-card-actions { flex-direction: column; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ATTACHMENT & CONVERSATION — Approval Detail + My Request Detail (v30)
+══════════════════════════════════════════════════════════════════════════ */
+
+/* Section sub-title used in approval detail & my request detail */
+.dh-section-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #4a6fa5;
+    margin: 18px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Attachment image buttons row */
+.dh-attachment-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.dh-view-img-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    background: #eaf2fb;
+    color: #1a5276;
+    border: 1px solid #b5d0ea;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dh-view-img-btn:hover {
+    background: #1a5276;
+    color: #fff;
+    border-color: #1a5276;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(26,82,118,.22);
+}
+
+/* Conversation thread inside approval detail modal */
+.dh-conv-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 4px 2px 4px 0;
+    margin-bottom: 4px;
+}
+
+.dh-conv-item {
+    background: #f5f9fe;
+    border-radius: 9px;
+    padding: 10px 14px;
+    border-left: 3px solid #b5d0ea;
+}
+
+.dh-conv-author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.dh-conv-author strong {
+    font-size: 0.82rem;
+    color: #1a3a52;
+}
+
+.dh-conv-time {
+    font-size: 0.73rem;
+    color: #8aa5bf;
+}
+
+.dh-conv-msg {
+    font-size: 0.84rem;
+    color: #34556e;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.dh-conv-empty {
+    text-align: center;
+    padding: 14px;
+    color: #8aa5bf;
+    font-size: 0.83rem;
+}
+
+/* Dark mode */
+body.dark-mode .dh-view-img-btn      { background: #1c2d3e; color: #7eb8e0; border-color: #2a4a62; }
+body.dark-mode .dh-view-img-btn:hover { background: #2c7cb6; color: #fff; }
+body.dark-mode .dh-conv-item          { background: #1a2535; border-color: #2a4a62; }
+body.dark-mode .dh-conv-author strong { color: #c8dde9; }
+body.dark-mode .dh-conv-msg           { color: #8aa5bf; }
+body.dark-mode .dh-section-title      { color: #5a8fb5; }
