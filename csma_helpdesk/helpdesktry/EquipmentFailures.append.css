@@ -1,32 +1,26 @@
 /* ==========================================================================
    Equipment Failures — additions layered on top of EquipmentFailures.css
-   Uses existing tokens: Inter font, #1c4c6e / #1f6392 blues, 24px radii.
+   Uses existing tokens: Inter font, #111111 / #8A6D00 black/gold, 24px radii.
    ========================================================================== */
 
-/* Page subtitle under the top-bar h1 (module purpose) */
-.page-title .page-subtitle {
-    margin-top: 4px;
-    font-size: 0.82rem;
-    color: #6b8399;
-    font-weight: 400;
-    max-width: 640px;
-    line-height: 1.4;
-}
+/* Page subtitle under the top-bar h1 — sizing/color now comes from
+   Sidebar.css's shared .page-subtitle rule (canonical across every admin
+   page); no override needed here. */
 
 /* Status badges — three tones inside existing palette */
 .badge-pending,
 .badge-inprogress,
 .badge-resolved {
     display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    padding: 2px 8px;
+    border-radius: 30px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
 }
 .badge-pending    { background: #fff4e0; color: #b56c00; }
 .badge-inprogress { background: #e0efff; color: #1f6392; }
-.badge-resolved   { background: #e0f5e9; color: #1e7a4a; }
+.badge-resolved   { background: #e3f9ec; color: #27ae60; }
 
 .filter-group .filter-select { min-width: 150px; }
 
@@ -46,10 +40,10 @@
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    border: 1px solid #1f6392;
+    border: 1px solid #1A1A1A;
     background: #ffffff;
-    color: #1f6392;
-    border-radius: 18px;
+    color: #1A1A1A;
+    border-radius: 999px;
     font-size: 0.78rem;
     font-weight: 600;
     font-family: 'Inter', sans-serif;
@@ -58,9 +52,9 @@
 }
 .btn-view i { font-size: 0.72rem; }
 .btn-view:hover {
-    background: #1f6392;
+    background: #1A1A1A;
     color: #ffffff;
-    box-shadow: 0 2px 6px rgba(31, 99, 146, 0.25);
+    box-shadow: 0 2px 6px rgba(26, 26, 26, 0.25);
 }
 .btn-view:active { transform: translateY(1px); }
 
@@ -85,7 +79,7 @@
 }
 .detail-grid .detail-value {
     font-size: 0.95rem;
-    color: #1c4c6e;
+    color: #111111;
     font-weight: 500;
     word-break: break-word;
 }
@@ -104,6 +98,5 @@ body.dark-mode .btn-view:hover {
     background: #7fb1d6;
     color: #0f2436;
 }
-body.dark-mode .page-title .page-subtitle { color: #a4bcd0; }
 body.dark-mode .detail-grid label         { color: #a4bcd0; }
 body.dark-mode .detail-grid .detail-value { color: #e8f0f7; }

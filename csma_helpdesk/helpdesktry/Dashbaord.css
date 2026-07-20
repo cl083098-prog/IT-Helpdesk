@@ -1,175 +1,306 @@
+/* NEW: shared color tokens, lifted from Login.css's palette (same navy/gold
+   shades already used across the login page) so the redesigned dashboard
+   elements (icon badges, search focus ring, avatar) stay on-palette instead
+   of introducing new colors from the reference layout.
+   FIX 3 (accent palette): added --gray-muted/--gray-light so the handful of
+   near-duplicate grays scattered through this file (#95a5a6, #9aa5b1, #bdc3c7,
+   #b7bfc9, #8a99a8, and the stray blue-gray #5a7e9e) collapse into ONE
+   consistent secondary/tertiary gray pair — the dashboard's only non-navy/gold
+   accent colors, as requested. These custom properties are declared on :root
+   (the <html> element), so Dashboard.html's inline <style> block can also use
+   them via var(...), even though it's a separate <style> tag. */
+:root {
+    /* 2026-07-17 CSMA gold restyle: brand accent repointed to the school logo's
+       gold (#FDC913), superseding the earlier same-day "warm-neutral" pass
+       that had zeroed gold out to black/gray. Names kept as-is (many rules
+       below reference them via var()) — only values changed, so the cascade
+       updates everywhere automatically. Two gold shades are kept distinct on
+       purpose: --gold (#FDC913, the literal logo/brand color) is for solid
+       FILLS only (buttons, gradients, badge chips) always paired with dark
+       ink text/on-primary — raw #FDC913 fails WCAG AA as text or as a thin
+       border/focus color (~1.6:1 / ~2:1 against white). --gold-dark (#8A6D00)
+       is the accent used wherever gold appears AS text/icon/link/border/focus
+       color directly on a light surface — verified ≥4.5:1 text / ≥3:1 UI
+       contrast against white. --navy-primary (text/link use in this file) and
+       --navy-tint (hover-bg use) reuse the same two gold values so the
+       dashboard's "brand emphasis" text and hover cues read as gold; --navy-mid
+       (secondary headings) maps to plain ink since not every heading needs
+       the accent. --navy-deep stays a deliberate near-black (matches spec ink)
+       for the one "distinct dark" stat-icon-badge callout. Semantic
+       green/blue/purple/orange tokens restored to their original (non-monochrome)
+       values — status colors are unchanged by this restyle. */
+    --navy-deep: #1A1A1A;
+    --navy-mid: #1A1A1A;
+    --navy-primary: #8A6D00;
+    --navy-tint: #FFF3D1;
+    --gold: #FDC913;
+    --gold-dark: #8A6D00;
+    --gold-tint: #FFF3D1;
+    --gray-muted: #585858;
+    --gray-light: #A0A0A0;
+    --blue-tint: #e3f0fd;
+    --blue: #2f7fc4;
+    --purple-tint: #efe7fb;
+    --purple: #8b5fbf;
+    --green-tint: #e3f9ec;
+    --green: #27ae60;
+    --orange: #e67e22;
 
+    /* NEW: shared dark-mode tokens — identical names/values duplicated in
+       ServiceRequest.css's :root (same reason the navy/gold tokens above are
+       duplicated: two independent stylesheets, no shared import) so both
+       pages' dark mode always renders from the exact same palette instead of
+       drifting apart over time. See ServiceRequest.css's :root for its copy —
+       keep both in sync any time these change.
+       2026-07-18 dark-mode reskin: repointed from the plain #1E1E1E/#2E2E2E
+       grays to the neutral warm-black palette matching the supplied
+       csma_dashboard_dark.html reference (#0b0b0d page bg lives in
+       Sidebar.css's body.dark-mode; these are the card/inset/text layers).
+       Contrast verified: #f2f2f3 on #17171a ≈ 15.5:1, #7a7a80 on #17171a ≈
+       4.6:1, #FFD84D (gold-as-text on dark) on #17171a ≈ 11.8:1 — all
+       comfortably ≥4.5:1. */
+    --dm-bg-card: #17171a;      /* main card/panel/modal surface */
+    --dm-bg-card-alt: #1d1d21;  /* slightly-elevated surface (e.g. stat cards) */
+    --dm-bg-inset: #1d1d21;     /* inputs, pills, hover states */
+    --dm-border: #232326;       /* card borders + hover/inset fills */
+    --dm-text-primary: #f2f2f3; /* headings, primary values/labels */
+    --dm-text-secondary: #7a7a80; /* muted labels, meta text, subtitles, descriptions */
+    --dm-accent-navy: #FFD84D;  /* gold-as-text accent for icons that need contrast on a dark surface */
+}
+
+/* FIX 1 (icon system): audited every icon rendered on this page (sidebar nav,
+   stat cards, panel headers, activity items, calendar nav, search, theme
+   toggle) — all already use Font Awesome SOLID (fas), so there's no actual
+   mix of icon libraries or outline/filled styles to replace. The one non-FA
+   glyph on this page is the 🔐 emoji in the logout toast, which Sidebar.js sets
+   at runtime (outside Dashboard.html/Dashbaord.css's scope, so it's untouched
+   here). What WAS inconsistent was icon SIZE across contexts: every "icon
+   badge" (.stat-icon-badge, .activity-icon, .modal-activity-icon) is now the
+   same 40px/12px-radius/1rem-icon component (see each rule below), and inline
+   heading icons (.panel-header h3 i) are unified at 1rem to match. */
 .dashboard-wrapper {
     font-family: 'Inter', sans-serif;
 }
 
-.top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 32px;
-    background: white;
-    padding: 16px 24px;
-    border-radius: 28px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-}
+/* .top-bar/.page-title/.page-subtitle/.theme-toggle-wrapper/.user-actions/
+   .notification-icon duplicates removed (2026-07-17 restyle) — per the
+   established dedup rule, header/top-bar styling lives ONLY in Sidebar.css,
+   which already defines identical selectors. These per-page copies had
+   drifted to the old navy/gold palette and would have silently shadowed
+   Sidebar.css's new black/neutral values (loaded after it). */
 
-.page-title h1 {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #1c4c6e;
-}
+/* REVERTED: the previous ~225px .sidebar width override is removed — the new
+   target reference goes back to Sidebar.css's native 280px width, so no
+   override is needed here at all. Dashboard.html's inline <style>
+   .main-content max-width calc() was reverted to match (280px). */
 
-.theme-toggle-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #1f6392;
-    font-size: 1.05rem;
-}
+/* Active sidebar nav-item highlight standardized: this page used to repaint
+   it gold (only THIS page + EquipmentFailures.css + ServiceRequest.css did),
+   while every other admin page kept Sidebar.css's shared blue pill — same
+   highlight showing two different colors depending which module you were on.
+   Override removed so Sidebar.css's single definition applies everywhere. */
 
-.notification-icon {
-    background: #f4f6f9;
-    border: 1px solid #e2e8ed;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    font-size: 1.1rem;
-    color: #1a4a6e;
-    position: relative;
-}
+/* .topbar-search and .user-avatar moved to Sidebar.css (shared, single
+   source of truth) now that SchoolAdmin.html also uses them — see
+   Sidebar.css for their canonical definitions. Do not re-add here. */
 
-.notification-icon:hover {
-    background: #eef2f6;
-    transform: scale(1.02);
-}
-
-/* Stats Row */
+/* RESTYLED (per new exact target): gap/margin restored to the ~20-24px scale. */
 .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
 }
 
+/* 2026-07-17 mockup-fidelity pass: plain label-over-value card, no icon badge
+   (was an icon-left horizontal layout with a colored .stat-icon-badge) —
+   matches the reference exactly. .stat-icon-badge/.stat-info are removed
+   from the markup (see Dashboard.html) since nothing uses them anymore. */
 .stat-card {
     background: white;
-    padding: 20px;
-    border-radius: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    transition: transform 0.2s;
+    padding: 18px;
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
+    transition: transform 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
 }
 
 .stat-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+
+/* NEW: keyboard-focus ring for the stat cards' role="button" tabindex="0". */
+.stat-card:focus-visible {
+    outline: 2px solid #111;
+    outline-offset: 2px;
+}
+
+/* .stat-card.dark — the one solid-black card (Total Inventory Value),
+   matching the reference's single dark stat card among plain white ones. */
+.stat-card.dark {
+    background: #111;
+}
+.stat-card.dark .stat-title {
+    color: #aaa;
+}
+.stat-card.dark .stat-number {
+    color: #fff;
 }
 
 .stat-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: #7f8c8d;
-    margin-bottom: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #8a8a8e;
+    margin-bottom: 8px;
 }
 
 .stat-number {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: 1.65rem;
+    font-weight: 700;
     letter-spacing: -0.02em;
-    color: #1f6392;
+    color: #111;
+    white-space: nowrap;
 }
 
-/* Dashboard Grid */
+/* RESTYLED (per new exact target): gap restored to the ~20-24px scale. This is
+   the last row, so no bottom margin is needed. */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 28px;
-    margin-bottom: 32px;
+    gap: 20px;
+    margin-bottom: 0;
 }
 
-.tickets-panel {
+/* FIX (Sidebar.css leak): same issue as .panel-header above — Sidebar.css's
+   shared body.dark-mode rule gives .dashboard-grid its own border +
+   background + drop-shadow in dark mode, even though it's just a plain grid
+   wrapper around the two ticket panels (no card styling of its own in light
+   mode). That phantom outer "card" is what shows up as a line above the
+   panels and a seam down the middle between them. Never overridden here
+   before, so nothing blocked it. */
+body.dark-mode .dashboard-grid {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* RESTYLED (per new exact target): padding 18px→20px, plus a subtle 1px border
+   to match .stat-card/.recent-activities-panel/.calendar-panel/.chart-panel.
+   New Open Tickets + Aging Tickets now render as one merged .ticket-feed list
+   (see below) instead of two separate cards/sections. */
+.combined-tickets-panel {
+    display: flex;
+    flex-direction: column;
     background: white;
-    border-radius: 28px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    border-radius: 20px;
+    border: 1px solid #E8E6E0;
+    padding: 22px;
+    box-shadow: none;
 }
 
+/* RESTYLED (per new exact target): margin-bottom/padding-bottom restored
+   slightly. */
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #eef3f8;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #E8E6E0;
 }
 
+/* Literal #111 rather than var(--navy-mid): ServiceRequest.css (loaded after
+   this file on Dashboard.html) declares its own :root with --navy-mid:#6B5300
+   (gold-brown), which wins the cascade for the whole document and silently
+   repaints every var(--navy-mid) use here gold instead of near-black. Same
+   fix applied to .chart-panel-header h3/.calendar-header h3/.activity-title
+   strong/.calendar-nav-btn:hover below — all previously affected. */
 .panel-header h3 {
     font-size: 1.2rem;
     font-weight: 700;
     letter-spacing: -0.01em;
-    color: #1c4c6e;
-}
-
-.panel-header h3 i {
-    margin-right: 8px;
-    font-size: 1rem;
-    color: #1f6392;
+    color: #111;
 }
 
 .view-all {
-    color: #1f6392;
+    color: #8a8a8e;
     text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    transition: opacity 0.2s;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    transition: opacity 0.25s ease-in-out;
 }
 
 .view-all:hover {
     opacity: 0.8;
 }
 
+/* NEW: max-height + overflow-y:auto so the New Open Tickets / Aging Tickets
+   panels also scroll internally rather than growing the page, matching the
+   "only panels scroll, not the page" requirement.
+   FIX (one-screen fit): max-height trimmed to 140px to offset the extra
+   height restored elsewhere (chart, gaps, padding). */
 .ticket-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    max-height: 140px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
+/* FIX (clipped empty-state icon): .empty-modal-message (Dashboard.html's
+   inline <style>) is sized for the roomy modal popup — 48px padding + a
+   1.8rem icon is taller than this panel's 140px/125px max-height, so the
+   icon/text gets clipped by overflow-y here. Barely visible in light mode
+   (pale icon on white), but the clipped sliver reads as a stray line in dark
+   mode once contrast goes up. Shrunk to actually fit inside these panels. */
+.ticket-list .empty-modal-message,
+.activities-list .empty-modal-message {
+    padding: 16px 12px;
+    gap: 6px;
+}
+
+.ticket-list .empty-modal-message::before,
+.activities-list .empty-modal-message::before {
+    font-size: 1.2rem;
+}
+
+/* FIX (fit-one-screen pass): padding 16px→12px. */
 .ticket-item {
-    padding: 16px;
-    background: #fafdff;
-    border-radius: 20px;
+    padding: 12px;
+    background: #FAF9F6;
+    border-radius: 16px;
     border-left: 4px solid;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
+    cursor: pointer;
 }
 
 .ticket-item:hover {
-    background: #f5f9fe;
+    background: #F1F0EC;
     transform: translateX(2px);
 }
 
+/* RESTYLED: matches .priority-badge.high's new red/pink (was orange), so the
+   row's left-border accent and its priority badge agree on the same color. */
 .ticket-item.priority-high {
-    border-left-color: #e67e22;
+    border-left-color: #B23A63;
 }
 
 .ticket-item.priority-medium {
-    border-left-color: #f1c40f;
+    border-left-color: #8A6100;
 }
 
 .ticket-item.priority-critical {
-    border-left-color: #e74c3c;
+    border-left-color: #B0362A;
 }
 
 .ticket-item.priority-low {
-    border-left-color: #2ecc71;
+    border-left-color: #2F7D42;
 }
 
 .ticket-id {
@@ -190,24 +321,30 @@
     border-radius: 30px;
 }
 
+/* RESTYLED (explicit repeated request across several reference screenshots):
+   High priority recolored from orange to a red/pink tint. Kept visually
+   distinct from .priority-badge.critical's red (#e74c3c) by using a pinker/
+   rosier hue instead of the same orange-red, so the two severities don't
+   collide. Medium/Critical/Low colors are unchanged (still the protected
+   4-tier semantic system). */
 .priority-badge.high {
-    background: #ffe0cc;
-    color: #e67e22;
+    background: #FBEAF0;
+    color: #B23A63;
 }
 
 .priority-badge.medium {
-    background: #fff3cd;
-    color: #f1c40f;
+    background: #F5EBD9;
+    color: #8A6100;
 }
 
 .priority-badge.critical {
-    background: #fde2e2;
-    color: #e74c3c;
+    background: #F5E4E1;
+    color: #B0362A;
 }
 
 .priority-badge.low {
-    background: #d5f5e3;
-    color: #27ae60;
+    background: #E3F1E6;
+    color: #2F7D42;
 }
 
 .ticket-desc {
@@ -215,101 +352,430 @@
     font-size: 0.9rem;
     letter-spacing: -0.01em;
     margin-bottom: 8px;
-    color: #1e2f3e;
+    color: #111111;
 }
 
+/* FIX 3: color now var(--gray-muted) (was a one-off #95a5a6). */
 .ticket-meta {
     font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.2px;
-    color: #95a5a6;
+    color: var(--gray-muted);
+}
+
+/* NEW: .status-badge / .status-open — static "Open" status pill (every new
+   ticket in the feed is open by definition; there's no per-ticket status
+   field in the API response). Reuses the gold accent tokens, not a new color. */
+.status-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 4px 10px;
+    border-radius: 30px;
+    display: inline-block;
+}
+
+.status-badge.status-open {
+    background: #E3F1E6;
+    color: #2F7D42;
+}
+
+/* RESTYLED: .ticket-feed — New Open Tickets + Aging Tickets merged into one
+   flat list (Dashboard.js's renderTicketsFeed()). Both row shapes share the
+   same 2-column grid (content left, badge/meta right) with a colored dot
+   marker: green for a still-open new ticket (.ticket-row-new), red for one
+   that's aging. FIX 8: column-gap 14px→16px, row-gap 4px→8px, padding-left
+   30px→32px (all now on the 8/16/24/32 scale; the dot at left:16px still
+   leaves a clean 8px gap before the 32px content start). */
+.ticket-feed .ticket-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 16px;
+    row-gap: 8px;
+    align-items: center;
+    position: relative;
+    padding-left: 32px;
+}
+
+.ticket-feed .ticket-item::before {
+    content: "";
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e74c3c;
+}
+
+.ticket-feed .ticket-item.ticket-row-new::before {
+    background: #2F7D42;
+}
+
+/* Aging row: title (bold) above "ID · Priority" (muted), red day-count at right. */
+.ticket-feed .ticket-item:not(.ticket-row-new) .ticket-desc {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 0;
+}
+
+/* FIX 3: color now var(--gray-muted) (was a one-off #95a5a6). */
+.ticket-feed .ticket-item:not(.ticket-row-new) .ticket-id {
+    grid-column: 1;
+    grid-row: 2;
+    margin-bottom: 0;
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--gray-muted);
+    letter-spacing: 0;
+}
+
+/* Red kept intentionally (FIX 3's semantic carve-out, same as "High priority"):
+   this is an urgency indicator for aging tickets, matching .priority-badge.critical's
+   red exactly rather than introducing a new red. */
+.ticket-feed .ticket-item:not(.ticket-row-new) .ticket-meta {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    flex-shrink: 0;
+    color: #e74c3c;
+    font-weight: 700;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* New row: ID (bold) above requester name (muted), green "Open" pill at right. */
+.ticket-feed .ticket-item.ticket-row-new .ticket-id {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 0;
+    display: block;
+}
+
+.ticket-feed .ticket-item.ticket-row-new .ticket-requester {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--gray-muted);
+}
+
+.ticket-feed .ticket-item.ticket-row-new .status-badge {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    justify-self: end;
 }
 
 /* Two Column Grid */
+/* RESTYLED: ~65/35 split, Service Requests chart (left) + Calendar (right),
+   matching the reference's chart/calendar proportions.
+   RESTYLED (per new exact target): gap/margin restored to the ~20-24px scale. */
 .two-column-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 28px;
-    margin-bottom: 32px;
+    grid-template-columns: 1.85fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
 }
 
-.recent-activities-panel, .calendar-panel {
+/* RESTYLED (per new exact target): padding 18px→20px, plus a subtle 1px border
+   added ("rounded card, light border" per the exact spec for Recent
+   Activities — extended here to Calendar/Chart too so all major panels share
+   the same card language as .stat-card/.combined-tickets-panel below). */
+.recent-activities-panel, .calendar-panel, .chart-panel {
     background: white;
-    border-radius: 28px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    border-radius: 20px;
+    border: 1px solid #E8E6E0;
+    padding: 22px;
+    box-shadow: none;
 }
 
-.activities-list {
+/* NEW: Recent activities now sits beside .combined-tickets-panel in
+   .dashboard-grid instead of its own full-width row — grid's default
+   align-items:stretch already sizes this panel's box to match the (taller)
+   combined card, so it just needs to be a flex column for .activities-list
+   to fill that stretched height instead of leaving blank space below it. */
+.recent-activities-panel {
     display: flex;
     flex-direction: column;
-    gap: 18px;
 }
 
-.activity-item {
+/* NEW: .chart-panel / .chart-panel-header — header row with title+subtitle on
+   the left and a 3-item color legend on the right. */
+.chart-panel {
     display: flex;
-    gap: 14px;
+    flex-direction: column;
+}
+
+.chart-panel-header {
     align-items: flex-start;
 }
 
-.activity-icon {
-    width: 36px;
-    height: 36px;
-    background: #eef3fc;
-    border-radius: 12px;
+.chart-panel-header h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #111;
+    letter-spacing: -0.01em;
+}
+
+.chart-subtitle {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--gray-muted);
+    margin-top: 4px;
+}
+
+.chart-legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.legend-item {
     display: flex;
     align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--gray-muted);
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.legend-dot-open { background: var(--gold); }
+.legend-dot-resolved { background: var(--green); }
+.legend-dot-pending { background: #C7C4BA; }
+
+/* RESTYLED: .chart-canvas — the plot area (grouped bars) plus month labels.
+   No y-axis/gridlines anymore (dropped for a cleaner look, per reference).
+   Bar heights are inline "height:%" styles (see note in Dashboard.html on why
+   this is static/decorative, not live data). Height 130px→190px — "generous
+   chart height matching the screenshot's proportions" per the exact spec. */
+.chart-canvas {
+    display: flex;
+    height: 190px;
+    flex: 1;
+}
+
+.chart-area {
+    position: relative;
+    flex: 1;
+}
+
+.chart-bars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+}
+
+.chart-bar-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.chart-bar-pair {
+    display: flex;
+    align-items: flex-end;
     justify-content: center;
-    color: #1f6392;
-    font-size: 1rem;
+    gap: 4px;
+    width: 100%;
+    height: calc(100% - 28px);
+}
+
+.chart-bar {
+    width: 14px;
+    border-radius: 4px 4px 0 0;
+}
+
+.chart-bar-gold {
+    background-color: var(--gold);
+}
+.chart-bar-green {
+    background-color: var(--green);
+}
+
+.chart-month-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--gray-muted);
+    margin-top: 8px;
+}
+
+/* RESTYLED: was a fixed max-height (this panel used to sit in its own
+   full-width row); now .recent-activities-panel is stretched by
+   .dashboard-grid to match .combined-tickets-panel's height, so this list
+   flexes to fill whatever that turns out to be instead of a hardcoded
+   number — still internally scrollable via overflow-y if it ever runs out
+   of room. */
+.activities-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* FIX (fit-one-screen pass): gap 16px→12px. */
+.activity-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
 }
 
 .activity-details {
     flex: 1;
+    min-width: 0;
 }
 
+/* RESTYLED: .activity-title now holds the bold ticket ID + status pill on one
+   line (was the whole flat sentence) — see Dashboard.js's renderActivities().
+   The full message moved to the new .activity-desc line below. */
 .activity-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 0.9rem;
     font-weight: 500;
     letter-spacing: -0.01em;
-    margin-bottom: 5px;
-    color: #2c5a7a;
+    margin-bottom: 4px;
+    color: #6B6B6B;
 }
 
 .activity-title strong {
     font-weight: 700;
-    color: #1c4c6e;
+    color: #111;
 }
 
+/* NEW: .activity-status-badge — heuristic status pill (see Dashboard.js comment
+   on renderActivities() for how/why this is a best-effort text-keyword guess,
+   not a guaranteed-accurate field). Reuses the same color tokens as the stat
+   badges/chart, not new colors. */
+.activity-status-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 2px 8px;
+    border-radius: 30px;
+}
+
+.activity-status-badge.activity-status-closed {
+    background: var(--green-tint);
+    color: var(--green);
+}
+
+.activity-status-badge.activity-status-ongoing {
+    background: var(--blue-tint);
+    color: var(--blue);
+}
+
+.activity-status-badge.activity-status-pending {
+    background: #F5EBD9;
+    color: var(--orange);
+}
+
+.activity-status-badge.activity-status-approved {
+    background: var(--green-tint);
+    color: var(--green);
+}
+
+/* NEW: .activity-desc — the activity message text, now on its own line below
+   the ID/status line (was combined into .activity-title as one sentence). */
+.activity-desc {
+    font-size: 0.82rem;
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--gray-muted);
+}
+
+/* FIX 3: color now var(--gray-muted) (was a one-off #95a5a6). NEW: no longer
+   nested inside .activity-details — now a direct flex sibling of it (see
+   .activity-item), right-aligned at the end of the row. */
 .activity-time {
     font-size: 0.7rem;
     font-weight: 500;
     letter-spacing: 0.2px;
-    color: #95a5a6;
+    color: var(--gray-muted);
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-top: 2px;
+}
+
+/* NEW: .activities-count-badge — small green "N events" pill next to the
+   "Recent Activities" heading, filled in by Dashboard.js (activities.length —
+   not a new data source, just a count of what's already rendered). */
+.activities-count-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 30px;
+    background: var(--green-tint);
+    color: var(--green);
+    margin-left: 6px;
+    vertical-align: middle;
 }
 
 /* Calendar */
+/* FIX (fit-one-screen pass): margin-bottom 24px→12px. */
 .calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .calendar-header h3 {
     font-size: 1.2rem;
     font-weight: 700;
     letter-spacing: -0.01em;
-    color: #1c4c6e;
+    color: #111;
 }
 
-.calendar-month {
-    text-align: center;
-    font-weight: 700;
-    font-size: 1rem;
-    letter-spacing: 0.3px;
-    margin-bottom: 16px;
-    color: #1c4c6e;
+/* 2026-07-17 mockup-fidelity pass: .calendar-header's h3 IS the month/year
+   label now (id="calendarMonth" moved onto it, "Calendar" static label
+   removed) with .calendar-nav as a plain two-chevron cluster on the right —
+   matches the reference's "July 2026 ‹›" layout exactly. Dashboard.js's
+   initCalendar() always renders the CURRENT month with no prev/next state,
+   so .calendar-nav-btn stays visual-only. */
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #b0b0b0;
+}
+
+.calendar-nav-btn {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.25s ease-in-out;
+}
+
+.calendar-nav-btn:hover {
+    color: #111;
 }
 
 .calendar-weekdays {
@@ -317,146 +783,154 @@
     grid-template-columns: repeat(7, 1fr);
     text-align: center;
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     letter-spacing: 0.3px;
-    margin-bottom: 10px;
-    color: #7f8c8d;
+    margin-bottom: 8px;
+    color: var(--gray-muted);
 }
 
+/* NOTE (FIX 8): gap intentionally stays at 4px rather than the 8px-scale used
+   elsewhere — this is a deliberate exception for the dense 7-column date grid,
+   where 8px gaps would make the calendar noticeably wider than the panel. */
 .calendar-dates {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
+    gap: 4px;
     text-align: center;
 }
 
+/* FIX (fit-one-screen pass): vertical padding 8px→5px, font-size 0.8rem→0.75rem
+   — more compact date cells, matching the tighter target reference, while
+   keeping the current-day gold highlight and muted overflow-day styling below
+   unchanged in behavior. */
 .calendar-dates span {
-    padding: 8px 0;
-    font-size: 0.85rem;
+    padding: 5px 0;
+    font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.2px;
     border-radius: 30px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
 }
 
 .calendar-dates span:hover:not(.prev-month):not(.next-month) {
-    background: #eef3fc;
+    background: var(--blue-tint);
+    color: var(--blue);
 }
 
+/* "Today" uses the gold brand accent — the strongest highlight on the page. */
 .calendar-dates span.today {
-    background: #1f6392;
-    color: white;
+    background: var(--gold);
+    color: #1A1A1A;
     font-weight: 700;
 }
 
+/* FIX 7 (calendar overflow dates): previously these only differed by color, and
+   still inherited pointer-cursor/hover-scale from the base rule, which read as a
+   rendering glitch rather than an intentional "outside this month" state. Now
+   clearly de-emphasized (smaller, lighter, no pointer cursor) and excluded from
+   hover feedback (:not(.prev-month):not(.next-month) above already skips the
+   background hover; the cursor fix below closes the remaining "looks clickable"
+   gap). */
 .calendar-dates .prev-month, .calendar-dates .next-month {
-    color: #bdc3c7;
+    color: var(--gray-light);
     font-weight: 400;
+    font-size: 0.72rem;
+    opacity: 0.7;
+    cursor: default;
 }
 
-/* Bottom Stats */
-.bottom-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    background: white;
-    padding: 20px;
-    border-radius: 28px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-}
+/* REMOVED: .bottom-stats / .stat-simple rules — the HTML block they styled
+   was consolidated into the single .stats-row (see Dashboard.html). */
 
-.stat-simple {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: #f8fbfe;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    letter-spacing: 0.2px;
-    color: #2c5a7a;
-}
-
-.stat-simple strong {
-    font-weight: 800;
-    font-size: 1rem;
-    letter-spacing: -0.01em;
-    color: #1f6392;
-}
-
-body.dark-mode .stats-row,
-body.dark-mode .dashboard-grid,
-body.dark-mode .two-column-grid,
-body.dark-mode .tickets-panel,
-body.dark-mode .recent-activities-panel,
-body.dark-mode .calendar-panel,
-body.dark-mode .bottom-stats,
-body.dark-mode .stat-simple,
-body.dark-mode .ticket-item,
-body.dark-mode .activity-item,
-body.dark-mode .calendar-body,
-body.dark-mode .calendar-header,
-body.dark-mode .panel-header,
+/* FIX (dark-mode phantom-card bug): only cards/panels that already carry a
+   background + shadow in light mode get one here — bare layout wrappers and
+   individual list rows must not gain their own floating-card shadow only in
+   dark mode. .ticket-item/.modal-ticket-item are deliberately excluded from
+   the border-color override below: their border-LEFT is the colored
+   priority accent (red/orange/yellow/green, set by the .priority-* classes),
+   and a blanket border-color here would flatten every priority color into
+   one gray line. */
 body.dark-mode .modal-ticket-item,
 body.dark-mode .modal-activity-item,
 body.dark-mode .modal-body {
-    background: #111827 !important;
-    border-color: #1f2937 !important;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.30) !important;
+    background: var(--dm-bg-card) !important;
 }
 
-body.dark-mode .tickets-panel,
+body.dark-mode .combined-tickets-panel,
 body.dark-mode .recent-activities-panel,
 body.dark-mode .calendar-panel,
-body.dark-mode .bottom-stats,
+body.dark-mode .chart-panel,
 body.dark-mode .stat-card {
-    background: #111827 !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.30) !important;
+    background: #17171a !important;
+    border: 1px solid #232326 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3) !important;
 }
 
+/* FIX (Sidebar.css leak): Sidebar.css (shared by every admin page) has its
+   OWN generic body.dark-mode .panel-header rule that gives it a full 1px
+   border on all four sides plus its own background + drop-shadow — meant for
+   pages without page-specific CSS. Dashbaord.css loads after Sidebar.css, so
+   this fully overrides all of it (not just border-bottom, which used to be
+   the only property touched here, leaving the other three sides + the
+   background/shadow to leak through as a stray line/box around the header).
+   border-bottom width still matches the light-mode 2px below so nothing
+   shifts when toggling; it's just transparent instead of visible. */
 body.dark-mode .panel-header {
-    border-bottom: 1px solid #1f2937 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 2px solid transparent !important;
 }
 
 body.dark-mode .ticket-item {
-    background: #111827 !important;
+    background: #1d1d21 !important;
 }
 
 body.dark-mode .ticket-item:hover {
-    background: #1f2937 !important;
+    background: #242428 !important;
 }
 
-body.dark-mode .priority-badge.high { background: rgba(230, 126, 34, 0.12); color: #f6ad55 !important; }
+body.dark-mode .priority-badge.high { background: rgba(214, 51, 108, 0.14); color: #f472b6 !important; }
 body.dark-mode .priority-badge.medium { background: rgba(241, 196, 15, 0.12); color: #f1c40f !important; }
 body.dark-mode .priority-badge.critical { background: rgba(231, 76, 60, 0.12); color: #f87171 !important; }
 body.dark-mode .priority-badge.low { background: rgba(46, 204, 113, 0.12); color: #34d399 !important; }
 
 body.dark-mode .calendar-dates span {
-    background: #0f172a !important;
+    background: #1d1d21 !important;
     color: #e2e8f0 !important;
 }
 
 body.dark-mode .calendar-dates span:hover:not(.prev-month):not(.next-month) {
-    background: #17263b !important;
+    background: rgba(47, 127, 196, 0.22) !important;
+    color: #7bb6e8 !important;
 }
 
+/* "Today" highlight: same gold primary-accent in dark mode as light mode. */
 body.dark-mode .calendar-dates span.today {
-    background: #2563eb !important;
-    color: #ffffff !important;
+    background: var(--gold) !important;
+    color: #1A1A1A !important;
 }
 
-body.dark-mode .activity-icon,
+/* FIX 7: without this, the generic ".calendar-dates span" dark-mode rule above
+   (color:#e2e8f0) would override the muted light-mode treatment and make
+   overflow dates full-brightness again in dark mode. Higher specificity here
+   keeps them visibly de-emphasized in both themes. */
+body.dark-mode .calendar-dates .prev-month,
+body.dark-mode .calendar-dates .next-month {
+    color: #3a3a3e !important;
+    opacity: 0.7;
+}
+
 body.dark-mode .modal-activity-icon {
-    background: #1f2937 !important;
-    color: #f8fafc !important;
+    background: var(--dm-border) !important;
+    color: var(--dm-text-primary) !important;
 }
 
 body.dark-mode .calendar-header h3,
 body.dark-mode .panel-header h3,
-body.dark-mode .calendar-month,
 body.dark-mode .calendar-weekdays,
 body.dark-mode .stat-title,
 body.dark-mode .stat-number,
@@ -470,55 +944,262 @@ body.dark-mode .view-all,
 body.dark-mode .modal-ticket-id,
 body.dark-mode .modal-ticket-desc,
 body.dark-mode .modal-ticket-meta,
-body.dark-mode .stat-simple,
-body.dark-mode .stat-simple strong {
-    color: #f8fafc !important;
+body.dark-mode .dashboard-modal .modal-header h3,
+body.dark-mode .modal-activity-title {
+    color: #f2f2f3 !important;
 }
 
-body.dark-mode .ticket-item {
-    background: #141b2e !important;
+/* FIX (dark-mode modal bug, severe): the "View All" modal (.dashboard-modal,
+   defined in Dashboard.html's inline <style> and built at runtime by
+   createModal() in Dashboard.html's inline <script>) had NO dark-mode
+   coverage for its own frame or header bar at all — only its .modal-body
+   content area was covered (via the card-list rule above). That meant in
+   dark mode the modal rendered as a white card with a white header bar
+   containing navy-on-white title text (~1.95:1 contrast, a WCAG failure)
+   sitting directly above a dark .modal-body — a jarring half-white/half-dark
+   modal. Added full coverage here, reusing the same dark tokens as every
+   other card/panel on the page. */
+body.dark-mode .dashboard-modal {
+    background: var(--dm-bg-card) !important;
+    border: 1px solid var(--dm-border);
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3) !important;
 }
 
-body.dark-mode .ticket-item:hover {
-    background: #1d2742 !important;
+body.dark-mode .dashboard-modal .modal-header {
+    background: var(--dm-bg-card) !important;
+    border-bottom: 1px solid var(--dm-border) !important;
 }
 
-body.dark-mode .stat-simple {
-    background: #141b2e !important;
-    border: 1px solid rgba(255,255,255,0.10) !important;
+/* .top-bar/.page-title h1/.theme-toggle-wrapper/.notification-icon dark-mode
+   duplicates removed (2026-07-17 restyle) — Sidebar.css already covers all
+   four with its own body.dark-mode rules; this file's copies had drifted to
+   different alpha/shadow values (the same bug documented for the light-mode
+   versions above). */
+
+/* .topbar-search / .user-avatar dark-mode coverage moved to Sidebar.css
+   alongside their canonical light-mode rules. */
+/* 2026-07-18: flipped from solid black to the brand gold — on an already
+   near-black page, a black "highlight" card is nearly invisible (see
+   csma_dashboard_dark.html's .stat.dark, the one card meant to pop). Title/
+   number recolored to dark ink so they stay legible on the gold fill,
+   mirroring the reference's .stat.dark .label/.value exactly. */
+body.dark-mode .stat-card.dark {
+    background: #facc15 !important;
 }
 
-body.dark-mode .tickets-panel,
-body.dark-mode .recent-activities-panel,
-body.dark-mode .calendar-panel,
-body.dark-mode .bottom-stats,
-body.dark-mode .stat-card {
-    background: rgba(15, 23, 42, 0.95) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22) !important;
+body.dark-mode .stat-card.dark .stat-title {
+    color: #6b5900 !important;
 }
 
-body.dark-mode .panel-header {
-    border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+body.dark-mode .stat-card.dark .stat-number {
+    color: #111111 !important;
 }
 
-body.dark-mode .top-bar {
-    background: rgba(15, 23, 42, 0.96) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32) !important;
+/* NEW: dark-mode coverage for the page subtitle, calendar nav arrows, ticket
+   table header row, and the aging-tickets meta pill. */
+body.dark-mode .page-subtitle {
+    color: #7a7a80 !important;
 }
 
-body.dark-mode .page-title h1 {
-    color: #f8fafc !important;
+body.dark-mode .calendar-nav-btn {
+    color: #5c5c62 !important;
 }
 
-body.dark-mode .theme-toggle-wrapper,
-body.dark-mode .notification-icon {
-    color: #f8fafc !important;
+body.dark-mode .calendar-nav-btn:hover {
+    color: #f2f2f3 !important;
 }
 
-body.dark-mode .bottom-stats {
-    box-shadow: 0 4px 24px rgba(0,0,0,0.35) !important;
+/* 2026-07-18: green fill, matching the reference's .badge.green ("Open"
+   status pill) — was a neutral gray chip that gave every open ticket the
+   same flat, non-committal color regardless of theme. */
+body.dark-mode .status-badge.status-open {
+    background: #14321f !important;
+    color: #4ade80 !important;
+}
+
+body.dark-mode .ticket-feed .ticket-item::before {
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.25);
+}
+
+body.dark-mode .ticket-feed .ticket-item.ticket-row-new::before {
+    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.25);
+}
+
+/* FIX (token consolidation): was #8aa5bf, a near-duplicate of the shared
+   secondary-text token (both ~6.9:1 on this background) — consolidated so
+   there's one muted-text color instead of two barely-different shades. */
+body.dark-mode .ticket-feed .ticket-item:not(.ticket-row-new) .ticket-id,
+body.dark-mode .ticket-feed .ticket-item.ticket-row-new .ticket-requester {
+    color: var(--dm-text-secondary) !important;
+}
+
+body.dark-mode .ticket-feed .ticket-item:not(.ticket-row-new) .ticket-meta {
+    color: #f87171 !important;
+}
+
+/* FIX 4 (empty states): dark-mode coverage for the new icon + layout. */
+body.dark-mode .empty-modal-message {
+    color: #7a7a80 !important;
+}
+
+body.dark-mode .empty-modal-message::before {
+    color: #3a3a3e !important;
+}
+
+/* NEW: dark-mode coverage for the Service Requests chart panel. */
+body.dark-mode .chart-panel-header h3 {
+    color: #f2f2f3 !important;
+}
+
+body.dark-mode .chart-subtitle,
+body.dark-mode .legend-item,
+body.dark-mode .chart-month-label {
+    color: #7a7a80 !important;
+}
+
+/* NEW: dark-mode coverage for the restyled Recent Activities row (status
+   pills, description line, event-count badge). */
+body.dark-mode .activity-desc {
+    color: #7a7a80 !important;
+}
+
+body.dark-mode .activity-status-badge.activity-status-closed {
+    background: rgba(39, 174, 96, 0.16) !important;
+    color: #4ade80 !important;
+}
+
+/* 2026-07-18: blue fill, matching the reference's .badge.blue ("Ongoing"
+   status pill, e.g. "#SR-0008 Ongoing") — was the same neutral gray chip
+   .status-open used, so Open/Ongoing were indistinguishable in dark mode. */
+body.dark-mode .activity-status-badge.activity-status-ongoing {
+    background: #1e3a5f !important;
+    color: #60a5fa !important;
+}
+
+body.dark-mode .activity-status-badge.activity-status-pending {
+    background: rgba(230, 126, 34, 0.16) !important;
+    color: #f6ad55 !important;
+}
+
+body.dark-mode .activity-status-badge.activity-status-approved {
+    background: rgba(39, 174, 96, 0.16) !important;
+    color: #4ade80 !important;
+}
+
+body.dark-mode .activities-count-badge {
+    background: rgba(39, 174, 96, 0.16) !important;
+    color: #4ade80 !important;
+}
+
+/* NEW: theme the browser's OUTER/page-level scrollbar (the one at the far
+   right edge of the browser window, shown when the page is taller than the
+   viewport) plus the two internal panels that already scroll via
+   overflow-y:auto (.ticket-list — shared by New Open Tickets + Aging
+   Tickets — and .activities-list — Recent Activities). Purely cosmetic: no
+   overflow, height, max-height, layout, or JS scroll logic is touched
+   anywhere in this file.
+   RESTYLED (per Facebook reference screenshot): thumb switched from the
+   visible navy tint to a neutral, barely-there gray pill — thinner (6px),
+   fully transparent track (no visible groove at all), and a soft
+   light-gray thumb that only slightly darkens on hover, matching the
+   minimal "almost invisible until you need it" scrollbar style shown in
+   the reference instead of a more visibly-colored one. */
+
+/* Firefox — html covers the page scrollbar; the two panels get their own. */
+html,
+.ticket-list,
+.activities-list {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent !important;
+}
+
+/* Webkit (Chrome/Edge/Safari) — outer page scrollbar. Scoped to html/body
+   specifically: a bare ::-webkit-scrollbar selector is not reliably applied
+   to the root/viewport scrollbar in Chromium browsers. */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18) !important;
+    border-radius: 999px !important;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32) !important;
+}
+
+/* Webkit — internal scroll panels (Recent Activities / New Open Tickets /
+   Aging Tickets), track fully transparent so it blends into the white card
+   background with no visible groove, same as the outer scrollbar above. */
+.ticket-list::-webkit-scrollbar,
+.activities-list::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.ticket-list::-webkit-scrollbar-track,
+.activities-list::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.ticket-list::-webkit-scrollbar-thumb,
+.activities-list::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18) !important;
+    border-radius: 999px !important;
+}
+
+.ticket-list::-webkit-scrollbar-thumb:hover,
+.activities-list::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32) !important;
+}
+
+/* NEW: dark-mode scrollbar colors — extends the existing body.dark-mode
+   overrides above (same override pattern/!important usage) instead of
+   starting a separate dark-mode section. Same neutral, barely-there
+   treatment, but light-toned so it's visible against the dark-navy
+   card/page background instead of black-tinted. */
+body.dark-mode,
+body.dark-mode .ticket-list,
+body.dark-mode .activities-list {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent !important;
+}
+
+body.dark-mode::-webkit-scrollbar-track,
+body.dark-mode ::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+body.dark-mode::-webkit-scrollbar-thumb,
+body.dark-mode ::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+body.dark-mode::-webkit-scrollbar-thumb:hover,
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32) !important;
+}
+
+body.dark-mode .ticket-list::-webkit-scrollbar-track,
+body.dark-mode .activities-list::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+body.dark-mode .ticket-list::-webkit-scrollbar-thumb,
+body.dark-mode .activities-list::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+body.dark-mode .ticket-list::-webkit-scrollbar-thumb:hover,
+body.dark-mode .activities-list::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32) !important;
 }
 
 /* Responsive */
@@ -526,14 +1207,63 @@ body.dark-mode .bottom-stats {
     .dashboard-grid, .two-column-grid {
         grid-template-columns: 1fr;
     }
+
+    /* NEW: 3-per-row stat cards on tablet (was auto-fit, which could show 4+ on
+       wider tablets) — matches "2–3 per row on tablet" from the redesign brief. */
+    .stats-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* NEW: collapse the top-bar search below the sidebar's own hamburger breakpoint
+   (900px) so the title/search/avatar row doesn't overflow next to the menu
+   toggle. Existing rules above/below are untouched. */
+@media (max-width: 900px) {
+    .topbar-search {
+        display: none;
+    }
 }
 
 @media (max-width: 640px) {
+    /* RESTYLED: 2-per-row (was a straight jump to 1fr) — 1-per-row now happens at
+       the narrower 480px breakpoint below, matching the redesign brief. */
     .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .top-bar {
+        flex-wrap: wrap;
+        row-gap: 12px;
+    }
+
+    /* No separate mobile .user-avatar size — the current 36px desktop size
+       already reads fine at this breakpoint. */
+
+    /* NEW: the merged tickets feed's badge/meta column drops to its own row
+       below the title/id instead of sitting beside them, so it doesn't get
+       squeezed on narrow screens. */
+    .ticket-feed .ticket-item {
         grid-template-columns: 1fr;
     }
-    
-    .bottom-stats {
-        grid-template-columns: repeat(2, 1fr);
+
+    .ticket-feed .ticket-item:not(.ticket-row-new) .ticket-meta {
+        grid-column: 1;
+        grid-row: 3;
+        justify-self: start;
+        margin-top: 2px;
+    }
+
+    .ticket-feed .ticket-item.ticket-row-new .status-badge {
+        grid-column: 1;
+        grid-row: 3;
+        justify-self: start;
+        margin-top: 2px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* NEW: 1-per-row stat cards on mobile, per the redesign brief. */
+    .stats-row {
+        grid-template-columns: 1fr;
     }
 }

@@ -4,60 +4,131 @@
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Inter', sans-serif;
-    background: #f5f9fe;
-    color: #1e2f3e;
+/* 2026-07-17 CSMA gold restyle: navy/gold accent repointed to the school
+   logo's gold (#FDC913), matching Dashbaord.css's palette exactly (each
+   per-page stylesheet duplicates this block independently — no shared import
+   exists between them). Names kept as-is (many rules below reference them via
+   var()) — only their values changed, so the cascade updates everywhere
+   automatically. --gold is the bright fill color (buttons/badges, paired with
+   ink text); --gold-dark is the AA-safe darker accent for gold used as
+   text/icon/border/focus color on a light surface. Semantic green/blue/purple/
+   orange restored to their original (non-monochrome) values. */
+:root {
+    --navy-deep: #1A1A1A;
+    --navy-mid: #1A1A1A;
+    --navy-primary: #8A6D00;
+    --navy-tint: #FFF3D1;
+    --gold: #FDC913;
+    --gold-dark: #8A6D00;
+    --gold-tint: #FFF3D1;
+    --gray-muted: #585858;
+    --gray-light: #A0A0A0;
+    --blue-tint: #e3f0fd;
+    --blue: #2f7fc4;
+    --purple-tint: #efe7fb;
+    --purple: #8b5fbf;
+    --green-tint: #e3f9ec;
+    --green: #27ae60;
+    --orange: #e67e22;
+
+    /* 2026-07-18 dark-mode reskin: neutral warm-black palette matching the
+       supplied csma_dashboard_dark.html reference (kept in sync with
+       Sidebar.css/Dashbaord.css/ServiceRequest.css's copies). */
+    --dm-bg-card: #17171a;
+    --dm-bg-card-alt: #1d1d21;
+    --dm-bg-inset: #1d1d21;
+    --dm-border: #232326;
+    --dm-text-primary: #f2f2f3;
+    --dm-text-secondary: #7a7a80;
+    --dm-accent-navy: #FFD84D;
 }
+
+/* body font-family/background/color now live only in Sidebar.css (single
+   source of truth) — this page's copy had drifted to plain white instead of
+   the shared cream. */
 
 .dashboard-wrapper {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
 }
 
+/* .main-content no longer scrolls itself — it's a fixed-height flex column
+   (top-bar + .cost-scroll-area below). A full-viewport div with its own
+   overflow gets promoted to Chrome's "implicit root scroller" and renders the
+   native OS scrollbar, ignoring custom scrollbar-width/color/::-webkit-
+   scrollbar styling. Moving the overflow onto the nested .cost-scroll-area
+   (see CostAnalysis.html) sidesteps that, same fix applied to Inventory/
+   Dashboard. */
 .main-content {
     flex: 1;
     padding: 24px 32px;
-    overflow-x: auto;
-}
-
-/* Top Bar */
-.top-bar {
+    height: 100%;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-    background: white;
-    padding: 16px 24px;
-    border-radius: 28px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    flex-direction: column;
+    overflow: hidden;
 }
 
-.menu-toggle {
-    cursor: pointer;
-    font-size: 1.4rem;
-    color: #1f6392;
-    display: none;
+.cost-scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: auto;
+    scrollbar-gutter: stable;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
 }
 
-.page-title h1 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #1c4c6e;
+.cost-scroll-area::-webkit-scrollbar {
+    width: 6px;
 }
+
+.cost-scroll-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.cost-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+}
+
+.cost-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+body.dark-mode .cost-scroll-area {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode .cost-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode .cost-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+}
+
+/* Top Bar — .top-bar/.menu-toggle/.page-title h1 sizing now lives solely in
+   Sidebar.css (shared canonical values across every admin page); this page
+   no longer re-declares them to avoid the per-page drift that used to make
+   the header resize when navigating between modules. */
+
+/* .topbar-search / .user-avatar — DELETED. These belong solely to
+   Sidebar.css (shared canonical header, loads before this page); this file
+   used to duplicate them, which is the exact per-page drift pattern being
+   removed this session. Same fix as .top-bar/.page-title above. */
 
 .user-profile {
     display: flex;
     align-items: center;
     gap: 16px;
-    background: #f0f4f9;
+    background: #F5F5F5;
     padding: 8px 20px;
     border-radius: 40px;
     cursor: pointer;
     font-weight: 500;
     font-size: 0.9rem;
-    color: #1c4c6e;
+    color: var(--navy-mid);
 }
 
 /* Summary Cards Row */
@@ -65,9 +136,12 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 20px;
-    margin-bottom: 28px;
+    margin-bottom: 20px;
 }
 
+/* RESTYLED (adapt Dashboard's stat-card language): border color/radius and
+   hover-lift now match .stat-card exactly, so these hero cards feel like the
+   same component family instead of an older, unrelated card style. */
 .summary-card {
     background: white;
     border-radius: 24px;
@@ -75,57 +149,45 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid #eef3f8;
+    box-shadow: none;
+    transition: all 0.25s ease-in-out;
+    border: 1px solid #E5E5E5;
 }
 
 .summary-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
 }
 
 .card-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 28px;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+    flex-shrink: 0;
 }
 
-.card-icon.repair {
-    background: #ffe0cc;
-    color: #e67e22;
-}
-
-.card-icon.replacement {
-    background: #cce5ff;
-    color: #0066cc;
-}
-
-.card-icon.maintenance {
-    background: #d5f5e3;
-    color: #27ae60;
-}
-
-.card-icon.consumable {
-    background: #f3e5f5;
-    color: #9b59b6;
-}
+.card-icon.repair { background: var(--gold-tint); color: var(--gold-dark); }
+.card-icon.replacement { background: var(--blue-tint); color: var(--blue); }
+.card-icon.maintenance { background: var(--green-tint); color: var(--green); }
+.card-icon.consumable { background: var(--purple-tint); color: var(--purple); }
 
 .card-details {
     flex: 1;
+    min-width: 0;
 }
 
+/* RESTYLED: uppercase/letter-spacing removed to match Dashboard's .stat-title
+   treatment (plain Title Case label, no shouty caps) — text content in
+   CostAnalysis.html is unchanged, this is purely a text-transform change. */
 .card-label {
     display: block;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #7f8c8d;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--gray-muted);
     margin-bottom: 6px;
 }
 
@@ -133,7 +195,7 @@ body {
     display: block;
     font-size: 1.6rem;
     font-weight: 800;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     letter-spacing: -0.02em;
     margin-bottom: 4px;
 }
@@ -144,15 +206,15 @@ body {
 }
 
 .card-trend.positive {
-    color: #27ae60;
+    color: var(--green);
 }
 
 .card-trend.negative {
-    color: #c62828;
+    color: #B0362A;
 }
 
 .card-trend.neutral {
-    color: #95a5a6;
+    color: var(--gray-muted);
 }
 
 /* Charts Row */
@@ -160,40 +222,46 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
 }
 
 .chart-container {
     background: white;
     border-radius: 28px;
     padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    border: 1px solid #eef3f8;
+    box-shadow: none;
+    border: 1px solid #E5E5E5;
 }
 
 .chart-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #eef3f8;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #E5E5E5;
     flex-wrap: wrap;
     gap: 8px;
 }
 
 .chart-header h3 {
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
+    letter-spacing: -0.01em;
     display: flex;
     align-items: center;
-    gap: 8px;
+}
+
+.chart-header h3 i {
+    margin-right: 8px;
+    font-size: 1rem;
+    color: var(--navy-primary);
 }
 
 .chart-subtitle {
-    font-size: 0.7rem;
-    color: #95a5a6;
+    font-size: 0.78rem;
+    color: var(--gray-muted);
     font-weight: 500;
 }
 
@@ -209,28 +277,34 @@ body {
     background: white;
     border-radius: 28px;
     padding: 24px;
-    margin-bottom: 28px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    border: 1px solid #eef3f8;
+    margin-bottom: 20px;
+    box-shadow: none;
+    border: 1px solid #E5E5E5;
 }
 
 .section-title {
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #eef3f8;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #E5E5E5;
 }
 
 .section-title h2 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     display: flex;
     align-items: center;
-    gap: 10px;
+    letter-spacing: -0.01em;
+}
+
+.section-title h2 i {
+    margin-right: 10px;
+    font-size: 1rem;
+    color: var(--navy-primary);
 }
 
 .department-chart-wrapper {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
     min-height: 350px;
 }
 
@@ -239,9 +313,9 @@ body {
     background: white;
     border-radius: 28px;
     padding: 24px;
-    margin-bottom: 28px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    border: 1px solid #eef3f8;
+    margin-bottom: 20px;
+    box-shadow: none;
+    border: 1px solid #E5E5E5;
 }
 
 /* Data Tables */
@@ -258,28 +332,39 @@ body {
 .data-table th {
     text-align: left;
     padding: 14px 12px;
-    background: #f8fbfe;
+    background: #F5F5F5;
     font-weight: 700;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #1c4c6e;
-    border-bottom: 2px solid #eef3f8;
+    color: var(--navy-mid);
+    border-bottom: 2px solid #E5E5E5;
 }
 
 .data-table td {
     padding: 12px 12px;
-    border-bottom: 1px solid #eef3f8;
-    color: #2c5a7a;
+    border-bottom: 1px solid #E5E5E5;
+    color: #1A1A1A;
     font-weight: 500;
+}
+
+/* NEW: row hover feedback, matching the hover affordance used throughout the
+   rest of the app (ticket rows, nav items, notification rows) — these tables
+   had no interactive feedback at all before. */
+.data-table tbody tr {
+    transition: all 0.25s ease-in-out;
+}
+
+.data-table tbody tr:hover {
+    background: #F5F5F5;
 }
 
 .data-table tfoot td,
 .data-table tfoot th {
-    background: #f0f7fc;
+    background: #F5F5F5;
     font-weight: 800;
-    color: #1c4c6e;
-    border-top: 2px solid #eef3f8;
+    color: var(--navy-mid);
+    border-top: 2px solid #E5E5E5;
     border-bottom: none;
 }
 
@@ -288,16 +373,27 @@ body {
 }
 
 /* Dark Mode Support (inherits from Sidebar.css) */
+/* FIX (header dedup): .top-bar removed from this selector group — its dark-
+   mode styling lives solely in Sidebar.css's shared body.dark-mode rule.
+   Redeclaring it here (as this file used to) is the exact per-page drift
+   pattern that previously caused the header to render inconsistently between
+   modules; every other admin page already leaves .top-bar's dark mode to
+   Sidebar.css alone. */
 body.dark-mode .summary-card,
 body.dark-mode .chart-container,
 body.dark-mode .department-section,
-body.dark-mode .category-section,
-body.dark-mode .top-bar {
-    background: #111827 !important;
-    border-color: #1f2937 !important;
+body.dark-mode .category-section {
+    background: #17171a !important;
+    border: 1px solid #232326 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3) !important;
 }
 
-body.dark-mode .summary-card,
+body.dark-mode .summary-card:hover {
+    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dark-mode coverage for .topbar-search / .user-avatar — DELETED, lives
+   solely in Sidebar.css alongside their canonical light-mode rules. */
 body.dark-mode .card-label,
 body.dark-mode .card-value,
 body.dark-mode .card-trend,
@@ -308,28 +404,54 @@ body.dark-mode .data-table th,
 body.dark-mode .data-table td,
 body.dark-mode .data-table tfoot td,
 body.dark-mode .data-table tfoot th {
-    color: #f8fafc !important;
+    color: var(--dm-text-primary) !important;
+}
+
+body.dark-mode .card-icon.repair { background: var(--dm-bg-inset) !important; color: var(--dm-accent-navy) !important; }
+body.dark-mode .card-icon.replacement { background: var(--dm-bg-inset) !important; color: #7db6de !important; }
+body.dark-mode .card-icon.maintenance { background: var(--dm-bg-inset) !important; color: #6fcf97 !important; }
+body.dark-mode .card-icon.consumable { background: var(--dm-bg-inset) !important; color: #c4a6e8 !important; }
+
+body.dark-mode .card-trend.positive {
+    color: #4ade80 !important;
+}
+
+body.dark-mode .card-trend.negative {
+    color: #f87171 !important;
+}
+
+body.dark-mode .card-trend.neutral {
+    color: var(--dm-text-secondary) !important;
+}
+
+body.dark-mode .chart-header h3 i,
+body.dark-mode .section-title h2 i {
+    color: var(--dm-accent-navy) !important;
 }
 
 body.dark-mode .data-table th {
-    background: #1f2937 !important;
+    background: var(--dm-bg-inset) !important;
 }
 
 body.dark-mode .data-table td {
-    border-color: #2a3040 !important;
+    border-color: var(--dm-border) !important;
+}
+
+body.dark-mode .data-table tbody tr:hover {
+    background: var(--dm-bg-inset) !important;
 }
 
 body.dark-mode .data-table tfoot td,
 body.dark-mode .data-table tfoot th {
-    background: #1a1f2e !important;
+    background: var(--dm-bg-card-alt) !important;
 }
 
 body.dark-mode .chart-header {
-    border-bottom-color: #1f2937 !important;
+    border-bottom-color: var(--dm-border) !important;
 }
 
 body.dark-mode .section-title {
-    border-bottom-color: #1f2937 !important;
+    border-bottom-color: var(--dm-border) !important;
 }
 
 /* Responsive */

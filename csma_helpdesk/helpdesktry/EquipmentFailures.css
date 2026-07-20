@@ -4,61 +4,96 @@
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Inter', sans-serif;
-    background: #f5f9fe;
-    color: #1e2f3e;
-}
+/* body font-family/background/color now live only in Sidebar.css (single
+   source of truth) — this page's copy matched it exactly anyway, just kept
+   drifting independently. */
 
 .dashboard-wrapper {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
 }
 
+/* .main-content no longer scrolls itself — it's a fixed-height flex column
+   (top-bar + .equip-scroll-area below). A full-viewport div with its own
+   overflow gets promoted to Chrome's "implicit root scroller" and renders the
+   native OS scrollbar, ignoring custom scrollbar styling. Moving the overflow
+   onto the nested .equip-scroll-area (see EquipmentFailures.html) sidesteps
+   that, same fix applied across the other admin pages. */
 .main-content {
     flex: 1;
     padding: 24px 32px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.equip-scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     overflow-x: auto;
+    scrollbar-gutter: stable;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
 }
 
-/* Top Bar - consistent with dashboard */
-.top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    background: white;
-    padding: 16px 24px;
-    border-radius: 28px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+.equip-scroll-area::-webkit-scrollbar {
+    width: 6px;
 }
 
-.menu-toggle {
-    cursor: pointer;
-    font-size: 1.4rem;
-    color: #1f6392;
-    display: none;
+.equip-scroll-area::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-.page-title h1 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #1c4c6e;
+.equip-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
 }
 
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: #f0f4f9;
-    padding: 8px 20px;
-    border-radius: 40px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: #1c4c6e;
+.equip-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
 }
+
+body.dark-mode .equip-scroll-area {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode .equip-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode .equip-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+}
+
+/* Top Bar — .top-bar/.menu-toggle/.page-title h1 sizing now lives solely in
+   Sidebar.css (shared canonical values across every admin page); this page
+   no longer re-declares them to avoid the per-page drift that used to make
+   the header resize when navigating between modules. */
+
+/* Active sidebar nav-item highlight standardized: this page used to mirror
+   Dashboard's gold override so the two matched each other, but every other
+   admin page (Inventory, UserManagement, CostAnalysis, BudgetPlanning,
+   Reports) kept Sidebar.css's shared blue pill — so the highlight still
+   showed two different colors depending which module you were on. Override
+   removed so Sidebar.css's single definition applies everywhere. */
+
+/* .topbar-search / .user-avatar duplicates removed (2026-07-17 restyle) —
+   per the established dedup rule, header styling lives ONLY in Sidebar.css
+   (loads before this file) and already ships the current black/neutral
+   values. The responsive collapse below is page-layout only (Sidebar.css
+   doesn't define this breakpoint), so it stays. */
+@media (max-width: 900px) {
+    .topbar-search {
+        display: none;
+    }
+}
+
+/* .user-profile removed — dead/unused selector (duplicated Sidebar.css's
+   shared .user-profile name but no element on this page uses the class);
+   leftover from an earlier header layout. */
 
 /* SUMMARY CARDS - MOVED TO TOP */
 .summary-cards {
@@ -70,31 +105,41 @@ body {
 
 .metric-card {
     background: white;
-    border-radius: 24px;
-    padding: 20px 24px;
+    border-radius: 20px;
+    padding: 16px 18px;
     display: flex;
     align-items: center;
-    gap: 18px;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    border: 1px solid #eef3f8;
+    gap: 14px;
+    box-shadow: none;
+    border: 1px solid #E8E6E0;
+    transition: transform 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
 }
 
 .metric-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
 }
 
 .metric-icon {
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, #eef3fc 0%, #e6f0f8 100%);
-    border-radius: 28px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.6rem;
-    color: #1f6392;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+/* All three stat variants collapse to one monochrome treatment (danger/
+   amber/blue tints removed) — none of these three stats reads as a single
+   standout "primary" figure, so the .stat-icon-dark solid-black exception
+   from the tokens doc wasn't applied to any one of them. */
+.metric-icon.metric-icon-danger,
+.metric-icon.metric-icon-amber,
+.metric-icon.metric-icon-blue {
+    background: #F1F0EC;
+    color: #111111;
 }
 
 .metric-info {
@@ -102,25 +147,23 @@ body {
 }
 
 .metric-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #7f8c8d;
-    margin-bottom: 6px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: #6B6B6B;
+    margin-bottom: 1px;
 }
 
 .metric-value {
     font-size: 2rem;
     font-weight: 800;
-    color: #1c4c6e;
+    color: #111111;
     line-height: 1.2;
     letter-spacing: -0.02em;
 }
 
 .metric-sub {
     font-size: 0.7rem;
-    color: #95a5a6;
+    color: #9C9A94;
     margin-top: 4px;
 }
 
@@ -130,37 +173,49 @@ body {
     border-radius: 28px;
     padding: 24px;
     margin-bottom: 0;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    box-shadow: none;
+    border: 1px solid #E8E6E0;
 }
 
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #E8E6E0;
     flex-wrap: wrap;
     gap: 16px;
 }
 
 .section-header h2 {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    color: #1c4c6e;
+    letter-spacing: -0.01em;
+    color: #111111;
     display: flex;
     align-items: center;
-    gap: 10px;
 }
 
+.section-header h2 i {
+    margin-right: 8px;
+    font-size: 1rem;
+    color: #111111;
+}
+
+/* Unused on this page today (the "Report Failure" button was removed per
+   the HTML comment above .section-header — records now come from Service
+   Request tickets), but restyled anyway in case it's reused later. */
 .btn-primary-custom {
-    background: #1f6392;
+    background: #111111;
     border: none;
-    border-radius: 40px;
+    border-radius: 999px;
     padding: 10px 24px;
     font-weight: 700;
     font-size: 0.85rem;
     color: white;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -168,8 +223,8 @@ body {
 }
 
 .btn-primary-custom:hover {
-    background: #0d4b70;
-    transform: translateY(-1px);
+    background: #2a2a2a;
+    transform: translateY(-2px);
 }
 
 /* Filter Bar */
@@ -180,33 +235,50 @@ body {
     gap: 16px;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid #eef3f8;
+    border-bottom: 1px solid #E8E6E0;
 }
 
 .search-wrapper {
-    display: flex;
+    /* Hidden per request — kept in the DOM (not deleted) since
+       EquipmentFailures.js's loadFailures()/resetFilters() read
+       searchInput.value directly without a null-check. */
+    display: none;
     align-items: center;
     gap: 10px;
-    background: #f8fbfe;
-    border-radius: 40px;
-    padding: 8px 18px;
-    border: 1px solid #e2edf2;
+    background: #F7F5F0;
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
+    border: 1.5px solid #E8E6E0;
     flex: 1;
     min-width: 220px;
+    transition: all 0.25s ease-in-out;
+}
+
+.search-wrapper:focus-within {
+    border-color: #111111;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
 }
 
 .search-wrapper i {
-    color: #95a5a6;
+    color: #9C9A94;
+    font-size: 0.8rem;
 }
 
 .search-input {
     border: none;
     background: transparent;
-    padding: 8px 0;
-    font-size: 0.9rem;
+    padding: 0;
+    font-size: 0.82rem;
+    font-weight: 500;
     font-family: 'Inter', sans-serif;
     width: 100%;
-    color: #1e2f3e;
+    color: #111111;
+}
+
+.search-input::placeholder {
+    color: #9C9A94;
+    font-weight: 400;
 }
 
 .search-input:focus {
@@ -220,43 +292,46 @@ body {
     align-items: center;
 }
 
-.filter-select {
-    background: #f8fbfe;
-    border: 1px solid #e2edf2;
-    border-radius: 40px;
-    padding: 8px 18px;
+.filter-select,
+.date-input {
+    background: #F7F5F0;
+    border: 1.5px solid #E8E6E0;
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
     font-family: 'Inter', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 500;
-    color: #1c4c6e;
+    color: #111111;
+    transition: all 0.25s ease-in-out;
+}
+
+.filter-select {
     cursor: pointer;
 }
 
-.date-input {
-    background: #f8fbfe;
-    border: 1px solid #e2edf2;
-    border-radius: 40px;
-    padding: 8px 14px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.8rem;
-    color: #1c4c6e;
+.filter-select:focus,
+.date-input:focus {
+    outline: none;
+    border-color: #111111;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
 }
 
 .btn-reset-filters {
-    background: #eef3fc;
-    border: none;
-    border-radius: 40px;
-    padding: 8px 20px;
+    background: #ffffff;
+    border: 1.5px solid #111111;
+    border-radius: 999px;
+    padding: 0.5rem 1.2rem;
     font-weight: 600;
-    font-size: 0.75rem;
-    color: #1f6392;
+    font-size: 0.8rem;
+    color: #111111;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.25s ease-in-out;
     font-family: 'Inter', sans-serif;
 }
 
 .btn-reset-filters:hover {
-    background: #e2eaf3;
+    background: #F1F0EC;
 }
 
 /* Failures Table */
@@ -273,26 +348,34 @@ body {
 .failures-table th {
     text-align: left;
     padding: 16px 12px;
-    background: #f8fbfe;
+    background: #F7F5F0;
     font-weight: 700;
     font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #1c4c6e;
-    border-bottom: 2px solid #eef3f8;
+    letter-spacing: 0.4px;
+    color: #111111;
+    border-bottom: 2px solid #E8E6E0;
 }
 
 .failures-table td {
     padding: 14px 12px;
-    border-bottom: 1px solid #eef3f8;
-    color: #2c5a7a;
+    border-bottom: 1px solid #E8E6E0;
+    color: #111111;
     font-weight: 500;
 }
 
-/* Status Badges */
+.failures-table td:first-child strong {
+    color: #111111;
+}
+
+/* Status Badges — the actual rendered colors for these two classes come
+   from EquipmentFailures.append.css (loaded after this file, same
+   specificity, so its .badge-pending/.badge-resolved rules win). Recolored
+   here too so this file doesn't carry stale navy/gold values in case the
+   append sheet's rules are ever removed. */
 .badge-resolved {
-    background: #d5f5e3;
-    color: #27ae60;
+    background: #E3F1E6;
+    color: #2F7D42;
     padding: 4px 12px;
     border-radius: 30px;
     font-size: 0.7rem;
@@ -301,8 +384,8 @@ body {
 }
 
 .badge-pending {
-    background: #ffe0cc;
-    color: #e67e22;
+    background: #F5EBD9;
+    color: #8A6100;
     padding: 4px 12px;
     border-radius: 30px;
     font-size: 0.7rem;
@@ -317,15 +400,16 @@ body {
 
 .action-icons i {
     cursor: pointer;
-    color: #95a5a6;
-    transition: 0.2s;
+    color: #9C9A94;
+    transition: all 0.25s ease-in-out;
     font-size: 1rem;
 }
 
 .action-icons i:hover {
-    color: #1f6392;
+    color: #111111;
 }
 
+/* Destructive action — left as semantic red per hard constraint 7. */
 .action-icons .fa-trash-alt:hover {
     color: #c62828;
 }
@@ -334,7 +418,7 @@ body {
 .empty-row td {
     text-align: center;
     padding: 50px;
-    color: #95a5a6;
+    color: #9C9A94;
 }
 
 /* ===== MODAL - FIXED HEIGHT WITH SCROLLABLE CONTENT ===== */
@@ -365,7 +449,7 @@ body {
     width: 90%;
     max-width: 580px;
     max-height: 85vh;
-    border-radius: 32px;
+    border-radius: 20px;
     overflow: hidden;
     transform: scale(0.95);
     transition: transform 0.25s ease;
@@ -383,7 +467,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid #eef3f8;
+    border-bottom: 2px solid #E8E6E0;
     background: white;
     flex-shrink: 0;
 }
@@ -391,19 +475,22 @@ body {
 .modal-header h3 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: #111111;
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
+/* Close (X) button — this just dismisses the modal, not a destructive
+   action, so it moves to the neutral hover treatment (like
+   .notification-icon's hover in Sidebar.css) instead of the old red. */
 .modal-close {
     background: none;
     border: none;
     font-size: 1.6rem;
     cursor: pointer;
-    color: #95a5a6;
-    transition: color 0.2s;
+    color: #9C9A94;
+    transition: all 0.25s ease-in-out;
     width: 36px;
     height: 36px;
     display: flex;
@@ -413,8 +500,8 @@ body {
 }
 
 .modal-close:hover {
-    color: #c62828;
-    background: #fef2f2;
+    color: #111111;
+    background: #F1F0EC;
 }
 
 /* MODAL BODY - SCROLLABLE */
@@ -441,7 +528,7 @@ body {
 }
 
 .modal-body::-webkit-scrollbar-thumb:hover {
-    background: #1f6392;
+    background: #8A6D00;
 }
 
 .form-group {
@@ -454,7 +541,7 @@ body {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #2c5a7a;
+    color: #585858;
     margin-bottom: 8px;
 }
 
@@ -471,8 +558,8 @@ body {
 
 .form-input:focus {
     outline: none;
-    border-color: #1f6392;
-    box-shadow: 0 0 0 3px rgba(31, 99, 146, 0.1);
+    border-color: #8A6D00;
+    box-shadow: 0 0 0 3px rgba(138, 109, 0, 0.15);
 }
 
 textarea.form-input {
@@ -518,20 +605,20 @@ select.form-input {
 }
 
 .btn-cancel-modal {
-    background: #f0f4f9;
+    background: #F5F5F5;
     border: none;
     padding: 12px 28px;
     border-radius: 40px;
     font-weight: 600;
     font-size: 0.85rem;
-    color: #5a7e9e;
+    color: #585858;
     cursor: pointer;
     transition: 0.2s;
     font-family: 'Inter', sans-serif;
 }
 
 .btn-cancel-modal:hover {
-    background: #e8eef3;
+    background: #E5E5E5;
 }
 
 /* Toast Notification */
@@ -539,7 +626,7 @@ select.form-input {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    background: #1f6392;
+    background: #111111;
     color: white;
     padding: 12px 24px;
     border-radius: 40px;
@@ -558,14 +645,25 @@ select.form-input {
     transform: translateY(0);
 }
 
-/* Dark mode support for Equipment Failures */
+/* Dark mode support for Equipment Failures (2026-07-18: was a navy #0b1220
+   that silently overrode Sidebar.css's shared body.dark-mode background —
+   repointed to the neutral warm-black palette used everywhere else). */
 body.dark-mode {
-    background: #0b1220;
-    color: #f8fafc;
+    background: #0b0b0d;
+    color: #f2f2f3;
+    /* Near-white text on a near-black background optically reads heavier than
+       the same font-weight does in light mode (no font-weight is actually
+       changed anywhere) — antialiasing instead of subpixel rendering keeps
+       weight looking consistent with light mode while staying readable. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
+/* .top-bar removed from this selector list (2026-07-17 restyle) — its
+   dark-mode styling lives solely in Sidebar.css's shared body.dark-mode
+   rule; this file's copy had drifted to an opaque #111827/#1f2937 pair
+   instead of Sidebar.css's translucent rgba() values. */
 body.dark-mode .main-content,
-body.dark-mode .top-bar,
 body.dark-mode .summary-cards,
 body.dark-mode .metric-card,
 body.dark-mode .failures-container,
@@ -579,17 +677,30 @@ body.dark-mode .failure-modal,
 body.dark-mode .modal-header,
 body.dark-mode .modal-body,
 body.dark-mode .modal-footer {
-    background: #111827;
-    border-color: #1f2937;
-    color: #f8fafc;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+    background: #17171a;
+    border-color: #232326;
+    color: #f2f2f3;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);
 }
 
-body.dark-mode .top-bar {
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+/* .topbar-search/.user-avatar dark-mode duplicates removed — both now live
+   solely in Sidebar.css alongside their canonical light-mode rules. */
+
+/* Sidebar.css ships a generic fallback body.dark-mode .section-header rule
+   (background + full 4-side border + box-shadow) for pages without their own
+   dark-mode CSS. This page has its own, so neutralize that leak the same way
+   Dashbaord.css does for .panel-header. */
+body.dark-mode .section-header {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 2px solid transparent !important;
 }
 
-body.dark-mode .page-title h1,
+/* .page-title h1 removed from this list — Sidebar.css's own body.dark-mode
+   .page-title h1 rule already covers it (2026-07-17 restyle). */
 body.dark-mode .metric-label,
 body.dark-mode .metric-value,
 body.dark-mode .metric-sub,
@@ -601,7 +712,6 @@ body.dark-mode .date-input,
 body.dark-mode .btn-reset-filters,
 body.dark-mode .failures-table th,
 body.dark-mode .failures-table td,
-body.dark-mode .badge-resolved,
 body.dark-mode .badge-pending,
 body.dark-mode .action-icons i,
 body.dark-mode .modal-header h3,
@@ -611,11 +721,15 @@ body.dark-mode .form-input,
 body.dark-mode .btn-save,
 body.dark-mode .btn-cancel-modal,
 body.dark-mode .empty-row td {
-    color: #f8fafc !important;
+    color: #f2f2f3 !important;
 }
 
 body.dark-mode .metric-card {
-    background: #111827;
+    background: #17171a;
+    border-color: rgba(255,255,255,0.08);
+}
+
+body.dark-mode .failures-container {
     border-color: rgba(255,255,255,0.08);
 }
 
@@ -624,46 +738,74 @@ body.dark-mode .metric-icon {
     color: #7dd3fc;
 }
 
+body.dark-mode .metric-icon.metric-icon-danger {
+    background: rgba(214, 51, 108, 0.14);
+    color: #f472b6;
+}
+
+body.dark-mode .metric-icon.metric-icon-amber {
+    background: rgba(200, 150, 12, 0.16);
+    color: #e8b93d;
+}
+
+body.dark-mode .metric-icon.metric-icon-blue {
+    background: rgba(47, 127, 196, 0.16);
+    color: #7bb6e8;
+}
+
+body.dark-mode .section-header h2 i {
+    color: #FFD84D !important;
+}
+
 body.dark-mode .search-wrapper {
-    background: #111827;
-    border-color: #1f2937;
+    background: #17171a;
+    border-color: #232326;
 }
 
 body.dark-mode .search-input {
     background: transparent;
-    color: #f8fafc;
+    color: #f2f2f3;
 }
 
 body.dark-mode .filter-select,
 body.dark-mode .date-input {
-    background: #111827;
-    color: #f8fafc;
-    border-color: #1f2937;
+    background: #17171a;
+    color: #f2f2f3;
+    border-color: #232326;
 }
 
 body.dark-mode .btn-reset-filters {
-    background: #1f2937;
-    color: #cbd5e1;
+    background: #1d1d21;
+    border-color: #29292e;
+    color: #d2d2d4;
 }
 
 body.dark-mode .btn-reset-filters:hover {
-    background: #17213b;
+    background: #242428;
 }
 
 body.dark-mode .failures-table th {
-    background: #111827;
-    border-bottom-color: #1f2937;
-    color: #f8fafc;
+    background: #17171a;
+    border-bottom-color: #232326;
+    color: #f2f2f3;
 }
 
 body.dark-mode .failures-table td {
-    border-bottom-color: #1f2937;
-    color: #e2e8f0;
+    border-bottom-color: #232326;
+    color: #e5e5e5;
+}
+
+body.dark-mode .failures-table td:first-child strong {
+    color: #f2f2f3 !important;
+}
+
+body.dark-mode .failures-table td:first-child div {
+    color: #7a7a80 !important;
 }
 
 body.dark-mode .badge-resolved {
-    background: #1f4728;
-    color: #d1fae5;
+    background: rgba(39, 174, 96, 0.16);
+    color: #4ade80;
 }
 
 body.dark-mode .badge-pending {
@@ -678,7 +820,7 @@ body.dark-mode .action-icons i:hover {
 body.dark-mode .modal-header,
 body.dark-mode .modal-body,
 body.dark-mode .modal-footer {
-    background: #111827;
+    background: #17171a;
 }
 
 body.dark-mode .modal-close:hover {
@@ -686,9 +828,9 @@ body.dark-mode .modal-close:hover {
 }
 
 body.dark-mode .form-input {
-    background: #0f172a;
-    color: #f8fafc;
-    border-color: #334155;
+    background: #1d1d21;
+    color: #f2f2f3;
+    border-color: #29292e;
 }
 
 body.dark-mode .btn-save {
@@ -697,12 +839,12 @@ body.dark-mode .btn-save {
 }
 
 body.dark-mode .btn-cancel-modal {
-    background: #17213b;
-    color: #d2d9e8;
+    background: #1d1d21;
+    color: #d2d2d4;
 }
 
 body.dark-mode .failure-toast {
-    background: #1f6392;
+    background: #8A6D00;
     color: white;
 }
 

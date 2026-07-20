@@ -23,7 +23,13 @@
         }
 
         document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
-        addDemoCredentialsHint();
+        // NEW (Refinement #1): only ever build/insert the Demo Accounts box on
+        // localhost/127.0.0.1. On any other host the function below is simply
+        // never called, so the box is never added to the DOM at all (not just
+        // CSS-hidden) — it won't appear in the rendered page on production.
+        if (isLocalDevelopment()) {
+            addDemoCredentialsHint();
+        }
 
         const rememberedUser = localStorage.getItem('rememberedUser');
         if (rememberedUser) {
@@ -46,7 +52,8 @@
         if (!username || !password) { showError('Please enter both username and password.'); return; }
 
         const submitBtn = document.querySelector('#loginForm button[type="submit"]');
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Signing in\u2026'; }
+        if (submitBtn) { submitBtn.disabled = true; }
+        setSubmitLabel(submitBtn, 'Signing in\u2026');
 
         try {
             // v19: bumped 10s → 30s. XAMPP/MySQL cold start (right after
@@ -69,7 +76,8 @@
 
             if (!json.success) {
                 showError(json.message || 'Invalid username or password. Please try again.');
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign in \u2192'; }
+                if (submitBtn) { submitBtn.disabled = false; }
+                setSubmitLabel(submitBtn, 'Sign In');
                 return;
             }
 
@@ -92,6 +100,9 @@
 
             sessionStorage.setItem('currentUser', JSON.stringify(sessionUser));
             showSuccess('Welcome back, ' + json.user.full_name + '! Redirecting\u2026');
+            // NEW: cross-fade the whole page out (see body.page-transitioning
+            // in Login.css) instead of hard-cutting to the dashboard.
+            document.body.classList.add('page-transitioning');
             // v18: cut the perceptible delay in half — 1s felt sluggish.
             setTimeout(() => redirectToDashboard(json.user.role), 600);
 
@@ -102,7 +113,21 @@
                 ? 'The server did not respond within 30 seconds. Please make sure XAMPP\u2019s Apache AND MySQL are both running, then try again.'
                 : 'Could not reach the server. Please make sure XAMPP is running.';
             showError(msg);
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign in \u2192'; }
+            if (submitBtn) { submitBtn.disabled = false; }
+            setSubmitLabel(submitBtn, 'Sign In');
+        }
+    }
+
+    // Updates the submit button's label without touching its other children
+    // (e.g. an icon <svg>) \u2014 targets a nested .btn-label span if present,
+    // otherwise falls back to the old plain textContent behavior.
+    function setSubmitLabel(submitBtn, text) {
+        if (!submitBtn) return;
+        const label = submitBtn.querySelector('.btn-label');
+        if (label) {
+            label.textContent = text;
+        } else {
+            submitBtn.textContent = text;
         }
     }
 
@@ -161,7 +186,7 @@
         if (!successDiv) {
             successDiv = document.createElement('div');
             successDiv.id = 'loginSuccess';
-            successDiv.style.cssText = 'background:#d5f5e3;color:#27ae60;padding:12px 16px;border-radius:16px;margin-bottom:20px;font-size:0.85rem;font-weight:500;text-align:center;border-left:4px solid #27ae60;transition:opacity 0.2s ease;';
+            successDiv.style.cssText = 'background:#d5f5e3;color:#27ae60;padding:12px 16px;border-radius:16px;margin-bottom:20px;font-size:0.85rem;font-weight:500;text-align:center;border-left:4px solid #27ae60;transition:opacity 0.2s ease;animation:toastIn 0.35s ease-out;';
             const form = document.getElementById('loginForm');
             const card = document.querySelector('.login-card');
             if (card && form) card.insertBefore(successDiv, form);
@@ -181,14 +206,20 @@
         }, 8000);
     }
 
+    // NEW (Refinement #1): true only when served from localhost/127.0.0.1.
+    function isLocalDevelopment() {
+        const host = window.location.hostname;
+        return host === 'localhost' || host === '127.0.0.1';
+    }
+
     function addDemoCredentialsHint() {
         const hintDiv = document.createElement('div');
-        hintDiv.style.cssText = 'background:#eef3fc;border-radius:16px;padding:12px 16px;margin-top:16px;font-size:0.75rem;text-align:center;';
+        hintDiv.style.cssText = 'background:#FFF3D1;border-radius:16px;padding:12px 16px;margin-top:16px;font-size:0.75rem;text-align:center;';
         hintDiv.innerHTML = [
-            '<strong style="color:#1f6392;">Demo Accounts:</strong><br>',
-            '<span style="color:#2c5a7a;"><strong>Admin:</strong> admin / admin123</span><br>',
-            '<span style="color:#2c5a7a;"><strong>Dept Head:</strong> depthead / depthead123</span><br>',
-            '<span style="color:#2c5a7a;"><strong>Requester:</strong> requester / req123</span>'
+            '<strong style="color:#8A6D00;">Demo Accounts:</strong><br>',
+            '<span style="color:#1A1A1A;"><strong>Admin:</strong> admin / admin123</span><br>',
+            '<span style="color:#1A1A1A;"><strong>Dept Head:</strong> depthead / depthead123</span><br>',
+            '<span style="color:#1A1A1A;"><strong>Requester:</strong> requester / req123</span>'
         ].join('');
         const card = document.querySelector('.login-card');
         if (card) card.appendChild(hintDiv);

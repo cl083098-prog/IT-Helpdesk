@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,7 +6,8 @@
     <title>CSMA IT Helpdesk | Department Head Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="DeptHeadDashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="DeptHeadDashboard.css?v=13">
 </head>
 <body>
 <div class="dept-head-dashboard">
@@ -27,58 +28,58 @@
             <!-- Notification Bell -->
             <div class="notification-wrapper" id="notificationWrapper">
                 <button class="notification-icon" id="notificationBell">
-                    <i class="fas fa-bell"></i>
+                    <i class="ti ti-bell"></i>
                     <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
                 </button>
                 <div class="notification-panel" id="notificationPanel">
                     <div class="notification-header">
-                        <h3><i class="fas fa-bell"></i> Notifications</h3>
+                        <h3><i class="ti ti-bell"></i> Notifications</h3>
                         <button class="mark-read-btn" id="markAllReadBtn">Mark all read</button>
                     </div>
                     <div class="notification-list" id="notificationList"></div>
                 </div>
             </div>
-            <!-- Profile Dropdown -->
-            <div class="profile-dropdown" id="profileDropdown">
-                <button class="user-profile-btn" id="profileBtn">
-                    <i class="fas fa-user-circle"></i>
-                    <span id="profileName">Dept Head</span>
-                    <i class="fas fa-chevron-down dropdown-arrow"></i>
-                </button>
-                <div class="dropdown-menu" id="dropdownMenu">
-                    <div class="dropdown-item theme-toggle-item">
-                        <div class="theme-switch-label">
-                            <i class="fas fa-moon" id="themeIcon"></i>
-                            <span>Dark Mode</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="themeSwitchCheckbox">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <div class="dropdown-divider"></div>
-                    <button class="dropdown-item logout-btn" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </button>
-                </div>
+            <!-- Theme toggle -->
+            <div class="theme-toggle-wrapper">
+                <i class="ti ti-moon" id="themeIcon"></i>
+                <label class="switch">
+                    <input type="checkbox" id="themeSwitchCheckbox">
+                    <span class="slider round"></span>
+                </label>
             </div>
+            <!-- Avatar -->
+            <div class="user-avatar" title="Department Head">D</div>
+            <!-- Logout -->
+            <button class="logout-icon-btn" id="logoutBtn" title="Logout">
+                <i class="ti ti-logout"></i>
+            </button>
         </div>
     </header>
+
+    <div class="dashboard-content-scroll">
 
     <!-- ── Welcome Banner ────────────────────────────────────────────────── -->
     <div class="welcome-banner">
         <div class="welcome-content">
             <div class="welcome-text">
-                <h1>Welcome back, <span id="welcomeName">Department Head</span> <span class="wave">👋</span></h1>
+                <h1>Welcome back, <span id="welcomeName">Department Head</span> <span class="wave">ðŸ‘‹</span></h1>
                 <p>Review approval requests from your department and manage your own IT service tickets.</p>
             </div>
             <div class="button-group">
                 <button class="btn-create-welcome" id="openNewRequestBtn">
-                    <i class="fas fa-plus-circle"></i> New Service Request
+                    <i class="fas fa-plus"></i> New Service Request
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- ── Delegate Banner (shown when an approval delegate is currently active) ── -->
+    <div class="delegate-banner" id="delegateBanner" style="display:none;">
+        <div class="delegate-banner-text">
+            <i class="fas fa-user-clock"></i>
+            <span id="delegateBannerText">Approvals are currently delegated.</span>
+        </div>
+        <button class="delegate-banner-end-btn" id="delegateBannerEndBtn">End Delegation</button>
     </div>
 
     <!-- ── Stats Row ─────────────────────────────────────────────────────── -->
@@ -112,7 +113,28 @@
         <div class="approvals-panel">
             <div class="panel-header">
                 <h3><i class="fas fa-clipboard-check"></i> Service Requests Requiring Approval</h3>
-                <span class="dept-label" id="deptLabel"></span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="dept-label" id="deptLabel"></span>
+                    <button class="btn-manage-delegate" id="openDelegateModalBtn" title="Assign a temporary approver">
+                        <i class="fas fa-user-clock"></i> Delegate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search + Date range -->
+            <div class="approvals-filter-row">
+                <div class="approvals-search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="approvalsSearchInput" placeholder="Search by ID, requester, or item…">
+                </div>
+                <div class="approvals-date-range">
+                    <input type="date" id="approvalsDateFrom" title="From date">
+                    <span class="date-range-sep">–</span>
+                    <input type="date" id="approvalsDateTo" title="To date">
+                    <button type="button" class="date-range-clear-btn" id="approvalsDateClearBtn" title="Clear date filter">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Approval filter tabs -->
@@ -121,6 +143,27 @@
                 <button class="approval-tab" data-filter="pending">Pending Approval</button>
                 <button class="approval-tab" data-filter="approved">Approved</button>
                 <button class="approval-tab" data-filter="rejected">Rejected</button>
+            </div>
+
+            <!-- Bulk selection bar (appears once one or more pending cards are checked) -->
+            <div class="bulk-action-bar" id="bulkActionBar" style="display:none;">
+                <div class="bulk-action-left">
+                    <label class="bulk-select-all">
+                        <input type="checkbox" id="bulkSelectAllCheckbox">
+                        <span id="bulkSelectedCount">0 selected</span>
+                    </label>
+                </div>
+                <div class="bulk-action-right">
+                    <button class="btn-bulk-approve" id="bulkApproveBtn">
+                        <i class="fas fa-check-circle"></i> Approve Selected
+                    </button>
+                    <button class="btn-bulk-reject" id="bulkRejectBtn">
+                        <i class="fas fa-times-circle"></i> Reject Selected
+                    </button>
+                    <button class="btn-bulk-clear" id="bulkClearBtn" title="Clear selection">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="approval-cards-list" id="approvalCardsList">
@@ -150,6 +193,7 @@
             </div>
         </div>
     </div>
+    </div><!-- /dashboard-content-scroll -->
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
@@ -286,7 +330,7 @@
                 <div class="summary-row"><span class="summary-label">Submitted:</span><span class="summary-value" id="confirmDate">—</span></div>
             </div>
             <div class="modal-footer-actions">
-                <button class="btn-done" id="modalDoneBtn"><i class="fas fa-check"></i> Done</button>
+                <button class="btn-done" id="modalDoneBtn"><i class="fas fa-check-circle"></i> Done</button>
                 <button class="btn-new-request" id="modalNewRequestBtn"><i class="fas fa-plus"></i> Submit Another</button>
             </div>
         </div>
@@ -339,11 +383,11 @@
             <div class="star-rating-group">
                 <span class="star-label">Rating</span>
                 <div class="star-rating" id="starRating">
-                    <i class="fas fa-star" data-value="1"></i>
-                    <i class="fas fa-star" data-value="2"></i>
-                    <i class="fas fa-star" data-value="3"></i>
-                    <i class="fas fa-star" data-value="4"></i>
-                    <i class="fas fa-star" data-value="5"></i>
+                    <i class="far fa-star" data-value="1"></i>
+                    <i class="far fa-star" data-value="2"></i>
+                    <i class="far fa-star" data-value="3"></i>
+                    <i class="far fa-star" data-value="4"></i>
+                    <i class="far fa-star" data-value="5"></i>
                 </div>
                 <span class="star-count" id="starCount">0 / 5</span>
             </div>
@@ -368,7 +412,7 @@
         </div>
         <div class="modal-body">
             <p style="font-size:0.85rem;color:#6c86a0;margin-bottom:16px;">
-                Provide a reason for rejecting ticket <strong id="rejectTicketCode"></strong>. This will be visible to the requester.
+                Provide a reason for rejecting <strong id="rejectTicketCode"></strong>. This will be visible to the requester(s).
             </p>
             <div class="form-group">
                 <label>Rejection Reason</label>
@@ -376,8 +420,53 @@
             </div>
             <div class="form-actions">
                 <button class="btn-cancel-modal" id="cancelRejectBtn"><i class="fas fa-arrow-left"></i> Back</button>
-                <button class="btn-reject-confirm" id="confirmRejectBtn"><i class="fas fa-times"></i> Confirm Rejection</button>
+                <button class="btn-reject-confirm" id="confirmRejectBtn"><i class="fas fa-times-circle"></i> Confirm Rejection</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Delegate Approval -->
+<div id="delegateModal" class="modal-overlay">
+    <div class="modal-container" style="max-width:480px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-clock"></i> Delegate Approval Authority</h3>
+            <button class="modal-close" id="closeDelegateModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.85rem;color:#6c86a0;margin-bottom:16px;">
+                While you're on leave or unavailable, a delegate can approve or reject service requests
+                on your behalf for your department. You can end the delegation at any time.
+            </p>
+
+            <div id="delegateActiveNotice" style="display:none;margin-bottom:16px;"></div>
+
+            <form id="delegateForm">
+                <div class="form-group">
+                    <label>Delegate</label>
+                    <select id="delegateUserSelect" required>
+                        <option value="">Loading eligible users…</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display:flex;gap:12px;">
+                    <div style="flex:1;">
+                        <label>Start Date</label>
+                        <input type="date" id="delegateStartDate" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>End Date</label>
+                        <input type="date" id="delegateEndDate" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Note (optional)</label>
+                    <textarea id="delegateNote" rows="2" placeholder="e.g., On annual leave, contact for urgent matters…"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel-modal" id="cancelDelegateBtn"><i class="fas fa-times"></i> Cancel</button>
+                    <button type="submit" class="btn-submit-modal"><i class="fas fa-user-check"></i> Assign Delegate</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -405,6 +494,7 @@
 </div>
 
 <div id="toastMsg" class="toast-message"></div>
-<script src="DeptHeadDashboard.js"></script>
+<script src="DeptHeadDashboard.js?v=5"></script>
+<script src="DeptHeadDashboard-search.js?v=1"></script>
 </body>
 </html>

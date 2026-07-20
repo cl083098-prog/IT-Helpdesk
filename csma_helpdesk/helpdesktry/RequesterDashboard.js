@@ -40,6 +40,8 @@
     // ─── State ───────────────────────────────────────────────────────────────
     let isInitialized    = false;
     let currentFilter    = 'all';
+    let ticketSearchTerm = '';
+    let ticketSortMode   = 'date-desc';
     let requesterTickets = [];
     let activitiesFeed   = [];
     let notifications    = [];
@@ -148,8 +150,8 @@
                     icon:    ({
                         'ticket_submitted':    'fa-paper-plane',
                         'approval_needed':     'fa-clipboard-check',
-                        'approval_approved':   'fa-circle-check',
-                        'approval_rejected':   'fa-circle-xmark',
+                        'approval_approved':   'fa-check-circle',
+                        'approval_rejected':   'fa-times-circle',
                         'status_change':       'fa-sync-alt',
                         'confirmation_needed': 'fa-user-check',
                         'sla_change':          'fa-clock',
@@ -569,12 +571,46 @@
         if (currentFilter !== 'all') {
             filtered = filtered.filter(t => t.status === currentFilter);
         }
-        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (ticketSearchTerm) {
+            const q = ticketSearchTerm.toLowerCase();
+            filtered = filtered.filter(t =>
+                (t.id || '').toLowerCase().includes(q) ||
+                (t.title || '').toLowerCase().includes(q));
+        }
+
+        const priorityRank = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+        filtered.sort((a, b) => {
+            switch (ticketSortMode) {
+                case 'date-asc':      return new Date(a.date) - new Date(b.date);
+                case 'priority-desc': return (priorityRank[b.priority] || 0) - (priorityRank[a.priority] || 0);
+                case 'date-desc':
+                default:               return new Date(b.date) - new Date(a.date);
+            }
+        });
 
         if (resultsCountSpan) resultsCountSpan.innerText = `${filtered.length} request${filtered.length !== 1 ? 's' : ''}`;
 
         if (filtered.length === 0) {
-            gridContainer.innerHTML = '<div class="empty-state"><i class="fas fa-inbox" style="font-size:2rem;margin-bottom:12px;display:block;"></i>No requests match the selected filter.</div>';
+            // Distinguish "nothing exists at all" from "nothing matches this
+            // search/filter" so the CTA only appears when it's actually useful.
+            if (requesterTickets.length === 0) {
+                gridContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox" style="font-size:2rem;margin-bottom:12px;display:block;"></i>
+                        No requests yet.
+                        <div>
+                            <button class="empty-state-cta" id="emptyStateCreateBtn">
+                                <i class="fas fa-plus"></i> Create your first request
+                            </button>
+                        </div>
+                    </div>`;
+                document.getElementById('emptyStateCreateBtn')?.addEventListener('click', () => {
+                    closeFullListModal();
+                    openRequestModal();
+                });
+            } else {
+                gridContainer.innerHTML = '<div class="empty-state"><i class="fas fa-search" style="font-size:2rem;margin-bottom:12px;display:block;"></i>No requests match your search or filter.</div>';
+            }
             return;
         }
 
@@ -609,10 +645,27 @@
         });
     }
 
+    function setupSearchAndSort() {
+        document.getElementById('ticketSearchInput')?.addEventListener('input', (e) => {
+            ticketSearchTerm = e.target.value.trim();
+            renderFilteredTicketsInModal();
+        });
+        document.getElementById('ticketSortSelect')?.addEventListener('change', (e) => {
+            ticketSortMode = e.target.value;
+            renderFilteredTicketsInModal();
+        });
+    }
+
     function openFullListModal() {
         const fullModal = document.getElementById('fullListModal');
         if (!fullModal) return;
         currentFilter = 'all';
+        ticketSearchTerm = '';
+        ticketSortMode   = 'date-desc';
+        const searchInput = document.getElementById('ticketSearchInput');
+        const sortSelect  = document.getElementById('ticketSortSelect');
+        if (searchInput) searchInput.value = '';
+        if (sortSelect)  sortSelect.value  = 'date-desc';
         document.querySelectorAll('#ticketFilterBar .filter-chip').forEach(c => {
             c.classList.toggle('filter-chip-active', c.dataset.filter === 'all');
         });
@@ -692,44 +745,86 @@
     // ─── Apply user info to page elements ───────────────────────────────────────
     function applyUserInfo() {
         const name = currentUser?.name || 'Requester';
-        const dept = currentUser?.department || '';
-        const el = document.getElementById('profileDisplayName');
-        if (el) el.textContent = dept ? `${name} (${dept})` : name;
         const wn = document.getElementById('welcomeFirstName');
         if (wn) wn.textContent = name.split(' ')[0];
     }
 
     function initProfileDropdown() {
-        const profileDropdown = document.getElementById('profileDropdown');
-        const profileBtn      = document.getElementById('profileBtn');
         const themeSwitch     = document.getElementById('themeSwitchCheckbox');
         const logoutBtn       = document.getElementById('logoutBtn');
-
-        if (profileBtn && profileDropdown) {
-            profileBtn.addEventListener('click', e => { e.stopPropagation(); profileDropdown.classList.toggle('open'); });
-            document.addEventListener('click', e => { if (!profileDropdown.contains(e.target)) profileDropdown.classList.remove('open'); });
-        }
 
         if (themeSwitch) {
             const isDark = localStorage.getItem('theme') === 'dark';
             themeSwitch.checked = isDark;
-            if (isDark) { document.body.classList.add('dark-mode'); const icon = document.getElementById('themeIcon'); if (icon) icon.className = 'fas fa-sun'; }
+            if (isDark) { document.body.classList.add('dark-mode'); const icon = document.getElementById('themeIcon'); if (icon) icon.className = 'ti ti-sun'; }
             themeSwitch.addEventListener('change', e => {
                 const dark = e.target.checked;
                 document.body.classList.toggle('dark-mode', dark);
                 localStorage.setItem('theme', dark ? 'dark' : 'light');
                 const icon = document.getElementById('themeIcon');
-                if (icon) icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+                if (icon) icon.className = dark ? 'ti ti-sun' : 'ti ti-moon';
                 showToast(dark ? 'Dark mode activated.' : 'Light mode activated.');
             });
         }
 
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
-                showToast('Logging out…');
-                setTimeout(() => { sessionStorage.removeItem('currentUser'); window.location.href = 'Login.html'; }, 800);
+                showLogoutModal();
             });
         }
+    }
+
+    // Same confirm-logout modal (markup + behavior) used by Sidebar.js on
+    // the Admin/School Admin pages, so every role gets the same logout
+    // confirmation experience instead of logging out immediately.
+    function showLogoutModal() {
+        const existingModal = document.querySelector('.logout-modal-overlay');
+        if (existingModal) {
+            existingModal.classList.add('active');
+            return;
+        }
+
+        const modalHTML = `
+            <div class="logout-modal-overlay" id="logoutModal">
+                <div class="logout-modal">
+                    <div class="modal-header">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <h3>Confirm Logout</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to logout from IT Helpdesk?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" id="cancelLogoutBtn">Cancel</button>
+                        <button class="btn-confirm" id="confirmLogoutBtn">Logout</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = document.getElementById('logoutModal');
+
+        setTimeout(() => {
+            if (modal) modal.classList.add('active');
+        }, 10);
+
+        const closeModalEl = () => {
+            if (!modal) return;
+            modal.classList.remove('active');
+            setTimeout(() => { if (modal && modal.remove) modal.remove(); }, 300);
+        };
+
+        document.getElementById('cancelLogoutBtn')?.addEventListener('click', closeModalEl);
+
+        document.getElementById('confirmLogoutBtn')?.addEventListener('click', () => {
+            sessionStorage.removeItem('currentUser');
+            window.location.href = 'Login.html';
+        });
+
+        modal?.addEventListener('click', (e) => {
+            if (e.target === modal) closeModalEl();
+        });
     }
 
     // ─── Wire all event listeners ─────────────────────────────────────────────
@@ -842,7 +937,6 @@
             if (document.getElementById('requestDetailModal')?.classList.contains('active')) closeDetailModal();
             if (document.getElementById('fullListModal')?.classList.contains('active'))      closeFullListModal();
             document.getElementById('notificationPanel')?.classList.remove('open');
-            document.getElementById('profileDropdown')?.classList.remove('open');
         });
     }
 
@@ -924,7 +1018,21 @@
         const recent = sorted.slice(0, 6);
 
         if (recent.length === 0) {
-            container.innerHTML = `<div class="empty-state"><i class="fas fa-inbox" style="font-size:2rem;color:#dee4ea;margin-bottom:12px;display:block;"></i>No ${myRequestsTabFilter === 'all' ? '' : myRequestsTabFilter + ' '}requests yet.</div>`;
+            if (requesterTickets.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox" style="font-size:2rem;color:#dee4ea;margin-bottom:12px;display:block;"></i>
+                        No requests yet.
+                        <div>
+                            <button class="empty-state-cta" id="dashboardEmptyStateCreateBtn">
+                                <i class="fas fa-plus"></i> Create your first request
+                            </button>
+                        </div>
+                    </div>`;
+                document.getElementById('dashboardEmptyStateCreateBtn')?.addEventListener('click', openRequestModal);
+            } else {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-inbox" style="font-size:2rem;color:#dee4ea;margin-bottom:12px;display:block;"></i>No ${myRequestsTabFilter === 'all' ? '' : myRequestsTabFilter + ' '}requests match this tab.</div>`;
+            }
             return;
         }
 
@@ -951,7 +1059,8 @@
         const container = document.getElementById('activitiesFeed');
         if (!container) return;
         if (activitiesFeed.length === 0) {
-            container.innerHTML = '<div class="empty-state">No recent activity.</div>'; return;
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-clock" style="font-size:1.6rem;color:#dee4ea;margin-bottom:10px;display:block;"></i>No activity yet. Updates on your requests will show up here.</div>';
+            return;
         }
         container.innerHTML = activitiesFeed.map(a => `
             <div class="timeline-item">
@@ -1041,13 +1150,21 @@
                    <i class="fas fa-check-double"></i> Confirm Issue Resolved
                </button>` : '';
 
+        // Requester can withdraw a request only while it's still Pending —
+        // once IT has picked it up (Ongoing) or moved it further, cancelling
+        // client-side would be misleading, so the button just doesn't render.
+        const cancelBtn = ticket.status === 'Pending'
+            ? `<button class="btn-cancel-request" id="cancelRequestBtn" data-id="${ticket.request_id}" data-code="${escapeHtml(ticket.id)}">
+                   <i class="fas fa-ban"></i> Cancel Request
+               </button>` : '';
+
         const disp = getDisplayStatus(ticket);
 
         // FIX: surface the Dept Head's rejection reason directly on the ticket,
         // not just buried in the conversation feed.
         const rejectionBanner = ticket.approvalStatus === 'Rejected'
             ? `<div class="approval-notice-banner" style="background:#fdeaea;border-color:#e08a8a;">
-                   <i class="fas fa-ban" style="color:#c62828;"></i>
+                   <i class="fas fa-times-circle" style="color:#c62828;"></i>
                    <div>
                        <strong style="color:#8a1f1f;">Request Rejected</strong>
                        <p style="color:#7a3a3a;">Your Department Head rejected this request and it has been closed.
@@ -1064,7 +1181,7 @@
                 </div>
                 ${rejectionBanner}
                 <div class="info-grid">
-                    <div class="info-item"><span class="info-label"><i class="fas fa-calendar"></i> Submitted</span><span class="info-value">${formatDate(ticket.date)}</span></div>
+                    <div class="info-item"><span class="info-label"><i class="fas fa-calendar-alt"></i> Submitted</span><span class="info-value">${formatDate(ticket.date)}</span></div>
                     <div class="info-item"><span class="info-label"><i class="fas fa-chart-line"></i> Priority</span><span class="info-value">${escapeHtml(ticket.priority)}</span></div>
                     <div class="info-item"><span class="info-label"><i class="fas fa-tag"></i> Category</span><span class="info-value">${escapeHtml(ticket.category || 'N/A')}</span></div>
                     <div class="info-item"><span class="info-label"><i class="fas fa-building"></i> Department</span><span class="info-value">${escapeHtml(ticket.department || 'N/A')}</span></div>
@@ -1080,6 +1197,7 @@
                     <div class="sla-row"><span class="sla-label"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-value">${slaDeadline}</span></div>
                 </div>
                 ${resolveBtn}
+                ${cancelBtn}
             </div>
             <div class="follow-up-section">
                 <h4 style="margin-bottom:16px;color:#1a4a6e;"><i class="fas fa-comments"></i> Conversation &amp; Updates</h4>
@@ -1096,6 +1214,73 @@
             document.getElementById('resolveTicketCode').textContent = '#' + ticket.id;
             closeDetailModal();
             document.getElementById('resolveConfirmModal')?.classList.add('active');
+        });
+
+        document.getElementById('cancelRequestBtn')?.addEventListener('click', () => {
+            showCancelRequestModal(ticket.request_id, ticket.id);
+        });
+    }
+
+    // Same shell/markup pattern as showLogoutModal() — reuses the
+    // .logout-modal-overlay CSS so this looks identical to the logout
+    // confirmation instead of the browser's native confirm() dialog.
+    function showCancelRequestModal(requestId, ticketCode) {
+        const existingModal = document.querySelector('.cancel-request-modal-overlay');
+        if (existingModal) existingModal.remove();
+
+        const modalHTML = `
+            <div class="logout-modal-overlay cancel-request-modal-overlay" id="cancelRequestConfirmModal">
+                <div class="logout-modal">
+                    <div class="modal-header">
+                        <i class="fas fa-ban"></i>
+                        <h3>Cancel Request</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>Cancel request #${escapeHtml(ticketCode)}? This cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" id="dismissCancelRequestBtn">Keep Request</button>
+                        <button class="btn-confirm" id="confirmCancelRequestBtn">Yes, Cancel It</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = document.getElementById('cancelRequestConfirmModal');
+
+        setTimeout(() => { if (modal) modal.classList.add('active'); }, 10);
+
+        const closeModalEl = () => {
+            if (!modal) return;
+            modal.classList.remove('active');
+            setTimeout(() => { if (modal && modal.remove) modal.remove(); }, 300);
+        };
+
+        document.getElementById('dismissCancelRequestBtn')?.addEventListener('click', closeModalEl);
+
+        document.getElementById('confirmCancelRequestBtn')?.addEventListener('click', async () => {
+            closeModalEl();
+
+            // NOTE: expects a cancel_ticket action on the PHP side (e.g. in
+            // update_ticket.php) that sets status to a cancelled/closed state
+            // and checks the requester owns the ticket before applying it.
+            const json = await apiFetch('/update_ticket.php?action=cancel_ticket', {
+                method: 'POST',
+                body: JSON.stringify({ ticket_id: requestId, user_id: USER_ID })
+            });
+
+            if (json?.success) {
+                showToast(`Request #${ticketCode} cancelled.`);
+                closeDetailModal();
+                await refreshAllData();
+            } else {
+                showToast('Could not cancel request: ' + (json?.message || ''), true);
+            }
+        });
+
+        modal?.addEventListener('click', (e) => {
+            if (e.target === modal) closeModalEl();
         });
     }
 
@@ -1228,6 +1413,7 @@
         initProfileDropdown();
         setupEventListeners();
         setupFilterButtons();
+        setupSearchAndSort();
         initMyRequestsTabs();
         initResolveConfirm();
         initFeedback();

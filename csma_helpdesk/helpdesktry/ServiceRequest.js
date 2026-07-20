@@ -34,19 +34,57 @@
 
     // ─── State ───────────────────────────────────────────────────────────────
 
-    let currentFilter   = 'all';
-    let currentSearch   = '';
-    let selectedTickets = new Set();
+    let currentFilter     = 'all';
+    let currentPriority   = 'all';
+    let currentDepartment = 'all';
+    let currentSearch     = '';
+    let selectedTickets   = new Set();
 
     // ─── Init ────────────────────────────────────────────────────────────────
 
     function initServiceRequest() {
         injectStyles();
         initTheme();
-        loadTicketsFromDB();
         initFilters();
         initBulkActions();
         initCompletionModal();
+        // If the URL doesn't request a specific tab, do the normal initial load.
+        // applyFilterFromURL() already triggers its own load (via the tab's
+        // real click handler) when it finds a match, so skip the duplicate fetch.
+        if (!applyFilterFromURL()) {
+            loadTicketsFromDB();
+        }
+    }
+
+    // NEW: lets the Dashboard's stat cards deep-link here pre-filtered, e.g.
+    // ServiceRequest.html?filter=Pending. Reuses applyStatusFilter() (defined
+    // near initFilters() below) so this stays in sync with a manual dropdown
+    // change instead of a separate/duplicate filtering implementation.
+    function applyFilterFromURL() {
+        const filter = new URLSearchParams(window.location.search).get('filter');
+        if (!filter) return false;
+        const select = document.getElementById('statusFilterSelect');
+        if (!select || ![...select.options].some(o => o.value === filter)) return false;
+        applyStatusFilter(filter);
+        return true;
+    }
+
+    // NEW: lets the Dashboard's ticket rows (New Open Tickets / Aging Tickets,
+    // including their "View All" modals) deep-link straight into the same
+    // Request Details overlay their own row's "View" link opens, e.g.
+    // ServiceRequest.html?view=SR-0008. Called from loadTicketsFromDB() once
+    // ticketsData is populated (viewTicket() needs it to resolve dbId), and
+    // guarded so it only ever fires once per page load — loadTicketsFromDB()
+    // runs again later for filters/bulk actions and shouldn't reopen it.
+    let viewParamHandled = false;
+    function applyViewFromURL() {
+        if (viewParamHandled) return;
+        viewParamHandled = true;
+        const viewId = new URLSearchParams(window.location.search).get('view');
+        if (!viewId) return;
+        const target = viewId.startsWith('#') ? viewId : '#' + viewId;
+        const t = ticketsData.find(t => t.id === target);
+        if (t) viewTicket(t.id);
     }
 
     function initTheme() {
@@ -55,12 +93,12 @@
         const isDark = localStorage.getItem('theme') === 'dark';
         if (toggle) toggle.checked = isDark;
         document.body.classList.toggle('dark-mode', isDark);
-        if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        if (icon) icon.className = isDark ? 'ti ti-sun' : 'ti ti-moon';
         toggle?.addEventListener('change', e => {
             const dark = e.target.checked;
             document.body.classList.toggle('dark-mode', dark);
             localStorage.setItem('theme', dark ? 'dark' : 'light');
-            if (icon) icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+            if (icon) icon.className = dark ? 'ti ti-sun' : 'ti ti-moon';
         });
     }
 
@@ -100,6 +138,8 @@
             set('statOngoing',   c['Ongoing']   || 0);
             set('statCompleted', c['Completed'] || 0);
             set('statClosed',    c['Closed']    || 0);
+
+            applyViewFromURL();
 
         } catch (err) {
             console.error('Failed to load tickets:', err);
@@ -172,6 +212,8 @@
     function getFilteredTickets() {
         let tickets = [...ticketsData];
         if (currentFilter !== 'all') tickets = tickets.filter(t => t.status === currentFilter);
+        if (currentPriority !== 'all') tickets = tickets.filter(t => t.priority === currentPriority);
+        if (currentDepartment !== 'all') tickets = tickets.filter(t => t.department === currentDepartment);
         if (currentSearch.trim()) {
             const term = currentSearch.trim().toLowerCase();
             tickets = tickets.filter(t =>
@@ -366,26 +408,38 @@
 
     // ─── Filter & Search ──────────────────────────────────────────────────────
 
-    function initFilters() {
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentFilter = btn.getAttribute('data-filter');
-                selectedTickets.clear();
-                updateBulkActionBar();
-                loadTicketsFromDB();     // re-fetch from DB with new filter
-            });
-        });
+    // Status is filtered server-side (loadTicketsFromDB() passes it to the
+    // API), so changing it re-fetches. Priority/department are filtered
+    // client-side against the already-loaded ticketsData (see
+    // getFilteredTickets()), so those just re-render.
+    function applyStatusFilter(value) {
+        currentFilter = value;
+        const select = document.getElementById('statusFilterSelect');
+        if (select) select.value = value;
+        selectedTickets.clear();
+        updateBulkActionBar();
+        loadTicketsFromDB();
+    }
 
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', e => {
-                currentSearch = e.target.value;
-                selectedTickets.clear();
-                updateBulkActionBar();
-                clearTimeout(searchInput._debounce);
-                searchInput._debounce = setTimeout(loadTicketsFromDB, 300);
+    function initFilters() {
+        const statusSelect = document.getElementById('statusFilterSelect');
+        if (statusSelect) {
+            statusSelect.addEventListener('change', () => applyStatusFilter(statusSelect.value));
+        }
+
+        const prioritySelect = document.getElementById('priorityFilterSelect');
+        if (prioritySelect) {
+            prioritySelect.addEventListener('change', () => {
+                currentPriority = prioritySelect.value;
+                renderTable();
+            });
+        }
+
+        const deptSelect = document.getElementById('deptFilterSelect');
+        if (deptSelect) {
+            deptSelect.addEventListener('change', () => {
+                currentDepartment = deptSelect.value;
+                renderTable();
             });
         }
     }
@@ -443,8 +497,15 @@
             ov.className = 'td-overlay';
             ov.innerHTML = `<div class="td-panel" id="tdPanel">
                 <div class="td-header">
-                    <h2 class="td-title"><i class="fas fa-clipboard-list"></i> Request Details</h2>
-                    <button class="td-close-btn" id="tdCloseBtn">&times;</button>
+                    <div class="td-header-titles">
+                        <div class="td-header-icon"><i class="ti ti-file-text"></i></div>
+                        <h2 class="td-title">Request Details</h2>
+                        <div class="td-header-meta">
+                            <span class="td-header-code" id="tdHeaderCode">—</span>
+                            <span class="td-badge-status" id="tdHeaderStatus">—</span>
+                        </div>
+                    </div>
+                    <button class="td-close-btn" id="tdCloseBtn"><i class="ti ti-x"></i></button>
                 </div>
                 <div class="td-body" id="tdBody"><div class="td-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div></div>
             </div>`;
@@ -461,6 +522,10 @@
         if (ov) { ov.classList.remove('active'); document.body.style.overflow = ''; }
         const imgOv = document.getElementById('tdImgViewerOverlay');
         if (imgOv) imgOv.style.display = 'none';
+        // When this overlay was opened from the Dashboard (via window.openTicketDetails
+        // below) rather than this page, Dashboard.js exposes this hook so its widgets
+        // pick up any status/assignment/SLA change made while the overlay was open.
+        if (typeof window.refreshDashboardWidgets === 'function') window.refreshDashboardWidgets();
     }
 
     function _renderDetail(tk) {
@@ -471,6 +536,13 @@
         const fmtDT       = d => d ? new Date(d).toLocaleString('en-PH') : '—';
         const statusClass = s => `td-badge-status td-status-${(s||'pending').toLowerCase().replace(/ /g,'-')}`;
         const apprClass   = a => `td-badge-appr td-appr-${(a||'not-required').toLowerCase().replace(/ /g,'-')}`;
+
+        // Mirror ticket code + status into the sticky header so both stay
+        // visible while scrolling through the form below.
+        const headerCode = document.getElementById('tdHeaderCode');
+        if (headerCode) headerCode.textContent = '#' + tk.ticket_code;
+        const headerStatus = document.getElementById('tdHeaderStatus');
+        if (headerStatus) { headerStatus.className = statusClass(tk.status); headerStatus.textContent = tk.status; }
 
         const officerOpts = (tk.it_officers||[]).map(o =>
             `<option value="${escapeHtml(o.full_name)}" ${tk.assigned_to===o.full_name?'selected':''}>${escapeHtml(o.full_name)}</option>`
@@ -483,8 +555,8 @@
         ).join('');
 
         const approvalBlock = (tk.approval_status && tk.approval_status !== 'Not Required') ? `
-            <div class="td-section td-approval-section">
-                <div class="td-section-title"><i class="fas fa-user-check"></i> Department Head Approval</div>
+            <div class="td-section td-callout">
+                <div class="td-section-title"><i class="ti ti-user-check"></i> Department Head Approval</div>
                 <div class="td-approval-row"><span class="td-field-label">Approval Status</span>
                     <span class="${apprClass(tk.approval?.decision||tk.approval_status)}">${escapeHtml(tk.approval?.decision||tk.approval_status)}</span></div>
                 ${tk.approval?.decided_by?`<div class="td-approval-row"><span class="td-field-label">Decided By</span><span>${escapeHtml(tk.approval.decided_by)}</span></div>`:''}
@@ -494,14 +566,14 @@
 
         const consumableBlock = tk.category === 'Consumable' ? `
             <div class="td-section">
-                <div class="td-section-title"><i class="fas fa-box-open"></i> Consumable Item Selection</div>
+                <div class="td-section-title"><i class="ti ti-box"></i> Consumable Item Selection</div>
                 <div class="td-field-group"><label class="td-field-label">Select Consumable Item</label>
                     <select class="td-select" id="tdConsItem"><option value="">Select an item…</option>${invOpts}</select></div>
                 <div class="td-field-group"><label class="td-field-label">Quantity Needed</label>
                     <input type="number" class="td-input" id="tdConsQty" min="1" value="${tk.consumable_qty_needed||''}"></div>
                 <div class="td-field-group"><label class="td-field-label">Department</label>
                     <select class="td-select" id="tdConsDept"><option value="">Select department…</option>${deptOpts}</select></div>
-                <div class="td-info-note"><i class="fas fa-info-circle"></i> This consumable item will be allocated to the selected department upon request completion.</div>
+                <div class="td-info-note"><i class="ti ti-info-circle"></i> This consumable item will be allocated to the selected department upon request completion.</div>
             </div>` : '';
 
         // External Repair & Maintenance only applies to Equipment tickets —
@@ -509,22 +581,22 @@
         // as Consumable Item Selection only appearing for Consumable tickets.
         const extRepairBlock = tk.category === 'Equipment' ? `
             <div class="td-section">
-                <div class="td-section-title"><i class="fas fa-tools"></i> External Repair &amp; Maintenance</div>
+                <div class="td-section-title"><i class="ti ti-tool"></i> External Repair &amp; Maintenance</div>
                 <label class="td-checkbox-label"><input type="checkbox" id="tdExtRepairChk" ${tk.external_repair?'checked':''}>
                     <span>Equipment requires external repair/maintenance</span></label>
                 <div class="td-repair-costs" id="tdRepairCosts" style="display:${tk.external_repair?'block':'none'};">
                     <div class="td-cost-grid">
-                        <div class="td-cost-field"><label class="td-field-label">External Repair Service (₱)</label>
+                        <div class="td-cost-field"><label class="td-field-label">External Repair Service</label>
                             <input type="number" class="td-input" id="tdSvcCost" min="0" step="0.01" value="${tk.repair_service_cost||''}"></div>
-                        <div class="td-cost-field"><label class="td-field-label">Replacement Parts (₱)</label>
+                        <div class="td-cost-field"><label class="td-field-label">Replacement Parts</label>
                             <input type="number" class="td-input" id="tdPartsCost" min="0" step="0.01" value="${tk.repair_parts_cost||''}"></div>
-                        <div class="td-cost-field"><label class="td-field-label">Service Fee (₱)</label>
+                        <div class="td-cost-field"><label class="td-field-label">Service Fee</label>
                             <input type="number" class="td-input" id="tdSvcFee" min="0" step="0.01" value="${tk.repair_service_fee||''}"></div>
                         <div class="td-cost-field"><label class="td-field-label">Total Maintenance Cost</label>
                             <input type="text" class="td-input td-input-readonly" id="tdRepTotal" readonly
-                                value="${tk.repair_total_cost?'₱'+parseFloat(tk.repair_total_cost).toFixed(2):'₱0.00'}"></div>
+                                value="${tk.repair_total_cost?parseFloat(tk.repair_total_cost).toFixed(2):'0.00'}"></div>
                     </div>
-                    <div class="td-cost-field" style="margin-top:12px;"><label class="td-field-label">Remarks</label>
+                    <div class="td-cost-field" style="margin-top:8px;"><label class="td-field-label">Remarks</label>
                         <textarea class="td-input td-textarea" id="tdRepRemarks">${escapeHtml(tk.repair_remarks||'')}</textarea></div>
                     ${(() => {
                         // v27: repair-receipt upload UI (restored from the v3
@@ -538,17 +610,17 @@
                         const receiptPreview = !receiptExists
                             ? '<div class="td-receipt-empty" id="tdReceiptPreview">No receipt uploaded yet.</div>'
                             : (receiptIsPdf
-                                ? `<div class="td-receipt-preview" id="tdReceiptPreview"><i class="fas fa-file-pdf" style="font-size:1.4rem;color:#b23434;margin-right:6px;"></i><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener">View PDF receipt</a></div>`
-                                : `<div class="td-receipt-preview" id="tdReceiptPreview"><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(receiptUrl)}" alt="Receipt" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid #dbe6f0;"></a></div>`
+                                ? `<div class="td-receipt-preview" id="tdReceiptPreview"><i class="ti ti-file-type-pdf" style="font-size:1.4rem;color:#b23434;margin-right:6px;"></i><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener">View PDF receipt</a></div>`
+                                : `<div class="td-receipt-preview" id="tdReceiptPreview"><a href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(receiptUrl)}" alt="Receipt" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid #e2e8ed;"></a></div>`
                             );
                         return `
-                        <div class="td-cost-field" style="margin-top:14px;">
+                        <div class="td-cost-field" style="margin-top:10px;">
                             <label class="td-field-label">Repair Receipt</label>
                             ${receiptPreview}
                             <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
                                 <input type="file" id="tdReceiptFile" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" style="display:none;">
-                                <button type="button" class="td-btn-secondary" id="tdReceiptUploadBtn"><i class="fas fa-upload"></i> ${receiptExists ? 'Replace receipt' : 'Upload receipt'}</button>
-                                <span class="td-hint" id="tdReceiptStatus" style="font-size:0.75rem;color:#6b8399;">JPG / PNG / WEBP / PDF, max 5 MB.</span>
+                                <button type="button" class="td-btn-secondary" id="tdReceiptUploadBtn"><i class="ti ti-upload"></i> ${receiptExists ? 'Replace receipt' : 'Upload receipt'}</button>
+                                <span class="td-hint" id="tdReceiptStatus">JPG / PNG / WEBP / PDF, max 5 MB.</span>
                             </div>
                         </div>`;
                     })()}
@@ -567,23 +639,23 @@
         <div class="td-two-col">
           <div class="td-col-left">
             <div class="td-section">
-                <div class="td-section-title">Request Information</div>
+                <div class="td-section-title"><i class="ti ti-file-text"></i> Request Information</div>
                 <div class="td-field-row"><span class="td-field-label">Ticket ID</span><span class="td-ticket-code">${escapeHtml(tk.ticket_code)}</span></div>
                 <div class="td-field-row"><span class="td-field-label">Category</span><span class="td-field-val">${escapeHtml(tk.category)}</span></div>
                 <div class="td-field-row"><span class="td-field-label">Requester</span><span class="td-field-val">${escapeHtml(tk.requester_name)}</span></div>
                 <div class="td-field-row"><span class="td-field-label">Department</span><span class="td-field-val">${escapeHtml(tk.department_name)}</span></div>
                 <div class="td-field-row"><span class="td-field-label">Equipment</span><span class="td-field-val">${escapeHtml(tk.equipment_item)}</span></div>
-                <div class="td-field-row"><span class="td-field-label">Priority</span><span class="td-field-val">${escapeHtml(tk.priority)}</span></div>
+                <div class="td-field-row"><span class="td-field-label">Priority</span><span class="priority-badge ${getPriorityClass(tk.priority)}">${escapeHtml(tk.priority)}</span></div>
                 <div class="td-field-row"><span class="td-field-label">Status</span><span class="${statusClass(tk.status)}">${escapeHtml(tk.status)}</span></div>
             </div>
             <div class="td-section">
-                <div class="td-section-title">Timeline</div>
+                <div class="td-section-title"><i class="ti ti-clock-hour-4"></i> Timeline</div>
                 <div class="td-field-row"><span class="td-field-label">Date Created</span><span class="td-field-val">${fmtDate(tk.submitted_at)}</span></div>
                 <div class="td-field-row"><span class="td-field-label">Date Completed</span><span class="td-field-val">${fmtDate(tk.completed_at)}</span></div>
                 <div class="td-field-row"><span class="td-field-label">Duration</span><span class="td-field-val">${escapeHtml(tk.duration_text)}</span></div>
             </div>
-            <div class="td-section td-sla-section">
-                <div class="td-section-title"><i class="fas fa-clock"></i> Service Level Agreement (SLA)</div>
+            <div class="td-section td-callout">
+                <div class="td-section-title"><i class="ti ti-shield-check"></i> Service Level Agreement (SLA)</div>
                 ${(() => {
                     // v8: Stock badge is INFORMATIONAL. IT Admin can always edit
                     // SLA. Auto-extension for Out of Stock / Low Stock items
@@ -596,7 +668,7 @@
                     const stockLabel = stock === 'N/A' ? 'Not tracked'
                                      : `${stock}${tk.stock_quantity !== null && tk.stock_quantity !== undefined ? ` · ${tk.stock_quantity} on hand` : ''}`;
                     const autoExtendedNote = (stock === 'Out of Stock' || stock === 'Low Stock')
-                        ? `<div class="td-sla-auto-note"><i class="fas fa-info-circle"></i> SLA was auto-extended at submission because the item is <strong>${escapeHtml(stock)}</strong>.</div>`
+                        ? `<div class="td-sla-auto-note"><i class="ti ti-info-circle"></i> SLA was auto-extended at submission because the item is <strong>${escapeHtml(stock)}</strong>.</div>`
                         : '';
                     return `
                 <div class="td-field-row">
@@ -609,26 +681,26 @@
                 ${autoExtendedNote}
                 <div class="td-field-row">
                     <span class="td-field-label">Expected Resolution Time</span>
-                    <span class="td-field-val" id="tdSlaDisplayText">
-                        ${tk.sla_custom_hours?tk.sla_custom_hours+' hour(s)':tk.sla_resolution_hours?tk.sla_resolution_hours+' hour(s)':'—'}
-                        <button class="td-edit-sla-btn" id="tdEditSlaBtn"><i class="fas fa-pencil-alt"></i> Edit SLA</button>
-                    </span>
+                    <span class="td-field-val" id="tdSlaDisplayText">${tk.sla_custom_hours?tk.sla_custom_hours+' hour(s)':tk.sla_resolution_hours?tk.sla_resolution_hours+' hour(s)':'—'}</span>
                 </div>
                 <div class="td-sla-edit" id="tdSlaEditRow" style="display:none;">
                     <input type="number" class="td-input td-input-sm" id="tdSlaHoursInput" min="0.5" step="0.5" value="${tk.sla_custom_hours||tk.sla_resolution_hours||''}">
-                    <span style="margin:0 4px;font-size:0.78rem;color:#6c86a0;">hour(s)</span>
+                    <span style="margin:0 4px;font-size:0.78rem;color:var(--gray-muted);">hour(s)</span>
                     <button class="td-btn-sla-save" id="tdSlaSaveBtn">Apply</button>
                     <button class="td-btn-sla-cancel" id="tdSlaCancelBtn">Cancel</button>
                 </div>
                 `;
                 })()}
-                <div class="td-field-row"><span class="td-field-label">SLA Deadline</span><span class="td-field-val">${fmtDT(tk.resolution_due_at)}</span></div>
+                <div class="td-sla-warn">
+                    <span class="td-sla-warn-text">SLA deadline: ${fmtDT(tk.resolution_due_at)}</span>
+                    <button class="td-edit-sla-btn" id="tdEditSlaBtn"><i class="ti ti-pencil"></i> Edit SLA</button>
+                </div>
             </div>
             ${approvalBlock}
           </div>
           <div class="td-col-right">
             <div class="td-section">
-                <div class="td-section-title">Issue Details</div>
+                <div class="td-section-title"><i class="ti ti-info-circle"></i> Issue Details</div>
                 <div class="td-field-group"><span class="td-field-label">Title</span><p class="td-issue-title">${escapeHtml(tk.title)}</p></div>
                 <div class="td-field-group"><span class="td-field-label">Issue Description</span><p class="td-issue-desc">${escapeHtml(tk.description||'No description.')}</p></div>
                 ${(() => {
@@ -639,20 +711,20 @@
                         const url = '../' + a.file_path;
                         const name = escapeHtml(a.original_name || 'attachment');
                         return `<button type="button" class="td-view-img-btn" data-src="${escapeHtml(url)}" data-name="${name}" title="View ${name}">
-                            <i class="fas fa-image"></i> ${name}
+                            <i class="ti ti-photo"></i> ${name}
                         </button>`;
                     }).join('');
-                    return `<div class="td-field-group" style="margin-top:12px;">
-                        <span class="td-field-label"><i class="fas fa-image"></i> Attached Photos (${atts.length})</span>
+                    return `<div class="td-field-group" style="margin-top:8px;">
+                        <span class="td-field-label"><i class="ti ti-photo"></i> Attached Photos (${atts.length})</span>
                         <div class="td-attachment-row">${thumbs}</div>
                     </div>`;
                 })()}
             </div>
             <div class="td-section">
-                <div class="td-section-title">Assignment &amp; Actions</div>
+                <div class="td-section-title"><i class="ti ti-user-cog"></i> Assignment &amp; Actions</div>
                 <div class="td-field-row"><span class="td-field-label">Assigned IT Officer</span>
-                    <span class="td-field-val ${!tk.assigned_to?'td-warn-text':''}">${tk.assigned_to?escapeHtml(tk.assigned_to):'<i class="fas fa-exclamation-triangle"></i> Awaiting assigned IT Officer'}</span></div>
-                <div class="td-field-group" style="margin-top:12px;"><label class="td-field-label">Update Status</label>
+                    <span class="td-field-val">${tk.assigned_to?escapeHtml(tk.assigned_to):'<span class="td-warn-badge">Awaiting assigned IT Officer</span>'}</span></div>
+                <div class="td-field-group" style="margin-top:8px;"><label class="td-field-label">Update Status</label>
                     ${(tk.status==='Pending' || tk.status==='Ongoing') ? `
                         <select class="td-select" id="tdStatusSelect" data-original="${escapeHtml(tk.status)}">
                             <option value="Pending" ${tk.status==='Pending'?'selected':''}>Pending</option>
@@ -661,33 +733,33 @@
                     ` : `
                         <div class="td-status-locked">
                             <span class="td-status-badge td-status-${(tk.status||'').toLowerCase().replace(/\s+/g,'-')}">${escapeHtml(tk.status)}</span>
-                            <span class="td-status-lock-note"><i class="fas fa-lock"></i> Locked — status cannot be changed here</span>
+                            <span class="td-status-lock-note"><i class="ti ti-lock"></i> Locked — status cannot be changed here</span>
                         </div>
                     `}
                 </div>
-                <div class="td-field-group" style="margin-top:12px;"><label class="td-field-label">Assign IT Officer</label>
+                <div class="td-field-group" style="margin-top:8px;"><label class="td-field-label">Assign IT Officer</label>
                     <select class="td-select" id="tdAssignSelect"><option value="">Select an item…</option>${officerOpts}</select></div>
                 ${tk.status==='Ongoing'?`<button class="td-btn-complete" id="tdMarkCompleteBtn"
                     data-dbid="${tk.id}" data-code="${escapeHtml(tk.ticket_code)}"
                     data-requester="${escapeHtml(tk.requester_name)}" data-issue="${escapeHtml(tk.title)}">
-                    <i class="fas fa-check"></i> Mark as Completed</button>`:''}
+                    <i class="ti ti-circle-check"></i> Mark as Completed</button>`:''}
             </div>
             ${extRepairBlock}
             ${consumableBlock}
             <div class="td-section">
-                <div class="td-section-title"><i class="fas fa-comments"></i> Conversation &amp; Follow-ups</div>
+                <div class="td-section-title"><i class="ti ti-messages"></i> Conversation &amp; Follow-ups</div>
                 <div class="td-conv-thread">${convHtml}</div>
                 <div class="td-reply-area">
                     <div class="td-field-label">Add Reply / Update</div>
                     <textarea class="td-textarea td-reply-input" id="tdReplyInput" placeholder="Type your reply or update here…"></textarea>
-                    <button class="td-btn-reply" id="tdSendReplyBtn"><i class="fas fa-paper-plane"></i> Send Reply</button>
+                    <button class="td-btn-reply" id="tdSendReplyBtn"><i class="ti ti-send"></i> Send Reply</button>
                 </div>
             </div>
           </div>
         </div>
         <div class="td-footer">
-            <button class="td-btn-save" id="tdSaveChangesBtn" data-dbid="${tk.id}"><i class="fas fa-save"></i> Save Changes</button>
-            <button class="td-btn-cancel" id="tdCancelBtn"><i class="fas fa-times"></i> Close</button>
+            <button class="td-btn-save" id="tdSaveChangesBtn" data-dbid="${tk.id}"><i class="ti ti-device-floppy"></i> Save Changes</button>
+            <button class="td-btn-cancel" id="tdCancelBtn"><i class="ti ti-x"></i> Close</button>
         </div>`;
 
         document.getElementById('tdCancelBtn')?.addEventListener('click', _closeDetailOverlay);
@@ -701,7 +773,7 @@
         ['tdSvcCost','tdPartsCost','tdSvcFee'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', () => {
                 const tot = document.getElementById('tdRepTotal');
-                if (tot) tot.value = '₱' + (['tdSvcCost','tdPartsCost','tdSvcFee'].reduce((s,i)=>s+(parseFloat(document.getElementById(i)?.value)||0),0)).toFixed(2);
+                if (tot) tot.value = (['tdSvcCost','tdPartsCost','tdSvcFee'].reduce((s,i)=>s+(parseFloat(document.getElementById(i)?.value)||0),0)).toFixed(2);
             });
         });
 
@@ -722,7 +794,7 @@
             fd.append('ticket_id', tk.id);
             fd.append('admin_id',  cu.id || 0);
             fd.append('receipt',   file);
-            if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.style.color = '#1f6392'; }
+            if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.style.color = '#585858'; }
             try {
                 const res  = await fetch('../api/upload_receipt.php', { method: 'POST', body: fd });
                 const json = await res.json();
@@ -773,6 +845,14 @@
 
         document.getElementById('tdSaveChangesBtn')?.addEventListener('click', () => _saveDetail(tk.id, cu));
         document.getElementById('tdSendReplyBtn')?.addEventListener('click', () => _sendReply(tk.id, cu));
+        // Enter sends the reply; Shift+Enter still inserts a newline, matching
+        // the usual chat-input convention.
+        document.getElementById('tdReplyInput')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                _sendReply(tk.id, cu);
+            }
+        });
 
         // ── Closed tickets are read-only ─────────────────────────────────────
         // Disable every editable control in the overlay, hide the reply/save
@@ -813,7 +893,7 @@
             banner.style.cssText = 'background:#fef3c7;border:1.5px solid #fcd34d;border-radius:12px;'
                 + 'padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;'
                 + 'color:#7c5215;font-size:0.85rem;font-family:Inter,sans-serif;';
-            banner.innerHTML = '<i class="fas fa-lock" style="color:#b8860b;font-size:1rem;"></i>'
+            banner.innerHTML = '<i class="ti ti-lock" style="color:#b8860b;font-size:1rem;"></i>'
                 + '<div><strong>This ticket is closed and cannot be edited.</strong>'
                 + '<div style="font-size:0.78rem;margin-top:2px;opacity:0.85;">'
                 + 'Closed tickets are locked for historical accuracy.</div></div>';
@@ -1014,25 +1094,25 @@
                 <div class="td-img-viewer-box">
                     <div class="td-img-viewer-header">
                         <span id="tdImgViewerName" class="td-img-viewer-title"></span>
-                        <button id="tdImgViewerClose" class="td-modal-close" title="Close">&times;</button>
+                        <button id="tdImgViewerClose" class="td-modal-close" title="Close"><i class="ti ti-x"></i></button>
                     </div>
                     <div class="td-img-viewer-body">
                         <img id="tdImgViewerImg" src="" alt="Attachment" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:auto;">
                         <div id="tdImgViewerError" style="display:none;color:#c62828;font-size:0.85rem;padding:20px;">
-                            <i class="fas fa-triangle-exclamation"></i> Could not load this image. The file may be missing on the server.
+                            <i class="ti ti-alert-triangle"></i> Could not load this image. The file may be missing on the server.
                         </div>
                     </div>
                     <div class="td-img-viewer-footer">
                         <a id="tdImgViewerDownload" href="" download class="td-btn-download" style="display:inline-flex;align-items:center;gap:6px;">
-                            <i class="fas fa-download"></i> Download
+                            <i class="ti ti-download"></i> Download
                         </a>
                     </div>
                 </div>`;
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-            overlay.querySelector('.td-img-viewer-box').style.cssText = 'background:#fff;border-radius:14px;max-width:860px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.35);overflow:hidden;';
-            overlay.querySelector('.td-img-viewer-header').style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #e5edf5;';
-            overlay.querySelector('.td-img-viewer-body').style.cssText = 'padding:20px;text-align:center;background:#f8fafc;';
-            overlay.querySelector('.td-img-viewer-footer').style.cssText = 'padding:12px 20px;border-top:1px solid #e5edf5;text-align:right;';
+            overlay.querySelector('.td-img-viewer-box').style.cssText = 'background:#fff;border-radius:20px;max-width:860px;width:100%;box-shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);overflow:hidden;';
+            overlay.querySelector('.td-img-viewer-header').style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #eef3f8;';
+            overlay.querySelector('.td-img-viewer-body').style.cssText = 'padding:20px;text-align:center;background:#f8fbfe;';
+            overlay.querySelector('.td-img-viewer-footer').style.cssText = 'padding:12px 20px;border-top:1px solid #eef3f8;text-align:right;';
             document.body.appendChild(overlay);
             overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
             document.getElementById('tdImgViewerClose').addEventListener('click', () => overlay.style.display = 'none');
@@ -1161,5 +1241,20 @@
         `;
         document.head.appendChild(style);
     }
+
+    // ─── Cross-page embed: Dashboard.html loads this same script + ServiceRequest.css
+    // so it can pop the exact "Request Details" overlay in place instead of navigating
+    // away. Dashboard.js's ticket rows call this. Falls back to a fresh
+    // loadTicketsFromDB() if ticketsData hasn't populated yet — e.g. the admin clicks
+    // within the first moment after Dashboard.html loads, before this script's own
+    // background get_tickets.php fetch has resolved.
+    window.openTicketDetails = async function (ticketCode) {
+        if (!ticketCode) return;
+        const target = String(ticketCode).startsWith('#') ? String(ticketCode) : '#' + ticketCode;
+        let t = ticketsData.find(t => t.id === target);
+        if (!t) { await loadTicketsFromDB(); t = ticketsData.find(t => t.id === target); }
+        if (t) viewTicket(t.id);
+        else showToast('Could not find that ticket.', 'error');
+    };
 
 })();

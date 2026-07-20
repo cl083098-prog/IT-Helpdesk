@@ -4,80 +4,105 @@
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Inter', sans-serif;
-    background: #f5f9fe;
-    color: #1e2f3e;
-}
+/* body font-family/background/color now live only in Sidebar.css (single
+   source of truth) — this page's copy matched it exactly anyway, just kept
+   drifting independently. */
 
 .dashboard-wrapper {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
 }
 
+/* .main-content no longer scrolls itself — it's a fixed-height flex column
+   (top-bar + .usermgmt-scroll-area below). A full-viewport div with its own
+   overflow gets promoted to Chrome's "implicit root scroller" and renders the
+   native OS scrollbar, ignoring custom scrollbar styling. Moving the overflow
+   onto the nested .usermgmt-scroll-area (see UserManagement.html) sidesteps
+   that, same fix applied across the other admin pages. */
 .main-content {
     flex: 1;
     padding: 24px 32px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.usermgmt-scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     overflow-x: auto;
+    scrollbar-gutter: stable;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
 }
 
-/* Top Bar */
-.top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-    background: white;
-    padding: 16px 24px;
-    border-radius: 28px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+.usermgmt-scroll-area::-webkit-scrollbar {
+    width: 6px;
 }
 
-.menu-toggle {
-    cursor: pointer;
-    font-size: 1.4rem;
-    color: #1f6392;
-    display: none;
+.usermgmt-scroll-area::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-.page-title h1 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #1c4c6e;
+.usermgmt-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
 }
 
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: #f0f4f9;
-    padding: 8px 20px;
-    border-radius: 40px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: #1c4c6e;
+.usermgmt-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+body.dark-mode .usermgmt-scroll-area {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode .usermgmt-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode .usermgmt-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+}
+
+/* Top Bar — .top-bar/.menu-toggle/.page-title h1 sizing now lives solely in
+   Sidebar.css (shared canonical values across every admin page); this page
+   no longer re-declares them to avoid the per-page drift that used to make
+   the header resize when navigating between modules. */
+
+/* RESTYLE: .topbar-search / .user-avatar / .user-profile are now SOLELY
+   declared in Sidebar.css (single source of truth, promoted there this
+   session) — the page-local duplicates that used to live here (gold gradient
+   avatar, gold focus ring) were deleted rather than recolored, per the
+   known cross-page duplication bug. Only the responsive hide-search-below-
+   900px rule stays page-local, matching Dashbaord.css's identical carve-out. */
+@media (max-width: 900px) {
+    .topbar-search {
+        display: none;
+    }
 }
 
 /* User Management Container */
 .user-management-container {
     background: white;
-    border-radius: 28px;
+    border-radius: 20px;
     padding: 24px;
     margin-bottom: 28px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    border: 1px solid #eef3f8;
+    box-shadow: none;
+    border: 1px solid #E8E6E0;
 }
 
 /* Notifications Container */
 .notifications-container {
     background: white;
-    border-radius: 28px;
+    border-radius: 20px;
     padding: 24px;
     margin-bottom: 28px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    border: 1px solid #eef3f8;
+    box-shadow: none;
+    border: 1px solid #E8E6E0;
 }
 
 /* Section Header */
@@ -87,7 +112,7 @@ body {
     align-items: center;
     margin-bottom: 24px;
     padding-bottom: 12px;
-    border-bottom: 2px solid #eef3f8;
+    border-bottom: 2px solid #E8E6E0;
     flex-wrap: wrap;
     gap: 16px;
 }
@@ -95,7 +120,7 @@ body {
 .section-header h2 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: #111111;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -103,15 +128,15 @@ body {
 
 /* Buttons */
 .btn-primary {
-    background: #1f6392;
+    background: #111111;
     border: none;
-    border-radius: 40px;
+    border-radius: 999px;
     padding: 10px 24px;
     font-weight: 700;
     font-size: 0.85rem;
     color: white;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -119,20 +144,20 @@ body {
 }
 
 .btn-primary:hover {
-    background: #0d4b70;
-    transform: translateY(-1px);
+    background: #2a2a2a;
+    transform: translateY(-2px);
 }
 
 .btn-secondary {
-    background: #eef3fc;
-    border: none;
-    border-radius: 40px;
+    background: transparent;
+    border: 1px solid #111111;
+    border-radius: 999px;
     padding: 10px 24px;
     font-weight: 600;
     font-size: 0.85rem;
-    color: #1f6392;
+    color: #111111;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -140,19 +165,21 @@ body {
 }
 
 .btn-secondary:hover {
-    background: #e2eaf3;
+    background: #F1F0EC;
 }
 
+/* .btn-warning kept as a distinct caution orange (not part of the navy/gold
+   accent being removed) — used for risk-carrying actions like Reset Password. */
 .btn-warning {
     background: #e67e22;
     border: none;
-    border-radius: 40px;
+    border-radius: 999px;
     padding: 10px 20px;
     font-weight: 600;
     font-size: 0.85rem;
     color: white;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
     font-family: 'Inter', sans-serif;
 }
 
@@ -160,16 +187,17 @@ body {
     background: #d35400;
 }
 
+/* .btn-save kept as a distinct success green (semantic, not navy/gold). */
 .btn-save {
     background: #27ae60;
     border: none;
-    border-radius: 40px;
+    border-radius: 999px;
     padding: 10px 28px;
     font-weight: 700;
     font-size: 0.85rem;
     color: white;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
     font-family: 'Inter', sans-serif;
 }
 
@@ -178,20 +206,20 @@ body {
 }
 
 .btn-cancel {
-    background: #f0f4f9;
-    border: none;
-    border-radius: 40px;
+    background: transparent;
+    border: 1px solid #111111;
+    border-radius: 999px;
     padding: 10px 28px;
     font-weight: 600;
     font-size: 0.85rem;
-    color: #5a7e9e;
+    color: #111111;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
     font-family: 'Inter', sans-serif;
 }
 
 .btn-cancel:hover {
-    background: #e8eef3;
+    background: #F1F0EC;
 }
 
 /* Filter Bar */
@@ -202,23 +230,23 @@ body {
     gap: 16px;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid #eef3f8;
+    border-bottom: 1px solid #E8E6E0;
 }
 
 .search-wrapper {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #f8fbfe;
-    border-radius: 40px;
+    background: #F1F0EC;
+    border-radius: 999px;
     padding: 8px 18px;
-    border: 1px solid #e2edf2;
+    border: 1px solid #E8E6E0;
     flex: 1;
     min-width: 250px;
 }
 
 .search-wrapper i {
-    color: #95a5a6;
+    color: #9C9A94;
 }
 
 .search-input {
@@ -228,7 +256,7 @@ body {
     font-size: 0.9rem;
     font-family: 'Inter', sans-serif;
     width: 100%;
-    color: #1e2f3e;
+    color: #111111;
 }
 
 .search-input:focus {
@@ -243,32 +271,32 @@ body {
 }
 
 .filter-select {
-    background: #f8fbfe;
-    border: 1px solid #e2edf2;
-    border-radius: 40px;
+    background: #F1F0EC;
+    border: 1px solid #E8E6E0;
+    border-radius: 999px;
     padding: 8px 18px;
     font-family: 'Inter', sans-serif;
     font-size: 0.8rem;
     font-weight: 500;
-    color: #1c4c6e;
+    color: #111111;
     cursor: pointer;
 }
 
 .btn-reset {
-    background: #eef3fc;
-    border: none;
-    border-radius: 40px;
+    background: transparent;
+    border: 1px solid #111111;
+    border-radius: 999px;
     padding: 8px 20px;
     font-weight: 600;
     font-size: 0.75rem;
-    color: #1f6392;
+    color: #111111;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.25s ease-in-out;
     font-family: 'Inter', sans-serif;
 }
 
 .btn-reset:hover {
-    background: #e2eaf3;
+    background: #F1F0EC;
 }
 
 /* Data Table */
@@ -285,75 +313,84 @@ body {
 .data-table th {
     text-align: left;
     padding: 14px 12px;
-    background: #f8fbfe;
+    background: #F1F0EC;
     font-weight: 700;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #1c4c6e;
-    border-bottom: 2px solid #eef3f8;
+    color: #111111;
+    border-bottom: 2px solid #E8E6E0;
 }
 
 .data-table td {
     padding: 12px 12px;
-    border-bottom: 1px solid #eef3f8;
-    color: #2c5a7a;
+    border-bottom: 1px solid #E8E6E0;
+    color: #111111;
     font-weight: 500;
 }
 
-/* Status Badges */
+/* Status Badges — muted pastel pills per the shared status-pill mapping
+   (Success/Active -> green tint, Danger/Inactive -> red tint). */
 .status-active {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 30px;
+    border-radius: 999px;
     font-size: 0.7rem;
     font-weight: 700;
-    background: #d5f5e3;
-    color: #27ae60;
+    background: #E3F1E6;
+    color: #2F7D42;
 }
 
 .status-inactive {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 30px;
+    border-radius: 999px;
     font-size: 0.7rem;
     font-weight: 700;
-    background: #fde2e2;
-    color: #c62828;
+    background: #F5E4E1;
+    color: #B0362A;
 }
 
-/* Action Buttons */
+/* Action Buttons — outlined pill labels (icon + text), same pill language as
+   .btn-primary/.btn-secondary/.btn-warning elsewhere on this page, instead of
+   unlabeled icon-only circles. View stays neutral black/outline (matches
+   .btn-secondary exactly); Deactivate keeps the distinct warning-orange tint
+   used for risk-carrying actions (.btn-warning/.um-btn-warning) since it
+   triggers the "Deactivate User" confirm modal — a semantically riskier
+   action than View. */
 .action-buttons {
     display: flex;
     gap: 8px;
 }
 
-.action-btn {
-    background: none;
-    border: none;
+.action-btn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid #111111;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    color: #111111;
     cursor: pointer;
-    font-size: 0.9rem;
-    padding: 6px;
-    border-radius: 8px;
-    transition: all 0.2s;
+    white-space: nowrap;
+    transition: all 0.25s ease-in-out;
 }
 
-.action-btn.edit {
-    color: #1f6392;
-    background: #eef3fc;
-}
-
-.action-btn.edit:hover {
-    background: #1f6392;
+.action-btn-pill.view:hover {
+    background: #111111;
     color: white;
 }
 
-.action-btn.reset {
+.action-btn-pill.deactivate {
+    border-color: #e67e22;
     color: #e67e22;
-    background: #ffe0cc;
 }
 
-.action-btn.reset:hover {
+.action-btn-pill.deactivate:hover {
     background: #e67e22;
     color: white;
 }
@@ -368,31 +405,28 @@ body {
     display: flex;
     gap: 14px;
     padding: 16px;
-    border-bottom: 1px solid #eef3f8;
+    border-bottom: 1px solid #E5E5E5;
     transition: background 0.2s;
     cursor: pointer;
 }
 
 .notification-item:hover {
-    background: #f8fbfe;
+    background: #F1F0EC;
 }
 
 .notification-item.unread {
-    background: #f0f7ff;
-    border-left: 3px solid #1f6392;
+    background: #F1F0EC;
+    border-left: 3px solid #111111;
 }
 
-.notification-icon {
-    width: 42px;
-    height: 42px;
-    background: #eef3fc;
-    border-radius: 21px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #1f6392;
-    font-size: 1.1rem;
-}
+/* FIX (top-bar icon collision): this ".notification-icon" rule was dead —
+   ".notifications-list"/".notification-item" above are never rendered by
+   UserManagement.js/.html, this was leftover styling for a removed panel.
+   But the bare class name collided with the REAL top-bar bell button, which
+   admin-notifications.js injects with class "notification-icon admin-notif-bell"
+   — so this dead rule was silently resizing the live bell to a 42px squircle
+   instead of Sidebar.css's standard 40px circle used on every other admin
+   page. Removed so the bell falls back to the shared 40px/1.1rem default. */
 
 .notification-content {
     flex: 1;
@@ -401,25 +435,25 @@ body {
 .notification-title {
     font-weight: 700;
     font-size: 0.9rem;
-    color: #1c4c6e;
+    color: #111111;
     margin-bottom: 4px;
 }
 
 .notification-message {
     font-size: 0.8rem;
-    color: #5a7e9e;
+    color: #6B6B6B;
     margin-bottom: 4px;
 }
 
 .notification-time {
     font-size: 0.7rem;
-    color: #95a5a6;
+    color: #9C9A94;
 }
 
 .empty-notifications {
     text-align: center;
     padding: 48px;
-    color: #95a5a6;
+    color: #9C9A94;
 }
 
 /* Modal Styles */
@@ -450,7 +484,7 @@ body {
     width: 90%;
     max-width: 550px;
     max-height: 85vh;
-    border-radius: 32px;
+    border-radius: 20px;
     overflow: hidden;
     transform: scale(0.95);
     transition: transform 0.25s ease;
@@ -471,14 +505,14 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid #eef3f8;
+    border-bottom: 2px solid #E8E6E0;
     flex-shrink: 0;
 }
 
 .modal-header h3 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: #111111;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -489,8 +523,8 @@ body {
     border: none;
     font-size: 1.6rem;
     cursor: pointer;
-    color: #95a5a6;
-    transition: color 0.2s;
+    color: #9C9A94;
+    transition: color 0.25s ease-in-out;
     width: 36px;
     height: 36px;
     display: flex;
@@ -500,8 +534,8 @@ body {
 }
 
 .modal-close:hover {
-    color: #c62828;
-    background: #fef2f2;
+    color: #B0362A;
+    background: #F5E4E1;
 }
 
 .modal-body {
@@ -516,7 +550,7 @@ body {
     gap: 12px;
     margin-top: 20px;
     padding-top: 16px;
-    border-top: 1px solid #eef3f8;
+    border-top: 1px solid #E8E6E0;
 }
 
 /* Form Styles */
@@ -530,30 +564,30 @@ body {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #2c5a7a;
+    color: #6B6B6B;
     margin-bottom: 6px;
 }
 
 .form-input {
     width: 100%;
     padding: 12px 16px;
-    border: 1.5px solid #e2edf2;
+    border: 1.5px solid #E8E6E0;
     border-radius: 20px;
     font-family: 'Inter', sans-serif;
     font-size: 0.9rem;
     background: #ffffff;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
 }
 
 .form-input:focus {
     outline: none;
-    border-color: #1f6392;
-    box-shadow: 0 0 0 3px rgba(31, 99, 146, 0.1);
+    border-color: #111111;
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
 }
 
 .form-input:disabled {
-    background: #f8fbfe;
-    color: #95a5a6;
+    background: #F1F0EC;
+    color: #9C9A94;
     cursor: not-allowed;
 }
 
@@ -566,7 +600,7 @@ body {
 .form-hint {
     display: block;
     font-size: 0.7rem;
-    color: #95a5a6;
+    color: #9C9A94;
     margin-top: 6px;
 }
 
@@ -587,7 +621,7 @@ body {
 }
 
 .user-info-card {
-    background: #f8fbfe;
+    background: #F1F0EC;
     border-radius: 20px;
     padding: 16px;
     margin-bottom: 20px;
@@ -606,7 +640,7 @@ body {
     background: #27ae60;
     color: white;
     padding: 12px 24px;
-    border-radius: 40px;
+    border-radius: 999px;
     font-weight: 600;
     font-size: 0.9rem;
     z-index: 3000;
@@ -626,52 +660,62 @@ body {
     background: #c62828;
 }
 
-/* Role Tags (mirrors the status-active/status-inactive badge style) */
+/* Role Tags (mirrors the status-active/status-inactive badge style) — live,
+   rendered by UserManagement.js's loadUsers() for the main table's Role
+   column. Muted pastel pills, each role keeping a distinct hue (this is a
+   4-tier semantic category system, not the navy/gold brand accent). */
 .role-tag {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 30px;
+    border-radius: 999px;
     font-size: 0.7rem;
     font-weight: 700;
 }
 
 .role-tag-admin {
-    background: #dbeafe;
-    color: #1f6392;
+    background: #EEECE6;
+    color: #55534C;
 }
 
 .role-tag-school_admin {
-    background: #fdeccf;
-    color: #b5720d;
+    background: #F5EBD9;
+    color: #8A6100;
 }
 
 .role-tag-dept_head {
-    background: #e6d9f7;
-    color: #6c3fb0;
+    background: #FBEAF0;
+    color: #B23A63;
 }
 
 .role-tag-requester {
-    background: #e3f2e1;
-    color: #2e7d32;
+    background: #E3F1E6;
+    color: #2F7D42;
 }
 
 /* Dark Mode Support */
+/* .top-bar removed from this selector list — it's now styled exclusively by
+   Sidebar.css (shared, single source of truth); this page must not
+   re-declare its dark-mode treatment either. */
+/* 2026-07-18 dark-mode reskin: neutral warm-black palette matching the
+   supplied csma_dashboard_dark.html reference (same values as Sidebar.css). */
 body.dark-mode .user-management-container,
 body.dark-mode .notifications-container,
-body.dark-mode .top-bar,
 body.dark-mode .modal-container {
-    background: #111827 !important;
-    border-color: #1f2937 !important;
+    background: #17171a !important;
+    border-color: #232326 !important;
 }
 
+/* .topbar-search / .user-avatar dark-mode coverage removed — both now live
+   solely in Sidebar.css alongside their canonical light-mode rules. */
+
 body.dark-mode .data-table th {
-    background: #1f2937 !important;
-    color: #e8edf2 !important;
+    background: #1d1d21 !important;
+    color: #f2f2f3 !important;
 }
 
 body.dark-mode .data-table td {
-    color: #cfdcec !important;
-    border-color: #2a3040 !important;
+    color: #d4d4d6 !important;
+    border-color: #232326 !important;
 }
 
 body.dark-mode .notification-item:hover {
@@ -731,94 +775,131 @@ body.dark-mode .user-info-card {
 
 /* Tab bar */
 .um-tab-bar { display:flex; gap:8px; margin-bottom:20px; }
-.um-tab { background:white; border:1.5px solid #eef3f8; padding:9px 22px; border-radius:40px;
-    font-size:0.82rem; font-weight:600; font-family:'Inter',sans-serif; color:#6c86a0;
-    cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:7px; }
-.um-tab:hover { border-color:#1f6392; color:#1f6392; }
-.um-tab.active { background:#1f6392; color:white; border-color:#1f6392; box-shadow:0 2px 8px rgba(31,99,146,0.2); }
+.um-tab { background:white; border:1.5px solid #E8E6E0; padding:9px 22px; border-radius:999px;
+    font-size:0.82rem; font-weight:600; font-family:'Inter',sans-serif; color:#6B6B6B;
+    cursor:pointer; transition:all 0.25s ease-in-out; display:flex; align-items:center; gap:7px; }
+.um-tab:hover { border-color:#8A6D00; color:#8A6D00; }
+.um-tab.active { background:#FDC913; color:#1A1A1A; border-color:#FDC913; box-shadow:none; }
 
 /* Section visibility */
 .um-section { display:none; }
 .um-section.active { display:block; }
 
-/* Summary cards */
+/* Summary cards — black/cream design system (Colegio de Sta. Monica de Angat).
+   RESTYLED: the .selected click-to-expand state used to be a gold ring/shadow
+   (#f0b429); remapped to the same black-accent "active" treatment used by
+   Sidebar.css's .nav-item.active (solid black border, no colored glow) so a
+   selected card reads as unambiguously "on" without reintroducing gold. */
 .um-summary-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:16px; margin-bottom:20px; }
-.um-summary-card { background:white; border-radius:20px; padding:16px 18px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.04); border:1px solid #eef3f8; transition:transform 0.2s; }
-.um-summary-card:hover { transform:translateY(-2px); }
-.um-summary-active { border-top:3px solid #27ae60; }
-.um-summary-title { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#6c86a0; margin-bottom:8px; }
-.um-summary-num { font-size:1.8rem; font-weight:800; color:#1f6392; letter-spacing:-0.02em; }
-.um-summary-active .um-summary-num { color:#27ae60; }
+.um-summary-card { background:#ffffff; border-radius:20px; padding:17px 19px;
+    box-shadow:none; border:1px solid #E8E6E0; cursor:pointer;
+    transition:all 0.25s ease-in-out; }
+.um-summary-card:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,0.08); }
+.um-summary-card:focus-visible { outline:2px solid #111111; outline-offset:2px; }
+.um-summary-card.selected { border:2px solid #111111; padding:16px 18px; box-shadow:none; }
+.um-summary-title { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#6B6B6B; margin-bottom:8px; }
+.um-summary-num { font-size:1.8rem; font-weight:800; color:#111111; letter-spacing:-0.02em; }
+.um-summary-card.selected .um-summary-num { color:#111111; }
+
+/* Category detail panel (opens below the summary row on card click).
+   RESTYLED: .um-category-panel-count used the same gold tint as the old
+   .selected state; moved to the muted neutral pill treatment (this is a
+   plain "N users" count chip, not a semantic status, so it takes the
+   Neutral/Default pill mapping rather than a status color). */
+.um-category-panel { display:none; }
+.um-category-panel.open { display:block; }
+.um-category-panel-header { display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid #E8E6E0; flex-wrap:wrap; gap:10px; }
+.um-category-panel-header h3 { font-size:1rem; font-weight:700; color:#111111; display:flex; align-items:center; gap:10px; }
+.um-category-panel-count { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.3px;
+    background:#EEECE6; color:#55534C; padding:3px 10px; border-radius:999px; }
+.um-category-panel-close { background:none; border:none; font-size:1.5rem; line-height:1; color:#9C9A94;
+    cursor:pointer; padding:2px 9px; border-radius:8px; transition:all 0.25s ease-in-out; }
+.um-category-panel-close:hover { background:#F5E4E1; color:#B0362A; }
+/* .um-cat-badge-active — kept as its own class (distinct from .um-badge-active
+   used in the detail modal/activity log) per the existing separation; both
+   now resolve to the same muted success pill so "Active" reads identically
+   everywhere despite the deliberate class split. */
+.um-cat-badge-active { background:#E3F1E6; color:#2F7D42; }
 
 /* Panel */
-.um-panel { background:white; border-radius:24px; padding:24px; margin-bottom:24px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.04); border:1px solid #eef3f8; }
+.um-panel { background:white; border-radius:20px; padding:24px; margin-bottom:24px;
+    box-shadow:none; border:1px solid #E8E6E0; }
 .um-panel-header { display:flex; justify-content:space-between; align-items:center;
-    margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid #eef3f8; flex-wrap:wrap; gap:12px; }
-.um-panel-title { font-size:1rem; font-weight:700; color:#1c4c6e; display:flex; align-items:center; gap:8px; }
-.um-panel-title i { color:#1f6392; }
+    margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid #E8E6E0; flex-wrap:wrap; gap:12px; }
+.um-panel-title { font-size:1rem; font-weight:700; color:#111111; display:flex; align-items:center; gap:8px; }
+.um-panel-title i { color:#111111; }
 
 /* Buttons */
-.um-btn-primary { background:#1f6392; color:white; border:none; padding:10px 22px; border-radius:40px;
+.um-btn-primary { background:#111111; color:white; border:none; padding:10px 22px; border-radius:40px;
     font-size:0.82rem; font-weight:700; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s;
     display:flex; align-items:center; gap:8px; }
-.um-btn-primary:hover { background:#155580; }
-.um-btn-primary-modal { background:#1f6392; color:white; border:none; padding:10px 24px; border-radius:8px;
+.um-btn-primary:hover { background:#000000; }
+.um-btn-primary-modal { background:#111111; color:white; border:none; padding:10px 24px; border-radius:8px;
     font-size:0.85rem; font-weight:700; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s; }
-.um-btn-primary-modal:hover { background:#155580; }
-.um-btn-cancel { background:white; border:1.5px solid #dee4ea; padding:10px 20px; border-radius:8px;
-    font-size:0.85rem; font-weight:500; color:#6c86a0; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; }
-.um-btn-cancel:hover { border-color:#1f6392; color:#1f6392; }
+.um-btn-primary-modal:hover { background:#000000; }
+.um-btn-cancel { background:white; border:1.5px solid #E5E5E5; padding:10px 20px; border-radius:8px;
+    font-size:0.85rem; font-weight:500; color:#585858; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; }
+.um-btn-cancel:hover { border-color:#8A6D00; color:#8A6D00; }
 .um-btn-warning { background:#e67e22; color:white; border:none; padding:10px 20px; border-radius:8px;
     font-size:0.82rem; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s;
     display:flex; align-items:center; gap:7px; }
 .um-btn-warning:hover { background:#c76b18; }
-.um-btn-secondary { background:#eef3fc; color:#1f6392; border:1.5px solid #c8dcf0;
+.um-btn-secondary { background:#FFF3D1; color:#8A6D00; border:1.5px solid #FDC913;
     padding:10px 20px; border-radius:8px; font-size:0.82rem; font-weight:600;
     font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:7px; }
-.um-btn-secondary:hover { background:#1f6392; color:white; }
-.um-btn-reset { background:#f0f4f9; border:1.5px solid #e2e8ed; padding:9px 16px;
-    border-radius:10px; font-size:0.82rem; font-weight:600; color:#5a7e9e;
+.um-btn-secondary:hover { background:#111111; color:white; }
+.um-btn-reset { background:#F5F5F5; border:1.5px solid #E5E5E5; padding:9px 16px;
+    border-radius:10px; font-size:0.82rem; font-weight:600; color:#585858;
     cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
-.um-btn-reset:hover { border-color:#1f6392; color:#1f6392; }
+.um-btn-reset:hover { border-color:#8A6D00; color:#8A6D00; }
 .um-btn-danger { background:#c62828; color:white; border:none; padding:10px 20px; border-radius:8px;
     font-size:0.85rem; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s; }
 .um-btn-danger:hover { background:#a52020; }
 
 /* Table action button (View) */
-.um-action-btn { background:#eef3fc; border:none; padding:5px 12px; border-radius:20px;
-    font-size:0.75rem; font-weight:600; color:#1f6392; cursor:pointer;
-    font-family:'Inter',sans-serif; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s; }
-.um-action-btn:hover { background:#1f6392; color:white; }
-.um-btn-view { background:#eef3fc; color:#1f6392; }
+.um-action-btn { background:#ffffff; border:1px solid #1A1A1A; padding:6px 14px; border-radius:30px;
+    font-size:0.78rem; font-weight:600; color:#1A1A1A; cursor:pointer;
+    font-family:'Inter',sans-serif; display:inline-flex; align-items:center; gap:6px; transition:all 0.2s; }
+.um-action-btn i { font-size:0.72rem; }
+.um-action-btn:hover { background:#1A1A1A; color:white; }
+.um-btn-view { background:#ffffff; color:#1A1A1A; }
 
 /* Filter bar */
 .um-filter-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
-.um-search-wrapper { display:flex; align-items:center; gap:8px; background:#f4f6f9;
-    border:1.5px solid #e2e8ed; border-radius:12px; padding:9px 14px; flex:1; min-width:200px; }
+.um-search-wrapper { display:flex; align-items:center; gap:8px; background:#F5F5F5;
+    border:1.5px solid #E5E5E5; border-radius:12px; padding:9px 14px; flex:1; min-width:200px; }
 .um-search-wrapper i { color:#95a5a6; font-size:0.85rem; }
 .um-search-input { border:none; background:transparent; font-family:'Inter',sans-serif;
-    font-size:0.85rem; color:#2c4c6e; width:100%; }
+    font-size:0.85rem; color:#1A1A1A; width:100%; }
 .um-search-input:focus { outline:none; }
 .um-filter-group { display:flex; gap:10px; flex-wrap:wrap; }
-.um-filter-select { padding:9px 12px; border:1.5px solid #e2e8ed; border-radius:12px;
-    font-size:0.82rem; font-family:'Inter',sans-serif; color:#2c4c6e; background:white; cursor:pointer; }
-.um-filter-select:focus { outline:none; border-color:#1f6392; }
+.um-filter-select { padding:9px 12px; border:1.5px solid #E5E5E5; border-radius:12px;
+    font-size:0.82rem; font-family:'Inter',sans-serif; color:#1A1A1A; background:white; cursor:pointer; }
+.um-filter-select:focus { outline:none; border-color:#8A6D00; }
 
 /* Table */
 .um-table-wrapper { overflow-x:auto; }
+.um-table-scroll { max-height:calc(100vh - 380px); min-height:320px; overflow-y:auto; scrollbar-width:thin;
+    scrollbar-color:rgba(0,0,0,0.18) transparent; }
+.um-table-scroll::-webkit-scrollbar { width:6px; }
+.um-table-scroll::-webkit-scrollbar-track { background:transparent; }
+.um-table-scroll::-webkit-scrollbar-thumb { background-color:rgba(0,0,0,0.18); border-radius:999px; }
+.um-table-scroll::-webkit-scrollbar-thumb:hover { background-color:rgba(0,0,0,0.32); }
+.um-table-scroll .um-table thead th { position:sticky; top:0; z-index:1; }
 .um-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
 .um-table th { text-align:left; padding:12px 14px; font-size:0.72rem; font-weight:700;
-    text-transform:uppercase; letter-spacing:0.4px; color:#1c4c6e; border-bottom:2px solid #eef3f8;
-    background:#f8fbfe; white-space:nowrap; }
-.um-table td { padding:12px 14px; border-bottom:1px solid #f0f4f8; color:#2c5a7a; font-weight:500; }
+    text-transform:uppercase; letter-spacing:0.4px; color:#111111; border-bottom:2px solid #E5E5E5;
+    background:#F5F5F5; white-space:nowrap; }
+.um-table td { padding:12px 14px; border-bottom:1px solid #E5E5E5; color:#585858; font-weight:500; }
 .um-table tr:hover td { background:#f8fafc; }
 .um-empty-row { text-align:center; padding:40px; color:#95a5a6; font-size:0.85rem; }
-.um-empid { font-weight:700; color:#1f6392; }
+.um-empid { font-weight:700; color:#8A6D00; }
 
-/* Badges */
-.um-badge { padding:3px 10px; border-radius:20px; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; }
+/* Badges (text-transform:uppercase removed 2026-07-18 — matches the
+   reference design's Title Case status pills, e.g. ServiceRequest.css's
+   .status-badge, instead of shouty caps). */
+.um-badge { padding:3px 10px; border-radius:20px; font-size:0.7rem; font-weight:700; letter-spacing:0.3px; }
 .um-badge-active   { background:#d5f5e3; color:#27ae60; }
 .um-badge-inactive { background:#fde2e2; color:#c62828; }
 .um-badge-warn     { background:#fff3cd; color:#e67e22; }
@@ -826,7 +907,7 @@ body.dark-mode .user-info-card {
 .um-role-admin        { background:#cce5ff; color:#0066cc; }
 .um-role-school_admin { background:#e6d9f5; color:#6c3da8; }
 .um-role-dept_head    { background:#d5f5e3; color:#1a7a55; }
-.um-role-requester    { background:#eef3f8; color:#4a6a8a; }
+.um-role-requester    { background:#f4f4f5; color:#585858; }
 .um-status-badge { padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:700; }
 .um-status-success { background:#d5f5e3; color:#27ae60; }
 .um-status-failed  { background:#fde2e2; color:#c62828; }
@@ -843,7 +924,7 @@ body.dark-mode .user-info-card {
 .um-modal-overlay.active .um-modal { transform:scale(1); }
 .um-modal-header { padding:18px 24px; border-bottom:1px solid #eef2f5;
     display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-.um-modal-header h3 { font-size:1rem; font-weight:700; color:#1c4c6e; }
+.um-modal-header h3 { font-size:1rem; font-weight:700; color:#111111; }
 .um-modal-close { background:none; border:none; font-size:1.6rem; cursor:pointer; color:#95a5a6; line-height:1; }
 .um-modal-close:hover { color:#c62828; }
 .um-modal-body { padding:20px 24px; overflow-y:auto; flex:1; }
@@ -853,12 +934,12 @@ body.dark-mode .user-info-card {
 
 /* Form */
 .um-form-group { margin-bottom:16px; }
-.um-form-label { display:block; font-size:0.82rem; font-weight:600; color:#2c4c6e; margin-bottom:6px; }
+.um-form-label { display:block; font-size:0.82rem; font-weight:600; color:#1A1A1A; margin-bottom:6px; }
 .um-required { color:#c62828; }
-.um-form-input { width:100%; padding:10px 14px; border:1.5px solid #e2e8ed; border-radius:8px;
-    font-family:'Inter',sans-serif; font-size:0.85rem; color:#2c4c6e; background:white; transition:border-color 0.2s; }
-.um-form-input:focus { outline:none; border-color:#1f6392; box-shadow:0 0 0 3px rgba(31,99,146,0.08); }
-.um-form-input:disabled { background:#f4f6f9; color:#95a5a6; }
+.um-form-input { width:100%; padding:10px 14px; border:1.5px solid #E5E5E5; border-radius:8px;
+    font-family:'Inter',sans-serif; font-size:0.85rem; color:#1A1A1A; background:white; transition:border-color 0.2s; }
+.um-form-input:focus { outline:none; border-color:#8A6D00; box-shadow:0 0 0 3px rgba(138,109,0,0.15); }
+.um-form-input:disabled { background:#F5F5F5; color:#95a5a6; }
 .um-hint { font-size:0.72rem; color:#95a5a6; display:block; margin-top:4px; }
 .hint-success { color:#27ae60 !important; }
 .hint-error   { color:#c62828 !important; }
@@ -867,31 +948,31 @@ body.dark-mode .user-info-card {
 .um-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 .um-detail-full { grid-column:span 2; }
 .um-detail-item { display:flex; flex-direction:column; gap:5px; }
-.um-detail-label { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:#6c86a0; }
-.um-detail-val { font-size:0.9rem; font-weight:600; color:#1c4c6e; }
+.um-detail-label { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:#585858; }
+.um-detail-val { font-size:0.9rem; font-weight:600; color:#111111; }
 
 /* Reset password modal */
-.um-reset-target-card { background:#eef4fb; border-radius:10px; padding:14px 16px; margin-bottom:16px; border:1px solid #c8dcf0; }
-.um-reset-label  { font-size:0.75rem; color:#6c86a0; margin-bottom:4px; }
-.um-reset-name   { font-size:0.95rem; font-weight:700; color:#1c4c6e; }
-.um-reset-email  { font-size:0.78rem; color:#5a7e9e; margin-top:2px; }
+.um-reset-target-card { background:#FFF3D1; border-radius:10px; padding:14px 16px; margin-bottom:16px; border:1px solid #FDC913; }
+.um-reset-label  { font-size:0.75rem; color:#585858; margin-bottom:4px; }
+.um-reset-name   { font-size:0.95rem; font-weight:700; color:#111111; }
+.um-reset-email  { font-size:0.78rem; color:#585858; margin-top:2px; }
 .um-reset-note   { display:flex; gap:10px; align-items:flex-start; background:#fff9e6;
     border:1.5px solid #f0c040; border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:0.82rem; color:#5a4a1e; }
 .um-reset-note i { color:#c97a2e; flex-shrink:0; margin-top:2px; }
 
 /* Activity log detail */
 .um-log-section { margin-bottom:20px; }
-.um-log-section-title { font-size:0.82rem; font-weight:700; color:#1c4c6e; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid #eef2f5; }
-.um-log-detail-card { background:#f8fbfe; border-radius:12px; padding:14px 16px; border:1px solid #eef3f8; }
+.um-log-section-title { font-size:0.82rem; font-weight:700; color:#111111; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid #eef2f5; }
+.um-log-detail-card { background:#F5F5F5; border-radius:12px; padding:14px 16px; border:1px solid #E5E5E5; }
 .um-log-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .um-log-detail-item { display:flex; flex-direction:column; gap:4px; margin-bottom:8px; }
-.um-log-detail-label { font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:#6c86a0; }
-.um-log-detail-val { font-size:0.85rem; font-weight:500; color:#2c4c6e; }
-.um-log-id { font-weight:700; color:#1f6392; }
-.um-action-link { color:#1f6392; font-weight:600; }
+.um-log-detail-label { font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:#585858; }
+.um-log-detail-val { font-size:0.85rem; font-weight:500; color:#1A1A1A; }
+.um-log-id { font-weight:700; color:#8A6D00; }
+.um-action-link { color:#8A6D00; font-weight:600; }
 
 /* Role context badge in top-bar */
-.um-role-context { font-size:0.72rem; font-weight:600; background:#eef3fc; color:#1f6392; padding:3px 12px; border-radius:20px; }
+.um-role-context { font-size:0.72rem; font-weight:600; background:#FFF3D1; color:#8A6D00; padding:3px 12px; border-radius:20px; }
 
 /* Toast */
 .um-toast { position:fixed; bottom:28px; right:28px; padding:12px 24px; border-radius:40px;
@@ -903,20 +984,48 @@ body.dark-mode .user-info-card {
 .um-toast-error   { background:#c62828; }
 .um-toast-warning { background:#e67e22; }
 
-/* Dark mode */
-body.dark-mode .um-panel, body.dark-mode .um-summary-card, body.dark-mode .um-modal { background:#111827; border-color:#1f2937; }
-body.dark-mode .um-table th { background:#1f2937; color:#e8edf2; }
-body.dark-mode .um-table td { color:#c9d6e3; border-color:#1f2937; }
-body.dark-mode .um-table tr:hover td { background:#1a2234; }
-body.dark-mode .um-form-input, body.dark-mode .um-filter-select, body.dark-mode .um-search-wrapper { background:#1a2234; border-color:#2d3345; color:#e8edf2; }
-body.dark-mode .um-search-input { color:#e8edf2; }
-body.dark-mode .um-modal-header, body.dark-mode .um-modal-footer { border-color:#1f2937; }
-body.dark-mode .um-panel-title, body.dark-mode .um-detail-val, body.dark-mode .um-modal-header h3 { color:#e8edf2; }
-body.dark-mode .um-log-detail-card, body.dark-mode .um-reset-target-card { background:#1a2234; border-color:#2d3345; }
-body.dark-mode .um-tab { background:#111827; border-color:#1f2937; color:#8aa5bf; }
-body.dark-mode .um-tab.active { background:#1f6392; color:white; }
+/* Dark mode (2026-07-18: neutral warm-black palette matching the supplied
+   csma_dashboard_dark.html reference, same values as Sidebar.css) */
+body.dark-mode .um-panel, body.dark-mode .um-summary-card, body.dark-mode .um-modal { background:#17171a; border-color:#232326; }
+body.dark-mode .um-table th { background:#1d1d21; color:#f2f2f3; }
+body.dark-mode .um-table td { color:#d4d4d6; border-color:#232326; }
+body.dark-mode .um-table tr:hover td { background:#1d1d21; }
+body.dark-mode .um-table-scroll { scrollbar-color:rgba(255,255,255,0.18) transparent; }
+body.dark-mode .um-table-scroll::-webkit-scrollbar-thumb { background-color:rgba(255,255,255,0.18); }
+body.dark-mode .um-table-scroll::-webkit-scrollbar-thumb:hover { background-color:rgba(255,255,255,0.32); }
+body.dark-mode .um-form-input, body.dark-mode .um-filter-select, body.dark-mode .um-search-wrapper { background:#1d1d21; border-color:#232326; color:#f2f2f3; }
+body.dark-mode .um-search-input { color:#f2f2f3; }
+body.dark-mode .um-modal-header, body.dark-mode .um-modal-footer { border-color:#232326; }
+body.dark-mode .um-panel-title, body.dark-mode .um-detail-val, body.dark-mode .um-modal-header h3 { color:#f2f2f3; }
+body.dark-mode .um-log-detail-card, body.dark-mode .um-reset-target-card { background:#17171a; border-color:#232326; }
+body.dark-mode .um-tab { background:#1d1d21; border-color:#232326; color:#7a7a80; }
+body.dark-mode .um-tab.active { background:#FDC913; color:#1A1A1A; }
+/* View button: same dark-mode treatment used app-wide (ServiceRequest.css,
+   EquipmentFailures.append.css, SchoolAdmin.css) for a consistent look. */
+body.dark-mode .um-action-btn { background:transparent; border-color:#7fb1d6; color:#7fb1d6; }
+body.dark-mode .um-action-btn:hover { background:#7fb1d6; color:#0f2436; }
+
+/* Data-table View/Deactivate pills — light-mode black/orange borders are
+   invisible on a near-black card background, so swap to this file's own
+   dark-mode text/gold tokens (already used for .um-panel-title and the
+   selected summary-card accent respectively). */
+body.dark-mode .action-btn-pill { border-color:#f2f2f3; color:#f2f2f3; }
+body.dark-mode .action-btn-pill.view:hover { background:#f2f2f3; color:#1A1A1A; }
+body.dark-mode .action-btn-pill.deactivate { border-color:#f0b429; color:#f0b429; }
+body.dark-mode .action-btn-pill.deactivate:hover { background:#f0b429; color:#1A1A1A; }
+
+/* Summary cards / category panel — dark mode */
+body.dark-mode .um-summary-title { color:#7a7a80; }
+body.dark-mode .um-summary-num { color:#f2f2f3; }
+body.dark-mode .um-summary-card.selected .um-summary-num { color:#f0b429; }
+body.dark-mode .um-summary-card.selected { border-color:#f0b429; }
+body.dark-mode .um-category-panel-header h3 { color:#f2f2f3; }
+body.dark-mode .um-category-panel-count { background:rgba(240,180,41,0.15); color:#f0b429; }
 
 /* Responsive */
+@media (max-width:1024px) and (min-width:761px) {
+    .um-summary-row { grid-template-columns:repeat(3,1fr); }
+}
 @media (max-width:760px) {
     .um-summary-row { grid-template-columns:repeat(2,1fr); }
     .um-detail-grid { grid-template-columns:1fr; }
@@ -930,11 +1039,11 @@ body.dark-mode .um-tab.active { background:#1f6392; color:white; }
 .um-log-detail-breakdown { display: flex; flex-direction: column; gap: 4px; }
 .um-log-detail-part {
     font-size: 0.82rem;
-    color: #2c4c6e;
+    color: #1A1A1A;
     padding: 5px 10px;
-    background: #f0f4f9;
+    background: #F5F5F5;
     border-radius: 6px;
-    border-left: 3px solid #1f6392;
+    border-left: 3px solid #8A6D00;
     line-height: 1.4;
 }
-body.dark-mode .um-log-detail-part { background: #1a2234; border-left-color: #5a9bcb; color: #c9d6e3; }
+body.dark-mode .um-log-detail-part { background: #17171a; border-left-color: #FFD84D; color: #f2f2f3; }

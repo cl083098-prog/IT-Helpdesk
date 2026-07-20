@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,37 +6,74 @@
     <title>IT Helpdesk Portal | CSMA</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="Sidebar.css">
-    <link rel="stylesheet" href="Dashbaord.css">
+    <!-- Tabler Icons: canonical icon set as of the 2026-07-17 card-chrome restyle
+         (sidebar/top-bar/dashboard icons below use ti-*). Font Awesome stays
+         loaded alongside it since most other pages' body content, and this
+         page's own backend-driven activity icons, are still fa-*. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="Sidebar.css?v=19">
+    <!-- NEW: ?v=3 cache-busting query — the browser kept serving a stale cached
+         copy of this file across earlier revisions despite the file on disk
+         being updated; bump this number on future edits if the same thing
+         happens again (same pattern Login.css already uses, ?v=9). -->
+    <link rel="stylesheet" href="Dashbaord.css?v=19">
+    <!-- Ticket rows below open the same "Request Details" overlay used on the
+         Service Request page in place, rather than navigating there — this
+         brings in its markup/behavior styles (see ServiceRequest.js?v=11 near
+         the bottom of this page). -->
+    <link rel="stylesheet" href="ServiceRequest.css?v=27">
     <style>
-        .dashboard-wrapper {
-            display: flex;
-            min-height: 100vh;
-            background: #f5f9fe;
-        }
+        /* .dashboard-wrapper's height/padding/gap/background now live only in
+           Sidebar.css (single source of truth, per the header-dedup rule) —
+           this page no longer needs its own copy. */
         .main-content {
-            width: 100%;
-            max-width: calc(100% - 280px);
-            transition: all 0.2s;
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
-        @media (max-width: 1024px) {
-            .main-content {
-                max-width: 100%;
-            }
+        /* .main-content no longer scrolls itself — see the HTML comment above
+           .dashboard-scroll-area for why (implicit-root-scroller / native
+           scrollbar fallback). This nested div carries the actual scroll and
+           a real, styleable thin scrollbar, matching Sidebar.css's .main-content
+           thumb/track colors exactly. */
+        .dashboard-scroll-area {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: auto;
+            scrollbar-gutter: stable;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+        }
+        .dashboard-scroll-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        .dashboard-scroll-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .dashboard-scroll-area::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.18);
+            border-radius: 999px;
+        }
+        .dashboard-scroll-area::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.32);
+        }
+        body.dark-mode .dashboard-scroll-area {
+            scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+        }
+        body.dark-mode .dashboard-scroll-area::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.18);
+        }
+        body.dark-mode .dashboard-scroll-area::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(255, 255, 255, 0.32);
         }
         .calendar-dates span {
             display: inline-block;
             width: 100%;
             text-align: center;
-        }
-        .bottom-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-            background: white;
-            padding: 20px;
-            border-radius: 28px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
         }
         body {
             overflow-x: hidden;
@@ -57,7 +94,7 @@
             z-index: 3000;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.2s;
+            transition: all 0.25s ease-in-out;
         }
         .dashboard-modal-overlay.active {
             opacity: 1;
@@ -68,45 +105,49 @@
             width: 90%;
             max-width: 800px;
             max-height: 80vh;
-            border-radius: 28px;
+            border-radius: 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
             overflow: hidden;
             transform: scale(0.95);
-            transition: transform 0.2s;
+            transition: transform 0.25s ease-in-out;
             display: flex;
             flex-direction: column;
         }
         .dashboard-modal-overlay.active .dashboard-modal {
             transform: scale(1);
         }
+        /* FIX 8: vertical padding 20px→24px (8px-scale). */
         .dashboard-modal .modal-header {
-            padding: 20px 24px;
+            padding: 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #eef3f8;
+            border-bottom: 1px solid #E8E6E0;
             background: white;
         }
         .dashboard-modal .modal-header h3 {
             font-size: 1.2rem;
             font-weight: 700;
-            color: #1c4c6e;
+            color: var(--navy-mid);
             display: flex;
             align-items: center;
             gap: 10px;
         }
+        /* FIX 3: color now var(--gray-muted) (was a one-off #95a5a6). */
         .dashboard-modal .modal-close {
             background: none;
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: #95a5a6;
+            color: var(--gray-muted);
             transition: color 0.2s;
         }
         .dashboard-modal .modal-close:hover {
             color: #c62828;
         }
+        /* FIX 8: vertical padding 20px→24px (8px-scale). */
         .dashboard-modal .modal-body {
-            padding: 20px 24px;
+            padding: 24px;
             overflow-y: auto;
             flex: 1;
         }
@@ -117,18 +158,25 @@
         }
         .modal-ticket-item {
             padding: 16px;
-            background: #fafdff;
+            background: #FAF9F6;
             border-radius: 20px;
             border-left: 4px solid;
             transition: all 0.2s;
         }
         .modal-ticket-item:hover {
-            background: #f5f9fe;
+            background: #F1F0EC;
         }
-        .modal-ticket-item.priority-high { border-left-color: #e67e22; }
-        .modal-ticket-item.priority-medium { border-left-color: #f1c40f; }
-        .modal-ticket-item.priority-critical { border-left-color: #e74c3c; }
-        .modal-ticket-item.priority-low { border-left-color: #2ecc71; }
+        /* NEW: only New/Aging Tickets modal rows carry data-ticket-id (Low Stock
+           Items modal rows don't) — cursor:pointer signals only those are
+           clickable, matching the goToTicket() delegation in createModal(). */
+        .modal-ticket-item[data-ticket-id] {
+            cursor: pointer;
+        }
+        /* RESTYLED: matches .priority-badge.high's new red/pink (was orange). */
+        .modal-ticket-item.priority-high { border-left-color: #B23A63; }
+        .modal-ticket-item.priority-medium { border-left-color: #8A6100; }
+        .modal-ticket-item.priority-critical { border-left-color: #B0362A; }
+        .modal-ticket-item.priority-low { border-left-color: #2F7D42; }
         .modal-ticket-id {
             font-weight: 700;
             font-size: 0.9rem;
@@ -141,36 +189,46 @@
             font-weight: 600;
             font-size: 0.9rem;
             margin-bottom: 8px;
-            color: #1e2f3e;
+            color: #111111;
         }
+        /* FIX 3: color now var(--gray-muted) (was a one-off #95a5a6). */
         .modal-ticket-meta {
             font-size: 0.75rem;
             font-weight: 500;
-            color: #95a5a6;
+            color: var(--gray-muted);
         }
+        /* FIX 8: gap 18px→16px (8px-scale). */
         .modal-activity-list {
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 16px;
         }
+        /* FIX 8: gap 14px→16px, padding 12px→16px (8px-scale). */
         .modal-activity-item {
             display: flex;
-            gap: 14px;
+            gap: 16px;
             align-items: flex-start;
-            padding: 12px;
-            background: #fafdff;
+            padding: 16px;
+            background: #FAF9F6;
             border-radius: 16px;
         }
+        /* FIX 1 (icon system): size 36px→40px, matching .stat-icon-badge/.activity-icon
+           so every "icon badge" across the dashboard (including inside modals) is the
+           same size. FIX 3: color tokenized (same values, no new color). */
+        /* FIX (icon consistency pass): 36px, 10px radius, kept in sync with
+           .stat-icon-badge/.activity-icon so the "unified icon badge" size/shape
+           still matches everywhere. */
         .modal-activity-icon {
             width: 36px;
             height: 36px;
-            background: #eef3fc;
-            border-radius: 12px;
+            background: var(--navy-tint);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1f6392;
-            font-size: 1rem;
+            color: var(--navy-primary);
+            font-size: 0.9rem;
+            flex-shrink: 0;
         }
         .modal-activity-details {
             flex: 1;
@@ -179,19 +237,47 @@
             font-size: 0.9rem;
             font-weight: 500;
             margin-bottom: 5px;
-            color: #2c5a7a;
+            color: #6B6B6B;
         }
+        /* FIX 3: color now var(--gray-muted) (was a one-off #95a5a6). */
         .modal-activity-time {
             font-size: 0.7rem;
             font-weight: 500;
-            color: #95a5a6;
+            color: var(--gray-muted);
         }
+        /* FIX 4 (empty states): .empty-modal-message is used both for the initial
+           "Loading…" placeholders (static in the HTML below) and for the "No pending
+           tickets…" / "No aging tickets…" / "No recent activity…" messages that
+           Dashboard.js injects at runtime. Since that text is generated by
+           Dashboard.js (untouched here), the icon above it is added via ::before
+           with Font Awesome's own content/font-family — this works without any JS
+           change because Font Awesome's webfont is already loaded on this page.
+           FIX 8: padding 40px→48px (8px-scale) and gap uses the same scale. */
         .empty-modal-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
             text-align: center;
-            padding: 40px;
-            color: #95a5a6;
+            padding: 48px 24px;
+            color: var(--gray-muted);
+            font-size: 0.9rem;
+        }
+        .empty-modal-message::before {
+            content: "\f01c"; /* fa-inbox — same icon already used for the "New Open Tickets" panel header, for visual consistency */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 1.8rem;
+            color: var(--gray-light);
         }
     </style>
+    <!-- NEW: stop the browser from restoring the previous scroll position on
+         reload/re-navigation — this page should always open at the top. -->
+    <script>
+        if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }
+        window.scrollTo(0, 0);
+    </script>
 </head>
 <body>
 
@@ -205,120 +291,280 @@
                 </div>
                 <div class="logo-text">
                     <h2>CSMA</h2>
-                    <span>IT Helpdesk Portal</span>
+                    <!-- RESTYLED: "IT HELPDESK" (was "IT Helpdesk Portal") in gold caps,
+                         matching the reference's sidebar header. Styled via the
+                         .logo-text span override in Dashbaord.css below. -->
+                    <span>IT HELPDESK</span>
                 </div>
             </div>
         </div>
 
         <nav class="nav-menu">
-            <a href="Dashboard.html" class="nav-item" data-page="dashboard">
-                <i class="fas fa-tachometer-alt"></i>
+            <a href="Dashboard.html" class="nav-item active" data-page="dashboard">
+                <i class="ti ti-layout-dashboard"></i>
                 <span>Dashboard</span>
             </a>
             <a href="ServiceRequest.html" class="nav-item" data-page="servicerequest">
-                <i class="fas fa-ticket-alt"></i>
+                <i class="ti ti-ticket"></i>
                 <span>Service Requests</span>
             </a>
             <a href="Inventory.html" class="nav-item" data-page="inventory">
-                <i class="fas fa-boxes"></i>
+                <i class="ti ti-packages"></i>
                 <span>Inventory</span>
             </a>
             <a href="EquipmentFailures.html" class="nav-item">
-                <i class="fas fa-microchip"></i>
+                <i class="ti ti-tool"></i>
                 <span>Equipment Failures</span>
             </a>
             <a href="CostAnalysis.html" class="nav-item">
-                <i class="fas fa-chart-pie"></i>
+                <i class="ti ti-chart-pie"></i>
                 <span>Cost Analysis</span>
             </a>
             <a href="BudgetPlanning.html" class="nav-item">
-                <i class="fas fa-calculator"></i>
+                <i class="ti ti-calculator"></i>
                 <span>Budget Planning</span>
             </a>
             <a href="UserManagement.html" class="nav-item">
-                <i class="fas fa-users"></i>
+                <i class="ti ti-users"></i>
                 <span>User Management</span>
             </a>
             <a href="Reports.html" class="nav-item">
-                <i class="fas fa-chart-line"></i>
+                <i class="ti ti-chart-line"></i>
                 <span>Reports</span>
             </a>
         </nav>
 
         <div class="sidebar-footer">
             <button class="logout-sidebar-btn" id="sidebarLogoutBtn">
-                <i class="fas fa-sign-out-alt"></i>
+                <i class="ti ti-logout"></i>
                 <span>Logout</span>
             </button>
         </div>
     </aside>
-    
+
     <main class="main-content" id="dynamicMainContent">
         <header class="top-bar">
             <div class="menu-toggle" id="menuToggle">
-                <i class="fas fa-bars"></i>
+                <i class="ti ti-menu-2"></i>
             </div>
             <div class="page-title">
                 <h1>Admin Dashboard</h1>
+                <span class="page-subtitle">Colegio de Sta. Monica de Angat</span>
             </div>
+
+            <!-- .topbar-search — decorative search field matching the reference layout's
+                 top-bar search pill. Purely visual: no JS handler is attached and
+                 Dashboard.js is untouched, so it doesn't filter/search anything yet. -->
+            <div class="topbar-search">
+                <i class="ti ti-search"></i>
+                <input type="text" placeholder="Search tickets, assets..." aria-label="Search">
+            </div>
+
             <div class="user-actions">
                 <div class="theme-toggle-wrapper">
-                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <i class="ti ti-moon" id="themeIcon"></i>
                     <label class="switch">
                         <input type="checkbox" id="themeSwitchCheckbox">
                         <span class="slider round"></span>
                     </label>
                 </div>
+                <!-- .user-avatar — decorative avatar matching the reference layout's
+                     top-right profile icon. No user-profile data is wired up anywhere in
+                     Dashboard.js today, so this is a static "A" placeholder (not a real
+                     name/photo). -->
+                <div class="user-avatar" title="Admin">A</div>
             </div>
         </header>
 
+        <!-- Everything below the top-bar scrolls internally in this wrapper (same
+             pattern used for Inventory's page) instead of .main-content itself
+             scrolling — a full-viewport scrolling div gets promoted to Chrome's
+             "implicit root scroller" and falls back to the native OS scrollbar,
+             ignoring the thin custom scrollbar styling below. Nesting the scroll
+             here keeps the top-bar fixed and guarantees a real styled thin
+             scrollbar if this page's content ever grows past one screen. -->
+        <div class="dashboard-scroll-area">
+
+        <!-- RESTYLED (per new target reference): back to a horizontal icon-left
+             layout — .stat-icon-badge beside a new .stat-info wrapper holding the
+             existing .stat-number/.stat-title pair — instead of the icon-on-top
+             vertical stack, so cards are shorter/more compact. Icon badges are also
+             smaller rounded-squares now (was a larger, near-circular badge).
+             data-stat attributes and text content are unchanged — Dashboard.js's
+             renderStats() still targets the same [data-stat] selectors regardless
+             of position. -->
+        <!-- NEW: each .stat-card is now a clickable quick-access shortcut (onclick
+             navigates to the relevant module, or opens the existing dashboard modal
+             for Low Stock). role/tabindex added so the shortcut is keyboard-reachable
+             too. No change to icons, numbers, or layout — Dashboard.js's renderStats()
+             still targets the same [data-stat] selectors untouched. -->
         <div class="stats-row">
-            <div class="stat-card"><div class="stat-title">Total Service Requests</div><div class="stat-number" data-stat="total">0</div></div>
-            <div class="stat-card"><div class="stat-title">Pending Requests</div><div class="stat-number" data-stat="pending">0</div></div>
-            <div class="stat-card"><div class="stat-title">Ongoing Requests</div><div class="stat-number" data-stat="ongoing">0</div></div>
-            <div class="stat-card"><div class="stat-title">Completed Requests</div><div class="stat-number" data-stat="completed">0</div></div>
-            <div class="stat-card"><div class="stat-title">Low Stock Items</div><div class="stat-number" data-stat="lowstock">0</div></div>
-            <div class="stat-card"><div class="stat-title">Total Inventory Value</div><div class="stat-number" data-stat="invvalue">₱0.00</div></div>
+            <div class="stat-card" role="button" tabindex="0"
+                 onclick="window.location.href='ServiceRequest.html?filter=all'"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                <div class="stat-title">Total Service Requests</div>
+                <div class="stat-number" data-stat="total">0</div>
+            </div>
+            <div class="stat-card" role="button" tabindex="0"
+                 onclick="window.location.href='ServiceRequest.html?filter=Pending'"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                <div class="stat-title">Pending Requests</div>
+                <div class="stat-number" data-stat="pending">0</div>
+            </div>
+            <div class="stat-card" role="button" tabindex="0"
+                 onclick="window.location.href='ServiceRequest.html?filter=Ongoing'"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                <div class="stat-title">Ongoing Requests</div>
+                <div class="stat-number" data-stat="ongoing">0</div>
+            </div>
+            <div class="stat-card" role="button" tabindex="0"
+                 onclick="window.location.href='ServiceRequest.html?filter=Completed'"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                <div class="stat-title">Completed Requests</div>
+                <div class="stat-number" data-stat="completed">0</div>
+            </div>
+            <div class="stat-card" role="button" tabindex="0"
+                 onclick="showLowStockModal()"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                <div class="stat-title">Low Stock Items</div>
+                <div class="stat-number" data-stat="lowstock">0</div>
+            </div>
+            <div class="stat-card dark" role="button" tabindex="0"
+                 onclick="window.location.href='Inventory.html'"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                <div class="stat-title">Total Inventory Value</div>
+                <div class="stat-number" data-stat="invvalue">0.00</div>
+            </div>
         </div>
 
-        <div class="dashboard-grid">
-            <div class="tickets-panel">
-                <div class="panel-header">
-                    <h3><i class="fas fa-inbox"></i> New Open Tickets</h3>
-                    <a href="#" class="view-all" onclick="showNewTicketsModal(); return false;">View All →</a>
-                </div>
-                <div class="ticket-list" id="newTicketsList">
-                    <div class="empty-modal-message">Loading…</div>
-                </div>
-            </div>
-            <div class="tickets-panel">
-                <div class="panel-header">
-                    <h3><i class="fas fa-hourglass-half"></i> Aging Tickets</h3>
-                    <a href="#" class="view-all" onclick="showAgingTicketsModal(); return false;">View All →</a>
-                </div>
-                <div class="ticket-list" id="agingTicketsList">
-                    <div class="empty-modal-message">Loading…</div>
-                </div>
-            </div>
-        </div>
-
+        <!-- NEW: .chart-panel — a purely decorative/static bar chart. There is no
+             monthly ticket-breakdown endpoint anywhere in the API
+             (get_dashboard_data.php only returns current totals, not a
+             month-by-month series), and per your instructions Dashboard.js and
+             the backend are both untouched here — so these bar heights are
+             fixed, illustrative inline styles, NOT live data. If/when a real
+             monthly-breakdown endpoint exists, this is the place to wire it up. -->
         <div class="two-column-grid">
-            <div class="recent-activities-panel">
-                <div class="panel-header">
-                    <h3><i class="fas fa-history"></i> Recent Activities</h3>
-                    <a href="#" class="view-all" onclick="showActivitiesModal(); return false;">View All →</a>
+            <div class="chart-panel">
+                <div class="panel-header chart-panel-header">
+                    <div>
+                        <h3>Service Requests</h3>
+                        <span class="chart-subtitle">Monthly 2026</span>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-dot legend-dot-open"></span>Open</span>
+                        <span class="legend-item"><span class="legend-dot legend-dot-resolved"></span>Resolved</span>
+                    </div>
                 </div>
-                <div class="activities-list" id="activitiesList">
-                    <div class="empty-modal-message">Loading…</div>
+                <div class="chart-canvas">
+                    <div class="chart-area">
+                        <div class="chart-bars">
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:33%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:29%"></div>
+                                </div>
+                                <span class="chart-month-label">Jan</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:58%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:46%"></div>
+                                </div>
+                                <span class="chart-month-label">Feb</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:42%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:42%"></div>
+                                </div>
+                                <span class="chart-month-label">Mar</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:75%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:58%"></div>
+                                </div>
+                                <span class="chart-month-label">Apr</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:50%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:38%"></div>
+                                </div>
+                                <span class="chart-month-label">May</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:71%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:67%"></div>
+                                </div>
+                                <span class="chart-month-label">Jun</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:46%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:42%"></div>
+                                </div>
+                                <span class="chart-month-label">Jul</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:62%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:55%"></div>
+                                </div>
+                                <span class="chart-month-label">Aug</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:48%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:44%"></div>
+                                </div>
+                                <span class="chart-month-label">Sep</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:67%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:60%"></div>
+                                </div>
+                                <span class="chart-month-label">Oct</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:40%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:35%"></div>
+                                </div>
+                                <span class="chart-month-label">Nov</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-pair">
+                                    <div class="chart-bar chart-bar-gold" style="height:55%"></div>
+                                    <div class="chart-bar chart-bar-green" style="height:50%"></div>
+                                </div>
+                                <span class="chart-month-label">Dec</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="calendar-panel">
+                <!-- RESTYLED: the "full calendar" link is replaced by the decorative
+                     prev/next month nav sitting inline with the "Calendar" title, matching
+                     the reference. Dashboard.js's initCalendar() always renders the CURRENT
+                     month with no prev/next state, so .calendar-nav-btn is visual-only
+                     (no-op onclick) — #calendarMonth keeps the exact same id, just moved
+                     into this row. -->
                 <div class="calendar-header">
-                    <h3>Calendar</h3>
-                    <a href="#" class="view-all" onclick="return false;">full calendar</a>
+                    <h3 id="calendarMonth">April 2026</h3>
+                    <div class="calendar-nav">
+                        <button type="button" class="calendar-nav-btn" onclick="return false;" aria-label="Previous month"><i class="ti ti-chevron-left"></i></button>
+                        <button type="button" class="calendar-nav-btn" onclick="return false;" aria-label="Next month"><i class="ti ti-chevron-right"></i></button>
+                    </div>
                 </div>
                 <div class="calendar-body">
-                    <div class="calendar-month" id="calendarMonth">April 2026</div>
+                    <!-- 2026-07-17 mockup-fidelity pass: single-letter weekday headers
+                         (was 2-letter), matching the reference. Static text — Dashboard.js
+                         only targets #calendarDates/#calendarMonth, not these header spans. -->
                     <div class="calendar-weekdays">
                         <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
                     </div>
@@ -327,21 +573,56 @@
             </div>
         </div>
 
-        <div class="bottom-stats">
-            <div class="stat-simple"><span>Total Service Requests</span><strong data-stat="total">0</strong></div>
-            <div class="stat-simple"><span>Pending Requests</span><strong data-stat="pending">0</strong></div>
-            <div class="stat-simple"><span>Ongoing Requests</span><strong data-stat="ongoing">0</strong></div>
-            <div class="stat-simple"><span>Completed Requests</span><strong data-stat="completed">0</strong></div>
-            <div class="stat-simple"><span>Low Stock Items</span><strong data-stat="lowstock">0</strong></div>
-            <div class="stat-simple"><span>Total Inventory Value</span><strong data-stat="invvalue">₱0.00</strong></div>
+        <!-- RESTYLED: Recent activities sits beside a single merged tickets feed
+             (New Open + Aging combined into one flat list under one header,
+             instead of two labeled sections) — same #activitiesList/
+             #ticketsFeedList containers Dashboard.js renders into, only the
+             layout/grouping changed. Grid stretch (.dashboard-grid) makes this
+             panel match the tickets card's height; .activities-list flexes to
+             fill it (see Dashbaord.css). -->
+        <div class="dashboard-grid">
+            <div class="recent-activities-panel">
+                <div class="panel-header">
+                    <h3>
+                        Recent activities
+                        <!-- NEW: #activitiesCount — small event-count badge, filled in by
+                             Dashboard.js's renderActivities() (just activities.length, not
+                             a new data fetch). Empty span so nothing shows before data loads. -->
+                        <span id="activitiesCount" class="activities-count-badge"></span>
+                    </h3>
+                    <a href="#" class="view-all" onclick="showActivitiesModal(); return false;">View all</a>
+                </div>
+                <div class="activities-list" id="activitiesList">
+                    <div class="empty-modal-message">Loading…</div>
+                </div>
+            </div>
+
+            <!-- Merged feed: New Open Tickets (green "Open" pill) and Aging
+                 Tickets (red day-count) as one flat list, no separate table
+                 header row. See Dashboard.js's renderTicketsFeed(). -->
+            <div class="combined-tickets-panel">
+                <div class="panel-header">
+                    <h3>New open tickets</h3>
+                    <a href="#" class="view-all" onclick="showAllTicketsModal(); return false;">View all</a>
+                </div>
+                <div class="ticket-list ticket-feed" id="ticketsFeedList">
+                    <div class="empty-modal-message">Loading…</div>
+                </div>
+            </div>
+        </div>
+
         </div>
     </main>
 </div>
 
-<div id="logoutToast" class="logout-toast">🔐 Logging out, redirecting to login...</div>
-
-<script src="Sidebar.js"></script>
-<script src="Dashboard.js"></script>
+<script src="Sidebar.js?v=1"></script>
+<script src="Dashboard.js?v=5"></script>
+<!-- Provides window.openTicketDetails(), reused by Dashboard.js's ticket rows
+     to open the full "Request Details" overlay in place (assign/status/SLA/
+     reply) instead of navigating to ServiceRequest.html. Its own page-specific
+     init (filters, bulk actions, table render) all no-op harmlessly here since
+     this page has none of those elements. -->
+<script src="ServiceRequest.js?v=11"></script>
 <script src="admin-notifications.js"></script>
 
 <script>
@@ -356,7 +637,7 @@
             <div class="dashboard-modal-overlay" id="dashboardModal">
                 <div class="dashboard-modal">
                     <div class="modal-header">
-                        <h3><i class="fas fa-list"></i> ${title}</h3>
+                        <h3><i class="ti ti-list"></i> ${title}</h3>
                         <button class="modal-close" onclick="closeDashboardModal()">&times;</button>
                     </div>
                     <div class="modal-body">
@@ -370,7 +651,14 @@
         setTimeout(() => modal.classList.add('active'), 10);
         
         modal.addEventListener('click', function(e) {
-            if (e.target === modal) closeDashboardModal();
+            if (e.target === modal) { closeDashboardModal(); return; }
+            // NEW: clicking a ticket row inside the New/Aging Tickets "View All"
+            // modal jumps to that ticket's Request Details view in Service
+            // Request (same deep-link goToTicket() used by the dashboard's
+            // compact ticket rows). Low Stock Items modal rows have no
+            // data-ticket-id, so they're unaffected.
+            const ticketRow = e.target.closest('.modal-ticket-item[data-ticket-id]');
+            if (ticketRow) window.goToTicket(ticketRow.dataset.ticketId);
         });
     }
 
@@ -382,52 +670,40 @@
         }
     };
 
-    window.showNewTicketsModal = function() {
-        const data = window.getDashboardData ? window.getDashboardData().new_tickets : [];
-        if (!data || data.length === 0) {
-            createModal('New Open Tickets', '<div class="empty-modal-message">No new tickets found.</div>');
+    // NEW: single merged "View all" for the combined New Open + Aging tickets
+    // feed (was two separate modals, one per section, before the two dashboard
+    // panels were merged into one flat list). Each row still shows full detail
+    // (title, priority badge) — the dashboard's compact feed row is the only
+    // place that's trimmed down. New tickets first, then aging, matching the
+    // feed's own ordering.
+    window.showAllTicketsModal = function() {
+        const dash         = window.getDashboardData ? window.getDashboardData() : {};
+        const newTickets   = dash.new_tickets || [];
+        const agingTickets = dash.aging_tickets || [];
+
+        if (newTickets.length === 0 && agingTickets.length === 0) {
+            createModal('New Open Tickets', '<div class="empty-modal-message">No tickets to show.</div>');
             return;
         }
 
+        const rowHtml = (ticket, meta) => `
+            <div class="modal-ticket-item ${window.getPriorityClass(ticket.priority)}" data-ticket-id="${window.escapeHtmlDashboard(ticket.id)}">
+                <div class="modal-ticket-id">
+                    ${window.escapeHtmlDashboard(ticket.id)}
+                    <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${window.escapeHtmlDashboard(ticket.priority)}</span>
+                </div>
+                <div class="modal-ticket-desc">${window.escapeHtmlDashboard(ticket.title)}</div>
+                <div class="modal-ticket-meta">${meta}</div>
+            </div>
+        `;
+
         const ticketsHtml = `
             <div class="modal-ticket-list">
-                ${data.map(ticket => `
-                    <div class="modal-ticket-item ${window.getPriorityClass(ticket.priority)}">
-                        <div class="modal-ticket-id">
-                            ${window.escapeHtmlDashboard(ticket.id)}
-                            <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${window.escapeHtmlDashboard(ticket.priority)}</span>
-                        </div>
-                        <div class="modal-ticket-desc">${window.escapeHtmlDashboard(ticket.title)}</div>
-                        <div class="modal-ticket-meta">Requester: ${window.escapeHtmlDashboard(ticket.requester)} · ${window.escapeHtmlDashboard(ticket.time)}</div>
-                    </div>
-                `).join('')}
+                ${newTickets.map(t => rowHtml(t, `Requester: ${window.escapeHtmlDashboard(t.requester)} · Open`)).join('')}
+                ${agingTickets.map(t => rowHtml(t, `Requester: ${window.escapeHtmlDashboard(t.requester)} · ${window.escapeHtmlDashboard(t.days)}`)).join('')}
             </div>
         `;
         createModal('New Open Tickets', ticketsHtml);
-    };
-
-    window.showAgingTicketsModal = function() {
-        const data = window.getDashboardData ? window.getDashboardData().aging_tickets : [];
-        if (!data || data.length === 0) {
-            createModal('Aging Tickets', '<div class="empty-modal-message">No aging tickets found.</div>');
-            return;
-        }
-
-        const ticketsHtml = `
-            <div class="modal-ticket-list">
-                ${data.map(ticket => `
-                    <div class="modal-ticket-item ${window.getPriorityClass(ticket.priority)}">
-                        <div class="modal-ticket-id">
-                            ${window.escapeHtmlDashboard(ticket.id)}
-                            <span class="priority-badge ${window.getPriorityBadgeClass(ticket.priority)}">${window.escapeHtmlDashboard(ticket.priority)}</span>
-                        </div>
-                        <div class="modal-ticket-desc">${window.escapeHtmlDashboard(ticket.title)}</div>
-                        <div class="modal-ticket-meta">Requester: ${window.escapeHtmlDashboard(ticket.requester)} · ${window.escapeHtmlDashboard(ticket.days)}</div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        createModal('Aging Tickets', ticketsHtml);
     };
 
     window.showActivitiesModal = function() {
@@ -451,6 +727,55 @@
             </div>
         `;
         createModal('Recent Activities', activitiesHtml);
+    };
+
+    // NEW: Low Stock Items stat card opens this modal instead of navigating away.
+    // Reuses createModal()/closeDashboardModal() and the existing
+    // .modal-ticket-list/.modal-ticket-item markup (same as the tickets modals
+    // above) so it visually matches the rest of the dashboard modal system.
+    // Fetches the live item list from the same inventory API the Inventory page
+    // uses, filtered server-side to status=Low Stock.
+    window.showLowStockModal = async function() {
+        createModal('Low Stock Items', '<div class="empty-modal-message">Loading…</div>');
+        try {
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const qs = new URLSearchParams({
+                action: 'list_items',
+                status: 'Low Stock',
+                user_role: currentUser.role || '',
+                user_id: currentUser.id || '',
+            });
+            const res  = await fetch(`../api/inventory.php?${qs}`);
+            const json = await res.json();
+            const items = (json.success && json.items) ? json.items : [];
+
+            if (items.length === 0) {
+                createModal('Low Stock Items', '<div class="empty-modal-message">No low stock items found.</div>');
+                return;
+            }
+
+            const itemsHtml = `
+                <div class="modal-ticket-list">
+                    ${items.map(item => {
+                        const threshold = Math.round((Number(item.low_stock_pct) / 100) * Number(item.oversupply_threshold));
+                        return `
+                            <div class="modal-ticket-item priority-high">
+                                <div class="modal-ticket-id">
+                                    ${window.escapeHtmlDashboard(item.name)}
+                                    <span class="priority-badge critical">Low Stock</span>
+                                </div>
+                                <div class="modal-ticket-desc">${window.escapeHtmlDashboard(item.category)} · ${window.escapeHtmlDashboard(item.type)}</div>
+                                <div class="modal-ticket-meta">Quantity: ${window.escapeHtmlDashboard(item.quantity)} · Reorder Threshold: ${threshold} · Department: ${window.escapeHtmlDashboard(item.department)}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            createModal('Low Stock Items', itemsHtml);
+        } catch (err) {
+            console.error('Failed to load low stock items:', err);
+            createModal('Low Stock Items', '<div class="empty-modal-message">Could not load low stock items. Check your connection.</div>');
+        }
     };
 
     // Sidebar toggle and logout are handled by Sidebar.js — no duplicate needed here

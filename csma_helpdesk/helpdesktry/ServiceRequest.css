@@ -1,70 +1,157 @@
 /* ServiceRequest.css - Standardized with Dashboard UI */
 
+/* 2026-07-17 CSMA gold restyle: brand accent repointed from the old navy+gold
+   duo to the school logo's gold (#FDC913) as the single primary/action color,
+   matching Dashbaord.css's :root (these are two independent CSS files, so the
+   custom properties don't carry over — duplicated here so both pages render
+   the exact same theme). Two gold shades stay distinct on purpose: --gold
+   (#FDC913, the literal logo/brand color) is for solid FILLS only (buttons,
+   gradients, badge chips) always paired with dark ink text — raw #FDC913
+   fails WCAG AA as text or as a thin border/focus color (~1.6:1 / ~2:1 against
+   white). --gold-dark (#8A6D00) is the accent used wherever gold appears AS
+   text/icon/link/border/focus color directly on a light surface — verified
+   â‰¥4.5:1 text / â‰¥3:1 UI contrast against white. --navy-primary/--navy-mid
+   (still referenced by older rules below via var()) now resolve to the same
+   two gold shades instead of blue, so old navy-colored text/links read as
+   gold; --navy-deep stays a deliberate near-black (matches spec ink) for the
+   one "distinct dark" callout usage. Semantic green/blue/purple tokens are
+   unchanged — status colors are outside this restyle's scope. */
+:root {
+    --navy-deep: #1A1A1A;
+    --navy-mid: #1A1A1A;
+    --navy-primary: #8A6D00;
+    --navy-tint: #FFF3D1;
+    --gold: #FDC913;
+    --gold-dark: #8A6D00;
+    --gold-tint: #FFF3D1;
+    --gray-muted: #585858;
+    --gray-light: #A0A0A0;
+    --blue-tint: #e3f0fd;
+    --blue: #2f7fc4;
+    --purple-tint: #efe7fb;
+    --purple: #8b5fbf;
+    --green-tint: #e3f9ec;
+    --green: #27ae60;
+
+    /* NEW: shared dark-mode tokens — identical names/values duplicated in
+       Dashbaord.css's :root (same reason the navy/gold tokens above are
+       duplicated: two independent stylesheets, no shared import) so both
+       pages' dark mode always renders from the exact same palette instead of
+       drifting apart over time. 2026-07-18 dark-mode reskin: repointed to
+       the neutral warm-black palette matching csma_dashboard_dark.html
+       (kept in sync with Dashbaord.css's copy — update both together).
+       Contrast verified: #f2f2f3 on #17171a ≈ 15.5:1, #7a7a80 on #17171a ≈
+       4.6:1, #FFD84D (gold-as-text on dark) on #17171a ≈ 11.8:1 — all
+       comfortably â‰¥4.5:1. */
+    --dm-bg-card: #17171a;
+    --dm-bg-card-alt: #1d1d21;
+    --dm-bg-inset: #1d1d21;
+    --dm-border: #232326;
+    --dm-text-primary: #f2f2f3;
+    --dm-text-secondary: #7a7a80;
+    --dm-accent-navy: #FFD84D;  /* gold-as-text accent for icons that need contrast on a dark surface */
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Inter', sans-serif;
-    background: #f5f9fe;
-    color: #1e2f3e;
-}
+/* body font-family/background/color now live only in Sidebar.css (single
+   source of truth) — this page's copy had drifted to its own blue-tinted
+   #f5f9fe/#1e2f3e instead of the shared cream/near-black. Also fixes the
+   cross-file leak into Inventory.html, which @imports this file. */
 
 .dashboard-wrapper {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
 }
 
+/* .main-content no longer scrolls itself — it's a fixed-height flex column
+   (top-bar + .sr-scroll-area below). A full-viewport div with its own
+   overflow gets promoted to Chrome's "implicit root scroller" and renders the
+   native OS scrollbar, ignoring custom scrollbar-width/color/::-webkit-
+   scrollbar styling. Moving the overflow onto the nested .sr-scroll-area (see
+   ServiceRequest.html) sidesteps that, same fix applied to Inventory/
+   Dashboard/CostAnalysis. Inventory.css imports this file and re-declares
+   .main-content with the same flex/overflow-hidden treatment afterward, so
+   this doesn't change Inventory's behavior. */
 .main-content {
     flex: 1;
     padding: 24px 32px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sr-scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     overflow-x: auto;
+    scrollbar-gutter: stable;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
 }
 
-/* Top Bar - identical to Dashboard */
-.top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 32px;
-    background: white;
-    padding: 16px 24px;
-    border-radius: 28px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+.sr-scroll-area::-webkit-scrollbar {
+    width: 6px;
 }
 
-.menu-toggle {
-    cursor: pointer;
-    font-size: 1.4rem;
-    color: #1f6392;
-    display: none;
+.sr-scroll-area::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-.page-title h1 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #1c4c6e;
+.sr-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
 }
 
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: #f0f4f9;
-    padding: 8px 20px;
-    border-radius: 40px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: #1c4c6e;
+.sr-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
 }
+
+body.dark-mode .sr-scroll-area {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode .sr-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode .sr-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+}
+
+/* Active sidebar nav-item highlight standardized: this page used to mirror
+   Dashbaord.css's gold override, but every other admin page without that
+   override kept Sidebar.css's shared blue pill — so the highlight still
+   showed two different colors depending which module you were on. Override
+   removed so Sidebar.css's single definition applies everywhere. */
+
+/* Sidebar logo label ("IT HELPDESK") styling now lives solely in Sidebar.css
+   (shared canonical rule) — no override needed here. */
+
+/* .top-bar/.menu-toggle/.page-title/.page-title h1/.page-subtitle/
+   .topbar-search/.user-avatar duplicates removed (2026-07-17 restyle) — per
+   the established dedup rule, header/top-bar styling lives ONLY in
+   Sidebar.css, which already defines identical selectors. These per-page
+   copies had drifted (28px vs Sidebar.css's 20px top-bar border-radius,
+   1.3rem vs 1.35rem heading size, leftover navy-theme search/avatar colors)
+   and would have silently shadowed Sidebar.css's shared values (loaded after
+   it), which is what made the header visibly resize/recolor when navigating
+   between modules. .user-profile (unused on this page — no element in
+   ServiceRequest.html has that class) removed as dead CSS. */
 
 /* Requests Container */
+/* RESTYLED: added a subtle 1px border, matching Dashboard's card treatment
+   (.stat-card/.tickets-panel/etc. all got the same border in that redesign). */
 .requests-container {
     background: white;
+    border: 1px solid #eef1f4;
     border-radius: 28px;
     padding: 24px;
     margin-bottom: 32px;
@@ -84,49 +171,23 @@ body {
     font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: -0.01em;
-    color: #1c4c6e;
+    color: #1A1A1A;
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
+/* FIX (dark-mode bug): color moved here from an inline style="color:#8A6D00"
+   on the <i> in ServiceRequest.html — inline styles win over any CSS rule
+   short of !important, so that icon was impossible to recolor for dark mode
+   before this. Same navy in light mode; see the dark-mode override below. */
 .section-header h2 i {
     font-size: 1.2rem;
+    color: #8A6D00;
 }
 
-.search-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: #f8fbfe;
-    border-radius: 40px;
-    padding: 8px 18px;
-    border: 1px solid #e2edf2;
-}
-
-.search-wrapper i {
-    color: #95a5a6;
-    font-size: 0.9rem;
-}
-
-.search-input {
-    border: none;
-    background: transparent;
-    padding: 8px 0;
-    font-size: 0.9rem;
-    font-weight: 500;
-    font-family: 'Inter', sans-serif;
-    width: 250px;
-    color: #1e2f3e;
-}
-
-.search-input:focus {
-    outline: none;
-}
-
-.search-input::placeholder {
-    color: #bdc3c7;
-    font-weight: 400;
+body.dark-mode .section-header h2 i {
+    color: var(--dm-accent-navy) !important;
 }
 
 /* Filter Tabs */
@@ -139,34 +200,43 @@ body {
     padding-bottom: 16px;
 }
 
-.filter-btn {
-    background: #f8fbfe;
+/* Status/Priority/Department filter dropdowns — replaced the old row of
+   status-only pill buttons (.filter-btn) with a single status <select> plus
+   two new dropdowns (Priority Level, Department). Same pill shape/palette the
+   buttons used to keep the visual language consistent. */
+.sr-filter-select {
+    display: inline-flex;
+    align-items: center;
+    background: #f8fbfe url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23585858' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 16px center;
     border: none;
-    padding: 8px 20px;
+    padding: 8px 34px 8px 20px;
     border-radius: 40px;
     font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.3px;
     font-family: 'Inter', sans-serif;
-    color: #5a7e9e;
+    color: var(--gray-muted);
     cursor: pointer;
     transition: all 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-.filter-btn:hover {
-    background: #eef3fc;
-    color: #1f6392;
+.sr-filter-select:hover {
+    background-color: var(--gold-tint);
+    color: var(--gold-dark);
 }
 
-.filter-btn.active {
-    background: #1f6392;
-    color: white;
-    box-shadow: 0 2px 8px rgba(31, 99, 146, 0.3);
+.sr-filter-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--gold-tint);
 }
 
 /* Table Styles */
 .requests-table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 560px;
 }
 
 .requests-table {
@@ -181,8 +251,12 @@ body {
     font-weight: 700;
     font-size: 0.85rem;
     letter-spacing: 0.3px;
-    color: #1c4c6e;
+    color: #1A1A1A;
     border-bottom: 2px solid #eef3f8;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 2;
 }
 
 .requests-table td {
@@ -190,13 +264,14 @@ body {
     border-bottom: 1px solid #eef3f8;
     font-weight: 500;
     letter-spacing: -0.01em;
-    color: #2c5a7a;
+    color: #1A1A1A;
 }
 
 .ticket-id-link {
-    color: #1f6392;
+    color: #1A1A1A;
     text-decoration: none;
     font-weight: 700;
+    white-space: nowrap;
     transition: opacity 0.2s;
 }
 
@@ -215,7 +290,10 @@ body {
 }
 
 .priority-badge.critical { background: #fde2e2; color: #e74c3c; }
-.priority-badge.high { background: #ffe0cc; color: #e67e22; }
+/* RESTYLED: High priority recolored from orange to red/pink (#d6336c), matching
+   the same change made on Dashboard's .priority-badge.high — so "High priority"
+   reads as the same color on both pages instead of orange here vs. pink there. */
+.priority-badge.high { background: #fde2ea; color: #d6336c; }
 .priority-badge.medium { background: #fff3cd; color: #f1c40f; }
 .priority-badge.low { background: #d5f5e3; color: #27ae60; }
 
@@ -229,13 +307,15 @@ body {
 }
 
 .status-badge.status-pending { background: #fff3cd; color: #f39c12; }
-.status-badge.status-ongoing { background: #cce5ff; color: #0066cc; }
+.status-badge.status-ongoing { background: var(--blue-tint); color: var(--blue); }
 .status-badge.status-completed { background: #d5f5e3; color: #27ae60; }
 .status-badge.status-closed { background: #e8e8e8; color: #7f8c8d; }
 
+/* FIX 5 (palette): color now var(--gray-muted) — was the stray blue-gray
+   #5a7e9e, same cleanup already done on Dashboard. */
 .assigned-text {
     font-weight: 500;
-    color: #5a7e9e;
+    color: var(--gray-muted);
 }
 
 .action-icons {
@@ -245,108 +325,234 @@ body {
 
 .action-icons i {
     cursor: pointer;
-    color: #95a5a6;
+    color: var(--gray-muted);
     font-size: 1rem;
     transition: color 0.2s;
 }
 
 .action-icons i:hover {
-    color: #1f6392;
+    color: #8A6D00;
 }
 
-/* Bottom Stats - identical to Dashboard */
+.action-icons .delete-ticket-icon {
+    /* !important needed to beat Sidebar.css's app-wide gold icon-color rule
+       (i.fas{color:#8A6D00!important}) — this icon is meant to stay red. */
+    color: #c62828 !important;
+}
+
+.action-icons .delete-ticket-icon:hover {
+    color: #b71c1c !important;
+}
+
+/* RESTYLED: .bottom-stats is now just a grid wrapper (was itself a white/
+   shadowed card wrapping lighter inset .stat-simple pills) — the visual weight
+   moved to each .stat-simple card below, matching Dashboard's .stats-row/
+   .stat-card pattern (a plain grid of individually-carded stats). */
 .bottom-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    background: white;
-    padding: 20px;
-    border-radius: 28px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
 }
 
+/* RESTYLED: each .stat-simple is now a full white rounded card (icon badge +
+   number/label stacked to its right) — matching Dashboard's .stat-card
+   exactly (same padding/border/shadow/radius). */
 .stat-simple {
     display: flex;
-    justify-content: space-between;
+    flex-direction: row;
     align-items: center;
-    padding: 12px 16px;
-    background: #f8fbfe;
+    gap: 14px;
+    padding: 16px 18px;
+    background: white;
+    border: 1px solid #eef1f4;
     border-radius: 20px;
-    font-size: 0.85rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.stat-simple:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.09);
+}
+
+/* NEW: keyboard-focus outline for the .stat-simple cards, now acting as
+   filter shortcuts (role="button"/tabindex="0"). Only shows for
+   keyboard/focus-visible activation, not mouse clicks. */
+.stat-simple:focus-visible {
+    outline: 2px solid #8A6D00;
+    outline-offset: 3px;
+}
+
+/* NEW: .stat-simple-info — wraps the number/label so they stack vertically
+   beside the icon badge, matching Dashboard's .stat-info. */
+.stat-simple-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.stat-simple-info span {
+    font-size: 0.68rem;
     font-weight: 500;
-    letter-spacing: 0.2px;
-    color: #2c5a7a;
+    color: var(--gray-muted);
 }
 
 .stat-simple strong {
     font-weight: 800;
-    font-size: 1rem;
-    letter-spacing: -0.01em;
-    color: #1f6392;
-}
-body.dark-mode {
-    background: #0b1220;
-    color: #f8fafc;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    color: #8A6D00;
 }
 
-body.dark-mode .top-bar,
+/* 2026-07-17: unified to the same neutral gray badge EquipmentFailures.css
+   uses for .metric-icon (background:#F1F0EC; color:#111111) instead of a
+   per-stat gold/blue/purple/green/dark tint — matches that page's "no
+   standout primary figure" look. Class names (.stat-icon-gold etc.) kept
+   as-is since Inventory.html's markup still uses them; only the resulting
+   colors changed. */
+.stat-icon-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.stat-icon-badge.stat-icon-gold,
+.stat-icon-badge.stat-icon-blue,
+.stat-icon-badge.stat-icon-purple,
+.stat-icon-badge.stat-icon-green,
+.stat-icon-badge.stat-icon-dark {
+    background: #F1F0EC;
+    color: #111111;
+}
+/* 2026-07-18 dark-mode reskin: was a navy #0b1220 that silently overrode
+   Sidebar.css's shared body.dark-mode background (this file loads after it,
+   both here and on Dashboard.html which also pulls this file in for the
+   ticket-detail overlay) — repointed to the same neutral warm-black palette
+   as everywhere else. */
+body.dark-mode {
+    background: #0b0b0d;
+    color: #f2f2f3;
+}
+
+/* CLEANED UP: removed .recent-activities-panel/.calendar-panel (dead
+   selectors — those classes don't exist anywhere on this page, only on
+   Dashboard.html; leftover from copy-pasting Dashboard's dark-mode block) and
+   .bottom-stats (FIX: after the stat-card restructuring above, .bottom-stats
+   is just a plain grid wrapper with no background/border of its own in light
+   mode — its individual .stat-simple cards already have their own dark-mode
+   coverage below, so .bottom-stats itself needs no dark-mode rule at all). */
+/* FIX (dark-mode robustness): .requests-table-wrapper, .bulk-actions-bar, and
+   .select-all-row have no background/border of their own in light mode (they
+   are plain, uncarded wrappers) — they only looked fine here because this
+   rule happened to paint them the exact same color as their parent
+   .requests-container, from the same rule. That's fragile (any future
+   independent change to either color would suddenly reveal a seam/box that
+   doesn't exist in light mode), so they're trimmed from this list; only
+   elements that are genuinely cards/table-cells with their own chrome in
+   light mode stay here. */
 body.dark-mode .requests-container,
-body.dark-mode .recent-activities-panel,
-body.dark-mode .calendar-panel,
-body.dark-mode .bottom-stats,
 body.dark-mode .stat-simple,
-body.dark-mode .requests-table-wrapper,
-body.dark-mode .search-wrapper,
 body.dark-mode .filter-tabs,
-body.dark-mode .bulk-actions-bar,
-body.dark-mode .select-all-row,
 body.dark-mode .requests-table th,
 body.dark-mode .requests-table td {
-    background: #111827;
-    border-color: #1f2937;
-    color: #f8fafc;
+    background: #17171a;
+    border-color: #232326;
+    color: #f2f2f3;
 }
 
 body.dark-mode .stat-simple {
-    background: #141b2e;
-    color: #f8fafc;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: #1d1d21;
+    color: #f2f2f3;
+    border: 1px solid #232326;
 }
 
 body.dark-mode .stat-simple strong {
     color: #ffffff;
 }
 
+/* NEW: dark-mode coverage for the restyled stat cards (icon badges + label). */
+body.dark-mode .stat-simple-info span {
+    color: #7a7a80 !important;
+}
+
+body.dark-mode .stat-icon-badge.stat-icon-gold {
+    background: rgba(200, 150, 12, 0.16) !important;
+    color: #e8b93d !important;
+}
+
+body.dark-mode .stat-icon-badge.stat-icon-blue {
+    background: rgba(47, 127, 196, 0.16) !important;
+    color: #7bb6e8 !important;
+}
+
+body.dark-mode .stat-icon-badge.stat-icon-purple {
+    background: rgba(139, 95, 191, 0.18) !important;
+    color: #c4a3e8 !important;
+}
+
+body.dark-mode .stat-icon-badge.stat-icon-green {
+    background: rgba(39, 174, 96, 0.16) !important;
+    color: #4ade80 !important;
+}
+
+body.dark-mode .stat-icon-badge.stat-icon-dark {
+    background: #0a1a2a !important;
+    color: #e8b93d !important;
+}
+
+/* .page-subtitle/.topbar-search/.user-avatar dark-mode duplicates removed
+   (2026-07-17 restyle) — Sidebar.css already covers all three with its own
+   body.dark-mode rules; this file's copies had drifted to slate-blue tones
+   (#94a3b8/#1e293b) instead of Sidebar.css's neutral gray (#A8A8A8/#2A2A2A). */
+
 body.dark-mode .requests-container {
     border: 1px solid rgba(255,255,255,0.16);
     box-shadow: 0 20px 50px rgba(0,0,0,0.35);
 }
 
-body.dark-mode .section-header {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 24px;
-    padding: 18px 20px;
-}
+/* FIX (dark-mode layout-shift bug): this rule used to add a background, border,
+   border-radius, AND padding to .section-header in dark mode — none of which
+   exist on it in light mode (light mode's .section-header is just a plain flex
+   row with margin-bottom/gap). That meant switching to dark mode visibly
+   resized/repositioned the title + search row (extra ~20px padding on every
+   side, rounded card appearance). Removed entirely — dark mode now only
+   affects text/icon color here (handled by the color-only rules elsewhere in
+   this file), so .section-header's box stays pixel-identical in both themes. */
 
-body.dark-mode .requests-table-wrapper {
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 24px;
+/* FIX (dark-mode layout-shift bug): light mode's .requests-table-wrapper is
+   just "{overflow-x:auto;}" — no border, no radius. Adding a 1px border +
+   24px border-radius only in dark mode changed the table's visible shape/size
+   (rounded corners appearing/disappearing, border eating into the width).
+   Removed so the wrapper's box is identical in both themes. */
+
+/* .top-bar dark-mode override removed (2026-07-17 restyle) — Dashbaord.css
+   no longer overrides it either, so every admin page now falls through to
+   Sidebar.css's shared generic "bordered card" dark-mode rule
+   (rgba(30,30,30,0.92) bg / 0.08 border / 0.22 shadow) instead of a
+   per-page-specific value. This keeps .top-bar's dark-mode appearance
+   identical across modules by construction, not by copying matching numbers
+   into every file. */
+
+body.dark-mode .section-header {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 body.dark-mode .requests-table {
     background: transparent;
 }
 
-body.dark-mode .top-bar {
-    box-shadow: 0 18px 40px rgba(0,0,0,0.25);
-}
-
-body.dark-mode .page-title h1,
+/* .page-title h1 removed from this list — Sidebar.css's own body.dark-mode
+   .page-title h1 rule already covers it (2026-07-17 restyle). */
 body.dark-mode .section-header h2,
-body.dark-mode .search-input,
-body.dark-mode .search-input::placeholder,
-body.dark-mode .filter-btn,
 body.dark-mode .checkbox-label,
 body.dark-mode .requests-table th,
 body.dark-mode .requests-table td,
@@ -356,72 +562,65 @@ body.dark-mode .status-badge,
 body.dark-mode .priority-badge,
 body.dark-mode .action-icons i,
 body.dark-mode .ticket-id-link:hover {
-    color: #f8fafc !important;
-}
-
-body.dark-mode .search-input {
-    background: transparent;
-}
-
-body.dark-mode .search-wrapper {
-    background: #111827;
-    border-color: #1f2937;
+    color: #f2f2f3 !important;
 }
 
 body.dark-mode .filter-tabs {
-    border-bottom-color: #1f2937;
+    border-bottom-color: #232326;
 }
 
-body.dark-mode .filter-btn {
-    background: #17213b;
-    color: #d2d9e8;
-    border: 1px solid rgba(255,255,255,0.08);
+/* Same no-border rationale as the old .filter-btn had — a border would grow
+   these pills a couple pixels in dark mode since they have no fixed width.
+   !important is required on EVERY sub-property here, not just the ones that
+   visually differ: Sidebar.css has a generic "body.dark-mode select {
+   background:#1d1d21 !important; ... }" fallback for plain selects app-wide,
+   and its shorthand `background` implicitly resets background-image AND
+   background-repeat/-position to their initial values ('none'/'repeat'/'0 0')
+   as part of that one !important declaration — even the sub-properties the
+   shorthand didn't literally mention. First attempt only re-declared
+   background-image, which fixed the chevron showing at all but left it
+   tiling edge-to-edge (background-repeat had reverted to 'repeat'). */
+body.dark-mode .sr-filter-select {
+    background-color: #1d1d21 !important;
+    color: #d2d2d4 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23d2d2d4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 16px center !important;
 }
 
-body.dark-mode .filter-btn:hover {
-    background: #1f2a4b;
-    color: #ffffff;
+body.dark-mode .sr-filter-select:hover {
+    background-color: #3A2F14 !important;
+    color: #FFD84D !important;
 }
 
-body.dark-mode .filter-btn.active {
-    background: #1f6392;
-    color: white;
-    box-shadow: 0 2px 8px rgba(31, 99, 146, 0.4);
+body.dark-mode .sr-filter-select:focus {
+    box-shadow: 0 0 0 3px rgba(253, 201, 19, 0.25);
 }
 
-body.dark-mode .theme-toggle-wrapper,
-body.dark-mode .theme-toggle-wrapper i,
-body.dark-mode .menu-toggle,
-body.dark-mode .top-bar,
-body.dark-mode .page-title h1,
-body.dark-mode .filter-btn,
-body.dark-mode .search-input,
-body.dark-mode .checkbox-label {
-    color: #f8fafc !important;
-}
-
-body.dark-mode .theme-toggle-wrapper {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 999px;
-    padding: 8px 14px;
-}
+/* Redundant dark-mode color block removed (2026-07-17 restyle) — it
+   re-declared .theme-toggle-wrapper/.theme-toggle-wrapper i/.menu-toggle/
+   .top-bar/.page-title h1 (already covered by Sidebar.css) plus .filter-btn/
+   .checkbox-label (already covered by this file's own rule above), so it was
+   pure duplication with no remaining effect. */
 
 body.dark-mode .slider {
-    background-color: #334155 !important;
+    background-color: #29292e !important;
 }
 
+/* FIX (drift): was blue (#2563eb), inconsistent with the gold checked-state
+   every other page's theme-toggle switch uses (Sidebar.css's shared .switch
+   rule). */
 body.dark-mode .switch input:checked + .slider {
-    background-color: #2563eb !important;
+    background-color: #FDC913 !important;
 }
 
 body.dark-mode .requests-table th {
-    background: #121926;
-    border-bottom-color: #1f2937;
+    background: #1d1d21;
+    border-bottom-color: #232326;
 }
 
 body.dark-mode .requests-table td {
-    border-bottom-color: #1f2937;
+    border-bottom-color: #232326;
 }
 
 body.dark-mode .ticket-id-link:hover,
@@ -435,7 +634,7 @@ body.dark-mode .status-badge.status-pending   { background: #4b3b0f; color: #fff
 body.dark-mode .status-badge.status-closed    { background: #2d3748; color: #cbd5e1 !important; }
 
 body.dark-mode .priority-badge.critical { background: #4f2424 !important; color: #fecaca !important; }
-body.dark-mode .priority-badge.high     { background: #4f2f14 !important; color: #ffe8cc !important; }
+body.dark-mode .priority-badge.high     { background: rgba(214, 51, 108, 0.18) !important; color: #f472b6 !important; }
 body.dark-mode .priority-badge.medium   { background: #44400d !important; color: #fff9c2 !important; }
 body.dark-mode .priority-badge.low      { background: #163d27 !important; color: #c6f6d5 !important; }
 
@@ -445,150 +644,63 @@ body.dark-mode .requests-table tr.selected {
 }
 
 body.dark-mode .bulk-actions-bar {
-    background: #1f6392 !important;
+    background: #8A6D00 !important;
 }
 
 body.dark-mode .checkbox-label {
-    color: #d2d9e8;
+    color: #7a7a80;
 }
 
 body.dark-mode .requests-table input[type="checkbox"] {
-    accent-color: #1f6392;
+    accent-color: #FDC913;
 }
+
+/* FIX (dark-mode bug): .sr-view-btn (the "View" action button rendered per
+   row by ServiceRequest.js) had NO dark-mode override at all — it kept its
+   light-mode pale-blue pill (background #eef3fc / navy text), which read as
+   a bright, out-of-place button glowing against the rest of the dark UI.
+   Colors match the app-wide dark-mode View button treatment (same values
+   used in EquipmentFailures.append.css) so every "View" button looks
+   identical in dark mode, not just on this page. */
+body.dark-mode .sr-view-btn {
+    background: none !important;
+    border-color: #7fb1d6 !important;
+    color: #7fb1d6 !important;
+}
+
+body.dark-mode .sr-view-btn i {
+    color: #7fb1d6 !important;
+}
+
+body.dark-mode .sr-view-btn:hover {
+    background: #7fb1d6 !important;
+    border-color: #7fb1d6 !important;
+    color: #0f2436 !important;
+}
+
+body.dark-mode .sr-view-btn:hover i {
+    color: #0f2436 !important;
+}
+
+/* FIX (dark-mode contrast): .empty-row td ("No service requests found.") had
+   no dark override — var(--gray-muted) still passes ~5:1 here, but tokenized
+   for consistency with every other muted-text element on this page. */
+body.dark-mode .empty-row td {
+    color: var(--dm-text-secondary) !important;
+}
+
 /* Empty row styling */
 .empty-row td {
     text-align: center;
     padding: 40px;
-    color: #95a5a6;
+    color: var(--gray-muted);
     font-weight: 500;
 }
 
-/* Modal & Toast - same as Dashboard */
-.logout-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(3px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s;
-}
-
-.logout-modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.logout-modal {
-    background: white;
-    width: 90%;
-    max-width: 400px;
-    border-radius: 32px;
-    overflow: hidden;
-    transform: scale(0.95);
-    transition: transform 0.2s;
-}
-
-.logout-modal-overlay.active .logout-modal {
-    transform: scale(1);
-}
-
-.modal-header {
-    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid #eef3f8;
-}
-
-.modal-header i {
-    font-size: 1.8rem;
-    color: #e67e22;
-    background: #fff0e0;
-    border-radius: 50%;
-    padding: 10px;
-}
-
-.modal-header h3 {
-    font-size: 1.3rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: #1c4c6e;
-    margin: 0;
-}
-
-.modal-body {
-    padding: 1.5rem;
-    color: #2c5a7a;
-    font-size: 1rem;
-    font-weight: 500;
-    line-height: 1.5;
-}
-
-.modal-footer {
-    padding: 1rem 1.5rem 1.5rem;
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-.btn-cancel, .btn-confirm {
-    padding: 0.6rem 1.4rem;
-    border-radius: 40px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    letter-spacing: 0.3px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    transition: all 0.2s;
-}
-
-.btn-cancel {
-    background: #f0f4f9;
-    color: #446c8c;
-}
-
-.btn-cancel:hover {
-    background: #e8eef3;
-}
-
-.btn-confirm {
-    background: #c62828;
-    color: white;
-}
-
-.btn-confirm:hover {
-    background: #b71c1c;
-}
-
-.logout-toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #1f6392;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 40px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    letter-spacing: 0.3px;
-    z-index: 2100;
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-}
-
-.logout-toast.show {
-    opacity: 1;
-}
+/* .logout-modal-overlay/.logout-modal/.modal-header/.modal-body/.modal-footer/
+   .btn-cancel/.btn-confirm moved to Sidebar.css (single source of truth for
+   the shared logout modal generated by Sidebar.js on every page — do not
+   re-add a per-page copy here). */
 
 /* Responsive */
 @media (max-width: 1024px) {
@@ -604,15 +716,6 @@ body.dark-mode .requests-table input[type="checkbox"] {
     .section-header {
         flex-direction: column;
         align-items: flex-start;
-    }
-    .search-input {
-        width: 100%;
-    }
-    .search-wrapper {
-        width: 100%;
-    }
-    .search-wrapper i {
-        flex-shrink: 0;
     }
     .requests-table th,
     .requests-table td {
@@ -647,131 +750,190 @@ body.dark-mode .requests-table input[type="checkbox"] {
 }
 .completion-modal-box {
     background: white; border-radius: 20px; width: 100%; max-width: 480px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15); overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03); overflow: hidden;
 }
 .completion-modal-header {
     padding: 20px 24px; border-bottom: 1px solid #eef2f5;
-    font-size: 1rem; font-weight: 700; color: #1c4c6e;
+    font-size: 1rem; font-weight: 700; color: #1A1A1A;
     display: flex; align-items: center; gap: 10px;
 }
 .completion-modal-header i { color: #2a7a55; }
 .completion-modal-body { padding: 20px 24px; }
+/* FIX 5 (palette): recolored from a one-off amber (#fff9e6/#f0c040/#c97a2e/
+   #5a4a1e) to the established gold tokens — same note-banner idea, now on
+   the same gold used for Login's button gradient and Dashboard's active
+   states, instead of a slightly different custom amber. */
 .completion-note-banner {
     display: flex; gap: 12px; align-items: flex-start;
-    background: #fff9e6; border: 1.5px solid #f0c040; border-radius: 12px;
+    background: var(--gold-tint); border: 1.5px solid var(--gold);
+    border-radius: 12px;
     padding: 14px 16px; margin-bottom: 18px;
 }
-.completion-note-banner i { color: #c97a2e; font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
-.completion-note-banner p { font-size: 0.82rem; color: #5a4a1e; line-height: 1.5; margin: 0; }
+.completion-note-banner i { color: var(--gold-dark); font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
+.completion-note-banner p { font-size: 0.82rem; color: #6b5410; line-height: 1.5; margin: 0; }
 .completion-detail-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 14px; }
-.completion-detail-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c86a0; }
-.completion-detail-value { font-size: 0.9rem; font-weight: 600; color: #1c4c6e; }
+.completion-detail-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-muted); }
+.completion-detail-value { font-size: 0.9rem; font-weight: 600; color: #1A1A1A; }
 .completion-modal-footer {
     display: flex; gap: 12px; padding: 16px 24px;
     border-top: 1px solid #eef2f5; justify-content: flex-end;
 }
+/* RESTYLED: gold gradient (was flat navy #1A1A1A), matching Login.css's
+   .btn-primary — the "final commit" primary actions across the app (Send
+   Confirmation, Mark Complete, Save, Done) now share that same gold CTA
+   treatment instead of navy. Secondary/utility buttons (Cancel, Reply,
+   Download, View) stay navy/gray, unchanged. */
 .btn-send-confirmation {
-    background: #1a4a6e; color: white; border: none;
+    background: linear-gradient(105deg, var(--gold) 0%, var(--gold-dark) 100%);
+    color: #1A1A1A; border: none;
     padding: 11px 22px; border-radius: 40px;
     font-weight: 700; font-size: 0.85rem; font-family: 'Inter',sans-serif;
-    cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 18px -6px rgba(200, 150, 12, 0.45);
+    transition: all 0.2s;
 }
-.btn-send-confirmation:hover { background: #0f3d5a; }
+.btn-send-confirmation:hover {
+    background: linear-gradient(105deg, #E0B00F, var(--gold-dark));
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px -6px rgba(200, 150, 12, 0.5);
+}
 .btn-send-confirmation:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-cancel-completion {
     background: #f4f6f9; border: 1.5px solid #dee4ea;
     padding: 11px 20px; border-radius: 40px;
     font-weight: 500; font-size: 0.85rem; font-family: 'Inter',sans-serif;
-    color: #6c86a0; cursor: pointer; transition: all 0.2s;
+    color: var(--gray-muted); cursor: pointer; transition: all 0.2s;
 }
 .btn-cancel-completion:hover { border-color: #c62828; color: #c62828; }
 .mark-complete-icon { color: #2a7a55; cursor: pointer; }
 .mark-complete-icon:hover { color: #1c4c30; }
-.status-pending-confirmation { background: #f0e6ff; color: #7c3aed; }
+/* FIX 5 (palette): purple isn't in the approved green/red/orange/blue tint
+   list — recolored to gold, matching every other "Pending Confirmation"
+   indicator on this page (.td-status-badge/.td-badge-status variants above,
+   .cfp-status-badge below). */
+.status-pending-confirmation { background: var(--gold-tint); color: var(--gold-dark); }
 
 /* ══════════════════════════════════════════════════════════════════════════
    REQUEST DETAIL OVERLAY (td-overlay) — IT Admin View Ticket Details panel
 ══════════════════════════════════════════════════════════════════════════ */
-.td-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);z-index:3000;opacity:0;visibility:hidden;transition:all 0.25s;overflow-y:auto;padding:24px;}
+.td-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);z-index:3000;opacity:0;visibility:hidden;transition:all 0.25s;overflow-y:auto;padding:16px;}
 .td-overlay.active{opacity:1;visibility:visible;}
-.td-panel{background:white;border-radius:24px;max-width:1200px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.15);overflow:hidden;}
-.td-header{display:flex;justify-content:space-between;align-items:center;padding:20px 28px;border-bottom:2px solid #eef3f8;background:#f8fbfe;position:sticky;top:0;z-index:10;}
-.td-title{font-size:1.1rem;font-weight:700;color:#1c4c6e;display:flex;align-items:center;gap:10px;}
-.td-close-btn{background:none;border:none;font-size:1.8rem;cursor:pointer;color:#95a5a6;line-height:1;}
-.td-close-btn:hover{color:#c62828;}
-.td-body{padding:28px;}
-.td-loading{text-align:center;padding:60px;color:#8aa5bf;font-size:1rem;}
-.td-two-col{display:grid;grid-template-columns:340px 1fr;gap:28px;}
-.td-col-left,.td-col-right{display:flex;flex-direction:column;gap:20px;}
-.td-section{background:#f8fbfe;border-radius:16px;padding:18px 20px;border:1px solid #eef3f8;}
-.td-section-title{font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#1f6392;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #eef3f8;display:flex;align-items:center;gap:7px;}
-.td-field-row{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f0f4f8;}
-.td-field-row:last-child{border-bottom:none;}
-.td-field-label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:#6c86a0;flex-shrink:0;}
-.td-field-val{font-size:0.85rem;font-weight:500;color:#2c4c6e;text-align:right;}
-.td-ticket-code{font-weight:700;color:#1f6392;font-size:0.95rem;}
-.td-warn-text{color:#e67e22;font-weight:600;}
+.td-panel{background:white;border-radius:20px;max-width:1200px;margin:0 auto;box-shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);overflow:hidden;}
+.td-header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid #f2f2f2;background:#fff;position:sticky;top:0;z-index:10;gap:14px;flex-wrap:wrap;}
+.td-header-titles{display:flex;align-items:center;gap:10px;flex-wrap:wrap;row-gap:5px;}
+.td-header-icon{width:32px;height:32px;border-radius:10px;background:#111111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;}
+.td-title{font-size:1rem;font-weight:600;color:#111111;}
+.td-header-meta{display:flex;align-items:center;gap:6px;}
+.td-header-code{font-size:0.6875rem;font-weight:700;color:#8A6D00;background:var(--gold-tint);padding:4px 11px;border-radius:999px;}
+.td-close-btn{width:30px;height:30px;border-radius:999px;background:#f4f4f5;color:#8a8a8e;display:flex;align-items:center;justify-content:center;font-size:0.8rem;cursor:pointer;border:none;flex-shrink:0;}
+.td-close-btn:hover{background:#ececec;}
+.td-body{padding:20px 22px;}
+.td-loading{text-align:center;padding:60px;color:var(--gray-light);font-size:1rem;}
+.td-two-col{display:grid;grid-template-columns:1fr 1.15fr;gap:16px;}
+.td-col-left,.td-col-right{display:flex;flex-direction:column;gap:14px;}
+.td-section{background:#fafafa;border-radius:16px;padding:16px 18px;border:1px solid #f0f0f0;}
+.td-section.td-callout{background:#fffdf5;border-color:#fde68a;}
+.td-section-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#8a8a8e;margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.td-section-title i{color:inherit;font-size:0.9rem;}
+.td-callout .td-section-title{color:var(--gold-dark);}
+.td-field-row{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;gap:12px;}
+.td-field-label{font-size:0.8125rem;font-weight:400;color:#8a8a8e;flex-shrink:0;}
+.td-field-val{font-size:0.8125rem;font-weight:600;color:#111111;text-align:right;line-height:1.35;}
+.td-ticket-code{font-weight:700;color:#8A6D00;font-size:0.875rem;}
+.td-warn-badge{display:inline-flex;align-items:center;background:var(--gold-tint);color:var(--gold-dark);font-size:0.6875rem;font-weight:600;padding:4px 11px;border-radius:999px;white-space:nowrap;}
 .td-field-group{margin-bottom:12px;}
-.td-field-group .td-field-label{display:block;margin-bottom:5px;}
-.td-badge-status{padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:700;text-transform:uppercase;}
-.td-status-pending{background:#fff3cd;color:#f39c12;}
-.td-status-ongoing{background:#cce5ff;color:#0066cc;}
-.td-status-completed{background:#d5f5e3;color:#27ae60;}
-.td-status-pending-confirmation{background:#f0e6ff;color:#7c3aed;}
-.td-status-closed{background:#eef2f5;color:#6c86a0;}
-.td-badge-appr{padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:700;}
-.td-appr-approved{background:#d5f5e3;color:#27ae60;}
-.td-appr-pending-approval{background:#fff3cd;color:#f39c12;}
-.td-appr-rejected{background:#fde2e2;color:#c62828;}
-.td-issue-title{font-size:0.92rem;font-weight:700;color:#1a4a6e;margin-top:5px;}
-.td-issue-desc{font-size:0.85rem;color:#2c4c6e;line-height:1.6;margin-top:5px;}
-.td-sla-section{border-left:4px solid #c97a2e;}
+.td-field-group .td-field-label{display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.03em;font-size:0.6875rem;font-weight:600;}
+/* FIX (selector collision): these were bare ".td-status-X" rules — but
+   ServiceRequest.js also uses the SAME modifier class names combined with a
+   DIFFERENT base class (.td-status-badge, further below) for the "locked
+   status" feature. Since both rule groups matched ".td-status-completed" etc.
+   regardless of which base class was present, whichever one happened to come
+   LAST in the file silently won for BOTH features — fragile and confusing.
+   Now compound-scoped to ".td-badge-status.td-status-X" so this group only
+   ever applies to the overlay-header status badge. Also: recolored
+   .td-status-pending-confirmation from a stray purple (not in the approved
+   green/red/orange/blue palette) to gold, and aligned .td-status-completed/
+   .td-status-closed to the exact same colors as the OTHER status-badge
+   feature below, so "Completed"/"Closed" look identical everywhere on the
+   page instead of two slightly different shades. */
+.td-badge-status{padding:4px 11px;border-radius:999px;font-size:0.6875rem;font-weight:700;text-transform:uppercase;}
+.td-badge-status.td-status-pending{background:#fff3cd;color:#f39c12;}
+.td-badge-status.td-status-ongoing{background:var(--blue-tint);color:var(--blue);}
+.td-badge-status.td-status-completed{background:var(--green-tint);color:#1e7a4a;}
+.td-badge-status.td-status-pending-confirmation{background:var(--gold-tint);color:var(--gold-dark);}
+.td-badge-status.td-status-closed{background:#eef2f6;color:var(--gray-muted);}
+
+/* NEW: dark-mode coverage — this group previously had none at all (the badge
+   just kept its light colors in dark mode). */
+body.dark-mode .td-badge-status.td-status-pending { background: rgba(243, 156, 18, 0.16); color: #fbbf24; }
+body.dark-mode .td-badge-status.td-status-ongoing { background: rgba(47, 127, 196, 0.16); color: #7bb6e8; }
+body.dark-mode .td-badge-status.td-status-completed { background: rgba(39, 174, 96, 0.16); color: #4ade80; }
+body.dark-mode .td-badge-status.td-status-pending-confirmation { background: rgba(200, 150, 12, 0.16); color: #e8b93d; }
+body.dark-mode .td-badge-status.td-status-closed { background: #2d3748; color: #cbd5e1; }
+body.dark-mode .td-appr-approved { background: rgba(39, 174, 96, 0.16); color: #4ade80; }
+body.dark-mode .td-appr-pending-approval { background: rgba(253, 201, 19, 0.14); color: var(--dm-accent-navy); }
+body.dark-mode .td-appr-rejected { background: rgba(220, 38, 38, 0.16); color: #fca5a5; }
+.td-badge-appr{padding:4px 11px;border-radius:999px;font-size:0.6875rem;font-weight:700;}
+.td-appr-approved{background:#dcfce7;color:#16a34a;}
+.td-appr-pending-approval{background:var(--gold-tint);color:var(--gold-dark);}
+.td-appr-rejected{background:#fee2e2;color:#dc2626;}
+.td-issue-title{font-size:0.875rem;font-weight:600;color:#111111;margin-top:4px;}
+.td-issue-desc{font-size:0.875rem;font-weight:400;color:#333333;line-height:1.55;margin-top:4px;}
 .td-sla-edit{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
-.td-edit-sla-btn{background:none;border:1px solid #1f6392;color:#1f6392;font-size:0.72rem;padding:2px 10px;border-radius:20px;cursor:pointer;margin-left:8px;font-family:'Inter',sans-serif;}
+.td-sla-warn{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #fde68a;border-radius:10px;padding:8px 12px;margin-top:10px;}
+.td-sla-warn-text{font-size:0.6875rem;font-weight:600;color:var(--gold-dark);}
+.td-edit-sla-btn{background:#fff;border:1px solid #ddd;color:#111111;font-size:0.6875rem;padding:4px 10px;border-radius:999px;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:4px;}
+.td-edit-sla-btn:hover{background:#f4f4f5;}
 .td-btn-sla-save,.td-btn-sla-cancel{padding:5px 14px;border-radius:30px;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;border:none;}
-.td-btn-sla-save{background:#1f6392;color:white;}
-.td-btn-sla-cancel{background:#f0f4f9;color:#6c86a0;border:1px solid #dee4ea;}
-.td-input{width:100%;padding:9px 12px;border:1.5px solid #e2e8ed;border-radius:10px;font-size:0.85rem;font-family:'Inter',sans-serif;color:#2c4c6e;background:white;transition:border-color 0.2s;}
-.td-input:focus{outline:none;border-color:#1f6392;}
+.td-btn-sla-save{background:var(--gold);color:#1A1A1A;}
+.td-btn-sla-cancel{background:#f0f4f9;color:var(--gray-muted);border:1px solid #dee4ea;}
+.td-input{width:100%;padding:9px 12px;border:1px solid #ececec;border-radius:10px;font-size:0.8125rem;font-family:'Inter',sans-serif;color:#111111;background:white;transition:border-color 0.2s;}
+.td-input:focus{outline:none;border-color:#111111;}
 .td-input-sm{width:80px;}
-.td-input-readonly{background:#f8fbfe;color:#1f6392;font-weight:700;cursor:default;}
-.td-select{width:100%;padding:9px 12px;border:1.5px solid #e2e8ed;border-radius:10px;font-size:0.85rem;font-family:'Inter',sans-serif;color:#2c4c6e;background:white;cursor:pointer;}
-.td-select:focus{outline:none;border-color:#1f6392;}
-.td-textarea{width:100%;padding:9px 12px;border:1.5px solid #e2e8ed;border-radius:10px;font-size:0.85rem;font-family:'Inter',sans-serif;resize:vertical;min-height:80px;}
-.td-textarea:focus{outline:none;border-color:#1f6392;}
-.td-btn-complete{background:#1f6392;color:white;border:none;padding:10px 20px;border-radius:40px;font-weight:700;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:14px;font-family:'Inter',sans-serif;transition:all 0.2s;}
-.td-btn-complete:hover{background:#155580;}
-.td-approval-section{border-left:4px solid #1f6392;}
-.td-approval-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0f4f8;}
-.td-approval-note{font-size:0.72rem;color:#6c86a0;margin-top:10px;font-style:italic;}
-.td-rejection-note{font-size:0.82rem;color:#c62828;}
-.td-cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.td-cost-field label{display:block;margin-bottom:5px;}
-.td-checkbox-label{display:flex;align-items:center;gap:8px;font-size:0.85rem;color:#2c4c6e;cursor:pointer;margin-bottom:12px;}
-.td-checkbox-label input[type="checkbox"]{width:16px;height:16px;accent-color:#1f6392;}
-.td-repair-costs{border-top:1px solid #eef3f8;padding-top:14px;margin-top:4px;}
-.td-info-note{background:#f0f7ff;border-left:4px solid #2c7cb6;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#2c4c6e;display:flex;align-items:flex-start;gap:8px;margin-top:12px;}
-.td-info-note i{color:#2c7cb6;flex-shrink:0;margin-top:2px;}
-.td-conv-thread{max-height:280px;overflow-y:auto;margin-bottom:16px;}
-.td-conv-item{padding:12px 14px;border-radius:12px;margin-bottom:10px;}
-.td-conv-requester{background:#f8fbfe;border:1px solid #eef3f8;}
-.td-conv-admin{background:#f0f4ff;border:1px solid #d8e4ff;}
-.td-conv-author{font-size:0.78rem;font-weight:700;color:#1a4a6e;margin-bottom:5px;}
-.td-conv-time{font-size:0.65rem;color:#95a5a6;font-weight:400;margin-left:8px;}
-.td-conv-msg{font-size:0.83rem;color:#2c4c6e;line-height:1.5;}
-.td-conv-empty{text-align:center;padding:24px;color:#8aa5bf;font-size:0.85rem;}
-.td-reply-area{border-top:1px solid #eef3f8;padding-top:14px;}
-.td-reply-input{margin-top:8px;min-height:80px;}
-.td-btn-reply{background:#1f6392;color:white;border:none;padding:9px 20px;border-radius:40px;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:7px;margin-top:10px;transition:all 0.2s;}
-.td-btn-reply:hover{background:#155580;}
-.td-footer{display:flex;gap:12px;justify-content:flex-end;padding:20px 28px;border-top:1px solid #eef3f8;background:#f8fbfe;position:sticky;bottom:0;}
-.td-btn-save{background:#1f6392;color:white;border:none;padding:11px 28px;border-radius:40px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:8px;transition:all 0.2s;}
-.td-btn-save:hover{background:#155580;}
-.td-btn-cancel{background:#f0f4f9;border:1.5px solid #dee4ea;padding:11px 22px;border-radius:40px;font-size:0.85rem;font-weight:500;color:#6c86a0;cursor:pointer;font-family:'Inter',sans-serif;}
-.td-btn-cancel:hover{border-color:#c62828;color:#c62828;}
-.status-badge.status-pending-confirmation{background:#f0e6ff;color:#7c3aed;}
-.sr-view-btn{background:#eef3fc;border:none;padding:6px 14px;border-radius:30px;font-size:0.78rem;font-weight:600;color:#1f6392;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;}
-.sr-view-btn:hover{background:#1f6392;color:white;}
+.td-input-readonly{color:var(--gold-dark);font-weight:600;cursor:default;}
+.td-select{width:100%;padding:9px 12px;border:1px solid #ececec;border-radius:10px;font-size:0.8125rem;font-family:'Inter',sans-serif;color:#111111;background:white;cursor:pointer;}
+.td-select:focus{outline:none;border-color:#111111;}
+.td-textarea{width:100%;padding:9px 12px;border:1px solid #ececec;border-radius:10px;font-size:0.8125rem;font-family:'Inter',sans-serif;resize:vertical;min-height:64px;}
+.td-textarea:focus{outline:none;border-color:#111111;}
+.td-btn-complete{background:#111111;color:#ffffff;border:none;padding:8px 18px;border-radius:40px;font-weight:700;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:10px;font-family:'Inter',sans-serif;transition:all 0.2s;}
+.td-btn-complete:hover{background:#000000;transform:translateY(-1px);}
+.td-approval-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;}
+.td-approval-note{font-size:0.6875rem;color:#8a8a8e;margin-top:8px;line-height:1.5;}
+.td-rejection-note{font-size:0.82rem;color:#dc2626;}
+.td-cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.td-cost-field label{display:block;margin-bottom:4px;}
+.td-checkbox-label{display:flex;align-items:center;gap:8px;font-size:0.8125rem;font-weight:600;color:#111111;cursor:pointer;margin-bottom:8px;}
+.td-checkbox-label input[type="checkbox"]{width:16px;height:16px;accent-color:#111111;}
+.td-repair-costs{border-top:1px solid #f0f0f0;padding-top:10px;margin-top:4px;}
+/* FIX 5 (palette): border/icon recolored from a stray blue (#2c7cb6) to the
+   established --blue token (still a "blue tint" note, just matching the same
+   blue used for Ongoing status elsewhere instead of a one-off shade). */
+.td-info-note{background:var(--blue-tint);border-left:4px solid var(--blue);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:#1A1A1A;display:flex;align-items:flex-start;gap:8px;margin-top:8px;}
+.td-info-note i{color:var(--blue);flex-shrink:0;margin-top:2px;}
+.td-conv-thread{max-height:220px;overflow-y:auto;margin-bottom:12px;}
+.td-conv-item{padding:9px 12px;border-radius:11px;margin-bottom:8px;}
+.td-conv-requester{background:#fafafa;border:1px solid #f0f0f0;}
+.td-conv-admin{background:#fffdf5;border:1px solid #fde68a;}
+.td-conv-author{font-size:0.75rem;font-weight:700;color:#111111;margin-bottom:4px;}
+.td-conv-time{font-size:0.6875rem;color:#b0b0b0;font-weight:400;margin-left:8px;}
+.td-conv-msg{font-size:0.75rem;color:#555555;line-height:1.45;}
+.td-conv-empty{text-align:center;padding:18px;color:var(--gray-light);font-size:0.85rem;}
+.td-reply-area{border-top:1px solid #f0f0f0;padding-top:10px;}
+.td-reply-input{margin-top:6px;min-height:64px;}
+.td-btn-reply{background:#1A1A1A;color:#ffffff;border:none;padding:7px 18px;border-radius:40px;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:7px;margin-top:8px;transition:all 0.2s;}
+.td-btn-reply:hover{background:#3a3a3a;}
+.td-footer{display:flex;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:1px solid #f2f2f2;background:#fff;position:sticky;bottom:0;}
+.td-btn-save{background:#111111;color:#ffffff;border:none;padding:9px 24px;border-radius:40px;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:8px;transition:all 0.2s;}
+.td-btn-save:hover{background:#000000;transform:translateY(-1px);}
+.td-btn-cancel{background:#f4f4f5;border:none;padding:9px 20px;border-radius:40px;font-size:0.84rem;font-weight:600;color:#555555;cursor:pointer;font-family:'Inter',sans-serif;}
+.td-btn-cancel:hover{background:#ececec;}
+/* FIX 5 (palette): same purple→gold fix as .status-pending-confirmation above. */
+.status-badge.status-pending-confirmation{background:var(--gold-tint);color:var(--gold-dark);}
+.sr-view-btn{background:#fff;border:1px solid #1A1A1A;padding:6px 14px;border-radius:30px;font-size:0.78rem;font-weight:600;color:#1A1A1A;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;}
+.sr-view-btn i{font-size:0.72rem;color:#1A1A1A;}
+.sr-view-btn:hover i{color:#ffffff;}
+.sr-view-btn:hover{background:#1A1A1A;color:#ffffff;box-shadow:0 2px 6px rgba(26, 26, 26, 0.25);}
+.sr-view-btn:active{transform:translateY(1px);}
 @media(max-width:900px){.td-two-col{grid-template-columns:1fr;}}
 @media(max-width:640px){.td-cost-grid{grid-template-columns:1fr;}}
 
@@ -781,30 +943,180 @@ body.dark-mode .requests-table input[type="checkbox"] {
 ══════════════════════════════════════════════════════════════════════════ */
 .cfp-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);z-index:4000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all 0.25s;padding:20px;}
 .cfp-overlay.active{opacity:1;visibility:visible;}
-.cfp-box{background:white;border-radius:24px;max-width:420px;width:100%;padding:32px 28px;box-shadow:0 20px 60px rgba(0,0,0,0.15);text-align:center;position:relative;}
-.cfp-close{position:absolute;top:14px;right:18px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#95a5a6;line-height:1;}
+.cfp-box{background:white;border-radius:20px;max-width:420px;width:100%;padding:32px 28px;box-shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);text-align:center;position:relative;}
+.cfp-close{position:absolute;top:14px;right:18px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gray-muted);line-height:1;}
 .cfp-close:hover{color:#c62828;}
 .cfp-icon{font-size:3.5rem;color:#27ae60;margin-bottom:14px;}
-.cfp-title{font-size:1.2rem;font-weight:700;color:#1a4a6e;margin-bottom:8px;}
-.cfp-sub{font-size:0.85rem;color:#6c86a0;margin-bottom:20px;line-height:1.5;}
+.cfp-title{font-size:1.2rem;font-weight:700;color:#1A1A1A;margin-bottom:8px;}
+.cfp-sub{font-size:0.85rem;color:var(--gray-muted);margin-bottom:20px;line-height:1.5;}
 .cfp-detail-card{background:#f8fbfe;border-radius:14px;padding:16px 18px;margin-bottom:24px;text-align:left;border:1px solid #eef3f8;}
 .cfp-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f4f8;}
 .cfp-row:last-child{border-bottom:none;}
-.cfp-label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:#6c86a0;}
-.cfp-val{font-size:0.85rem;font-weight:500;color:#2c4c6e;}
-.cfp-status-badge{background:#f0e6ff;color:#7c3aed;padding:2px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;text-transform:uppercase;}
-.cfp-done-btn{background:#1f6392;color:white;border:none;padding:11px 40px;border-radius:40px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;}
-.cfp-done-btn:hover{background:#155580;}
+.cfp-label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--gray-muted);}
+.cfp-val{font-size:0.85rem;font-weight:500;color:#1A1A1A;}
+/* FIX 5 (palette): same purple→gold fix as .status-pending-confirmation above. */
+.cfp-status-badge{background:var(--gold-tint);color:var(--gold-dark);padding:2px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;text-transform:uppercase;}
+/* RESTYLED: gold gradient primary-CTA treatment (was flat navy #8A6D00) — see
+   .btn-send-confirmation comment above. */
+.cfp-done-btn{background:linear-gradient(105deg, var(--gold) 0%, var(--gold-dark) 100%);color:#1A1A1A;border:none;padding:11px 40px;border-radius:40px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 8px 18px -6px rgba(200, 150, 12, 0.45);transition:all 0.2s;}
+.cfp-done-btn:hover{background:linear-gradient(105deg, #E0B00F, var(--gold-dark));transform:translateY(-1px);}
 
-/* Dark mode support */
-body.dark-mode .td-panel,body.dark-mode .td-section,body.dark-mode .td-header,body.dark-mode .td-footer{background:#111827;border-color:#1f2937;}
-body.dark-mode .td-field-val,body.dark-mode .td-issue-title,body.dark-mode .td-issue-desc,body.dark-mode .td-conv-msg{color:#c9d6e3;}
-body.dark-mode .td-input,body.dark-mode .td-select,body.dark-mode .td-textarea{background:#1a2234;border-color:#2d3345;color:#e8edf2;}
-body.dark-mode .td-conv-requester{background:#1a2234;border-color:#2d3345;}
-body.dark-mode .td-conv-admin{background:#172038;border-color:#2a3d5c;}
-body.dark-mode .cfp-box{background:#111827;}
-body.dark-mode .cfp-detail-card{background:#1a2234;border-color:#2d3345;}
-body.dark-mode .cfp-val{color:#c9d6e3;}
+/* Dark mode support (2026-07-18: neutral warm-black palette. .td-conv-admin
+   keeps a distinct tint from .td-conv-requester — the two chat-bubble sides
+   still need to read as different at a glance — but shifted from navy to a
+   warm gold-tint, on-brand instead of an arbitrary blue.) */
+body.dark-mode .td-panel,body.dark-mode .td-section,body.dark-mode .td-header,body.dark-mode .td-footer{background:#17171a;border-color:#232326;}
+body.dark-mode .td-panel{box-shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);}
+body.dark-mode .td-section.td-callout{background:#241f10;border-color:#3A2F14;}
+body.dark-mode .td-header-icon{background:var(--dm-bg-inset);color:var(--dm-text-primary);}
+body.dark-mode .td-close-btn{background:var(--dm-bg-inset);color:var(--dm-text-secondary);}
+body.dark-mode .td-close-btn:hover{background:#29292e;}
+body.dark-mode .td-field-val,body.dark-mode .td-issue-title,body.dark-mode .td-issue-desc,body.dark-mode .td-conv-msg{color:#d4d4d6;}
+body.dark-mode .td-input,body.dark-mode .td-select,body.dark-mode .td-textarea{background:#1d1d21;border-color:#232326;color:#f2f2f3;}
+body.dark-mode .td-input:focus,body.dark-mode .td-select:focus,body.dark-mode .td-textarea:focus{border-color:var(--dm-text-primary);}
+body.dark-mode .td-input-readonly{color:var(--dm-accent-navy);}
+body.dark-mode .td-checkbox-label input[type="checkbox"]{accent-color:var(--dm-accent-navy);}
+body.dark-mode .td-repair-costs{border-top-color:#232326;}
+body.dark-mode .td-reply-area{border-top-color:#232326;}
+body.dark-mode .td-sla-warn{background:#1d1d21;border-color:#3A2F14;}
+body.dark-mode .td-sla-warn-text{color:var(--dm-accent-navy);}
+body.dark-mode .td-btn-cancel{background:var(--dm-bg-inset);color:var(--dm-text-secondary);}
+body.dark-mode .td-btn-cancel:hover{background:#29292e;}
+body.dark-mode .td-conv-requester{background:#1d1d21;border-color:#232326;}
+body.dark-mode .td-conv-admin{background:#241f10;border-color:#3A2F14;}
+/* .td-btn-save/.td-btn-complete are solid #111111 in light mode — same
+   near-invisible-on-near-black problem as .edit-stock-btn in Inventory.css,
+   so dark mode flips to the shared inset-surface token instead of literal
+   black, matching that established pattern. */
+body.dark-mode .td-btn-save,body.dark-mode .td-btn-complete,body.dark-mode .td-btn-reply{background:var(--dm-bg-inset);color:var(--dm-text-primary);}
+body.dark-mode .td-btn-save:hover,body.dark-mode .td-btn-complete:hover,body.dark-mode .td-btn-reply:hover{background:#29292e;}
+body.dark-mode .cfp-box{background:#17171a;border:1px solid #232326;box-shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);}
+body.dark-mode .cfp-detail-card{background:#1d1d21;border-color:#232326;}
+body.dark-mode .cfp-val{color:#d4d4d6;}
+
+/* FIX (dark-mode audit, severe): every selector below had ZERO prior dark-mode
+   coverage, so each kept rendering its light-mode navy text color (#8A6D00/
+   #1A1A1A/#1A1A1A) directly on the dark .td-panel/.td-section background
+   added above — measured ~2-3:1 contrast, well under the 4.5:1 WCAG AA
+   minimum, i.e. these were all genuinely hard to read (not just "could be
+   better"). Grouped here as one pass over the whole Request-Details overlay
+   + the two confirmation modals, using the shared dark tokens throughout so
+   nothing is a one-off shade. */
+body.dark-mode .td-title,
+body.dark-mode .td-ticket-code,
+body.dark-mode .td-conv-author {
+    color: var(--dm-text-primary) !important;
+}
+
+body.dark-mode .td-section-title {
+    color: var(--dm-text-secondary) !important;
+}
+
+body.dark-mode .td-callout .td-section-title {
+    color: var(--dm-accent-navy) !important;
+}
+
+body.dark-mode .td-header-code {
+    background: rgba(253, 201, 19, 0.14) !important;
+    color: var(--dm-accent-navy) !important;
+}
+
+body.dark-mode .td-warn-badge {
+    background: rgba(253, 201, 19, 0.14) !important;
+    color: var(--dm-accent-navy) !important;
+}
+
+body.dark-mode .td-field-label,
+body.dark-mode .td-approval-note,
+body.dark-mode .td-conv-time,
+body.dark-mode .td-hint,
+body.dark-mode .cfp-label,
+body.dark-mode .completion-detail-label {
+    color: var(--dm-text-secondary) !important;
+}
+
+body.dark-mode .td-checkbox-label {
+    color: var(--dm-text-primary) !important;
+}
+
+body.dark-mode .td-edit-sla-btn {
+    background: var(--dm-bg-inset) !important;
+    border-color: var(--dm-border) !important;
+    color: var(--dm-text-primary) !important;
+}
+body.dark-mode .td-edit-sla-btn:hover {
+    background: #29292e !important;
+}
+
+/* .td-info-note (the "this consumable will be allocated..." banner) kept its
+   light-mode pale-blue background + navy text in dark mode — same
+   "light-mode leaking into dark UI" issue as .sr-view-btn below. */
+body.dark-mode .td-info-note {
+    background: rgba(47, 127, 196, 0.14) !important;
+    color: #c9d6e3 !important;
+}
+
+body.dark-mode .td-info-note i {
+    color: var(--dm-accent-navy) !important;
+}
+
+/* .modal-header/.modal-body dark-mode rules for the logout-confirmation
+   modal moved to Sidebar.css (shared across every page now, not just this
+   one — see the note above the light-mode rules further up this file). */
+body.dark-mode .completion-modal-header {
+    color: var(--dm-text-primary) !important;
+}
+
+body.dark-mode .completion-modal-box,
+body.dark-mode .completion-modal-header,
+body.dark-mode .completion-modal-footer {
+    background: var(--dm-bg-card) !important;
+    border-color: var(--dm-border) !important;
+}
+
+body.dark-mode .completion-modal-box {
+    border: 1px solid var(--dm-border);
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3) !important;
+}
+
+body.dark-mode .completion-detail-value,
+body.dark-mode .cfp-title {
+    color: var(--dm-text-primary) !important;
+}
+
+/* .completion-note-banner (the "requester will receive a confirmation
+   request..." note) had the same "light-mode banner leaking into dark UI"
+   issue as .td-info-note above — pale-gold background + dark-brown text,
+   both unreadable/out of place on the dark modal added above. */
+body.dark-mode .completion-note-banner {
+    background: rgba(200, 150, 12, 0.14) !important;
+    border-color: var(--gold) !important;
+}
+
+body.dark-mode .completion-note-banner p {
+    color: #f3e6c4 !important;
+}
+
+/* .status-pending-confirmation / .status-badge.status-pending-confirmation /
+   .cfp-status-badge are 3 separate selectors used in 3 different places for
+   the same "Pending Confirmation" badge, and none had dark-mode coverage —
+   same pale-gold-background-on-dark-UI issue as the fixes above. Reuses the
+   exact rgba(200,150,12,0.16)/#e8b93d pairing already used everywhere else
+   in both stylesheets for this status, so "Pending Confirmation" looks
+   identical no matter which of the 3 places it's rendered. */
+body.dark-mode .status-pending-confirmation,
+body.dark-mode .status-badge.status-pending-confirmation,
+body.dark-mode .cfp-status-badge {
+    background: rgba(200, 150, 12, 0.16) !important;
+    color: #e8b93d !important;
+}
+
+/* FIX (contrast failure): #c62828 measured ~3.2:1 against this dark
+   background — below 4.5:1. Lightened to the same red already used for
+   .priority-badge.critical's dark-mode text. */
+body.dark-mode .td-rejection-note {
+    color: #f87171 !important;
+}
 
 /* ── Attached Photos in Request Details (IT Admin) ───────────────────────── */
 .td-attachment-row {
@@ -814,14 +1126,17 @@ body.dark-mode .cfp-val{color:#c9d6e3;}
     margin-top: 8px;
 }
 
+/* FIX 5 (palette): recolored from a stray blue family (#eaf2fb/#1a5276/
+   #b5d0ea) to the established navy tokens, matching every other utility
+   button on this page instead of standing apart in a different hue. */
 .td-view-img-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 7px 13px;
-    background: #eaf2fb;
-    color: #1a5276;
-    border: 1px solid #b5d0ea;
+    background: var(--navy-tint);
+    color: var(--navy-primary);
+    border: 1px solid #c9d8ea;
     border-radius: 8px;
     font-size: 0.8rem;
     font-weight: 600;
@@ -835,11 +1150,11 @@ body.dark-mode .cfp-val{color:#c9d6e3;}
 }
 
 .td-view-img-btn:hover {
-    background: #1a5276;
+    background: var(--navy-primary);
     color: #fff;
-    border-color: #1a5276;
+    border-color: var(--navy-primary);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(26,82,118,.22);
+    box-shadow: 0 2px 8px rgba(31, 99, 146, 0.22);
 }
 
 .td-view-img-btn i {
@@ -849,13 +1164,13 @@ body.dark-mode .cfp-val{color:#c9d6e3;}
 
 body.dark-mode .td-view-img-btn {
     background: #1e293b;
-    color: #93c5fd;
+    color: #7db6de;
     border-color: #334155;
 }
 body.dark-mode .td-view-img-btn:hover {
-    background: #2563eb;
+    background: var(--navy-primary);
     color: #fff;
-    border-color: #2563eb;
+    border-color: var(--navy-primary);
 }
 
 /* ── In-page image viewer modal (same behavior as School Admin) ──────────── */
@@ -874,21 +1189,160 @@ body.dark-mode .td-view-img-btn:hover {
     border: none;
     font-size: 1.6rem;
     cursor: pointer;
-    color: #95a5a6;
+    color: var(--gray-muted);
 }
 .td-modal-close:hover { color: #c0392b; }
 
 .td-btn-download {
-    background: #eef3fc;
+    background: #F5F5F5;
     border: none;
     padding: 6px 14px;
     border-radius: 30px;
     font-size: 0.75rem;
     font-weight: 600;
     font-family: 'Inter', sans-serif;
-    color: #1f6392;
+    color: #1A1A1A;
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
 }
-.td-btn-download:hover { background: #1f6392; color: #fff; }
+.td-btn-download:hover { background: #1A1A1A; color: #fff; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MERGED from ServiceRequest.v3.append.css — these classes (td-status-locked,
+   td-status-badge + variants, td-receipt-preview, td-hint) are already
+   rendered live by ServiceRequest.js (search "td-receipt-preview"/"td-status-
+   locked" there), but this stylesheet was never linked from ServiceRequest.html
+   — so these elements were rendering completely unstyled on the live page.
+   Merged in here and recolored to the navy/gold palette (was a stray blue,
+   #2b7fb8, in the original append file's dark-mode rules — see below). */
+.td-status-locked {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+}
+.td-status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+/* FIX (selector collision): compound-scoped to ".td-status-badge.td-status-X"
+   — see the matching comment on ".td-badge-status.td-status-X" above for why
+   (these modifier class names are shared between two unrelated features). */
+.td-status-badge.td-status-completed             { background: var(--green-tint); color: #1e7a4a; }
+.td-status-badge.td-status-closed                { background: #eef2f6; color: var(--gray-muted); }
+.td-status-badge.td-status-pending-confirmation  { background: var(--gold-tint); color: var(--gold-dark); }
+.td-status-badge.td-status-cancelled             { background: #fbe4e4; color: #b23434; }
+.td-status-lock-note {
+    font-size: 0.78rem;
+    color: var(--gray-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Receipt upload block ──────────────────────────────────────────────── */
+.td-receipt-empty,
+.td-receipt-preview {
+    padding: 12px;
+    background: #fff;
+    border: 1px dashed #ddd;
+    border-radius: 12px;
+    text-align: center;
+    color: #b0b0b0;
+    font-size: 0.85rem;
+}
+.td-receipt-thumb {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 10px;
+    display: block;
+    margin: 0 auto;
+}
+.td-receipt-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #ffffff;
+    border: 1px solid var(--navy-primary);
+    color: var(--navy-primary);
+    border-radius: 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.td-receipt-link:hover { background: var(--navy-primary); color: #ffffff; }
+
+.td-btn-secondary,
+.td-btn-upload,
+.td-btn-remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+/* RESTYLED: navy (was a stray blue, #8A6D00 is already the established navy
+   token used everywhere else, so this now matches instead of standing apart).
+   .td-btn-secondary is an alias — it's the class ServiceRequest.js actually
+   renders for the receipt-upload button; .td-btn-upload/.td-btn-remove were
+   the class names this rule was originally written for and are otherwise
+   unused now, but keeping the alias avoids a second near-duplicate rule. */
+.td-btn-secondary,
+.td-btn-upload {
+    background: #111111;
+    color: #ffffff;
+    border-color: #111111;
+}
+.td-btn-secondary:hover:not(:disabled),
+.td-btn-upload:hover:not(:disabled) { background: #000000; border-color: #000000; }
+.td-btn-secondary:disabled,
+.td-btn-upload:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.td-btn-remove {
+    background: #ffffff;
+    color: #b23434;
+    border-color: #e5b5b5;
+}
+.td-btn-remove:hover { background: #b23434; color: #ffffff; border-color: #b23434; }
+
+.td-hint {
+    font-size: 0.6875rem;
+    color: #b0b0b0;
+}
+
+/* Dark-mode friendliness (mirrors existing patterns).
+   RESTYLED: .td-btn-upload's dark-mode colors were a stray bright blue
+   (#2b7fb8/#3a95cf) — recolored to navy so this button matches every other
+   navy-toned control on the page in both themes. */
+body.dark-mode .td-receipt-empty,
+body.dark-mode .td-receipt-preview {
+    background: #1d1d21;
+    border-color: #232326;
+    color: #7a7a80;
+}
+body.dark-mode .td-btn-secondary,
+body.dark-mode .td-btn-upload         { background: var(--dm-bg-inset); border-color: var(--dm-bg-inset); color: var(--dm-text-primary); }
+body.dark-mode .td-btn-secondary:hover,
+body.dark-mode .td-btn-upload:hover   { background: #29292e; border-color: #29292e; }
+body.dark-mode .td-btn-remove         { background: transparent; color: #ea9b9b; border-color: #a86868; }
+body.dark-mode .td-btn-remove:hover   { background: #b23434; color: #fff; border-color: #b23434; }
+body.dark-mode .td-status-lock-note   { color: #a4bcd0; }
+/* FIX (selector collision): compound-scoped to ".td-status-badge.td-status-X"
+   — see the comment near ".td-badge-status.td-status-X" further up for why. */
+body.dark-mode .td-status-badge.td-status-completed             { background: rgba(39, 174, 96, 0.16); color: #4ade80; }
+body.dark-mode .td-status-badge.td-status-closed                { background: #2d3748; color: #cbd5e1; }
+body.dark-mode .td-status-badge.td-status-pending-confirmation  { background: rgba(200, 150, 12, 0.16); color: #e8b93d; }
+body.dark-mode .td-status-badge.td-status-cancelled             { background: #4f2424; color: #fecaca; }

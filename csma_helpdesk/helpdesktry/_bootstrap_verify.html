@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<script>
+    var params = new URLSearchParams(location.search);
+    var role = params.get('role') || 'admin';
+    sessionStorage.setItem('currentUser', JSON.stringify({
+        id: 1, employee_id: 'EMP001', full_name: 'Verify Admin',
+        email: 'verify@csma.edu', role: role, role_label: 'IT Admin',
+        department: 'IT', status_text: 'Active', is_active: 1
+    }));
+    var to = params.get('to') || 'Dashboard.html';
+    var theme = params.get('theme');
+    if (theme === 'dark') { localStorage.setItem('theme', 'dark'); }
+    else if (theme === 'light') { localStorage.setItem('theme', 'light'); }
+    location.replace(to);
+</script>
+</body>
+</html>

@@ -1,61 +1,112 @@
 /* Inventory.css - Standardized with Dashboard UI and Service Request styles */
-@import url('ServiceRequest.css');
+@import url('ServiceRequest.css?v=22');
 
-/* Override and extend for inventory specific layout */
+/* Override and extend for inventory specific layout.
+   .main-content itself no longer scrolls — it's a fixed-height flex column
+   (top-bar + .inventory-scroll-area below). A full-viewport div with its own
+   overflow gets promoted to Chrome's "implicit root scroller" and renders the
+   native OS scrollbar, ignoring any custom scrollbar-width/color/::-webkit-
+   scrollbar styling. Moving the actual overflow onto the nested
+   .inventory-scroll-area (see Inventory.html) sidesteps that, matching how
+   Dashboard's .activities-list/.ticket-list panels (nested, non-viewport-
+   filling divs) already scroll with a real styled thin scrollbar. */
 .main-content {
     padding: 24px 32px;
-    background: #f5f9fe;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
 }
 
-/* Stats Row - First row cards */
+.inventory-scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+.inventory-scroll-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+.inventory-scroll-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.inventory-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+}
+
+.inventory-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+body.dark-mode .inventory-scroll-area {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode .inventory-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode .inventory-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+}
+
+/* Stats Row - First row cards (matches Dashboard's .stats-row/.stat-card:
+   .stat-icon-badge component + semantic tint classes come from the imported
+   ServiceRequest.css tokens/rules at the top of this file) */
 .stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
-    margin-bottom: 28px;
+    margin-bottom: 20px;
 }
 
 .stat-card {
     background: white;
-    border-radius: 28px;
-    padding: 18px 22px;
+    border-radius: 20px;
+    padding: 16px 18px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    transition: 0.2s;
-    border: 1px solid #eef3f8;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #eef1f4;
+    cursor: pointer;
 }
 
-.stat-icon {
-    width: 52px;
-    height: 52px;
-    background: #f0f7ff;
-    border-radius: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.6rem;
-    color: #1f6392;
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(18, 48, 72, 0.14);
+}
+
+.stat-card:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
 }
 
 .stat-info {
     flex: 1;
+    min-width: 0;
 }
 
 .stat-label {
     font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #7f8c8d;
+    font-weight: 500;
+    color: #8a8a8e;
     display: block;
 }
 
 .stat-value {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #1c4c6e;
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: #111111;
     letter-spacing: -0.02em;
     display: block;
     line-height: 1.2;
@@ -63,12 +114,12 @@
 
 .stat-sub {
     font-size: 0.7rem;
-    color: #95a5a6;
+    color: var(--gray-light);
     font-weight: 500;
 }
 
 .add-stock-card {
-    background: linear-gradient(135deg, #1f6392 0%, #0d4b70 100%);
+    background: linear-gradient(135deg, #1A1A1A 0%, #000000 100%);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -116,16 +167,19 @@
 
 .summary-card {
     background: white;
-    border-radius: 24px;
-    padding: 16px 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    border-radius: 28px;
+    border: 1px solid #eef1f4;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
 }
 
 .summary-header {
     font-weight: 700;
-    color: #1c4c6e;
-    font-size: 0.9rem;
-    margin-bottom: 12px;
+    color: var(--navy-mid);
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--navy-tint);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -146,46 +200,49 @@
 .summary-count {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #1f6392;
+    color: var(--navy-mid);
     display: block;
 }
 
 .summary-label {
     font-size: 0.7rem;
-    color: #5a7e9e;
+    color: var(--navy-mid);
     font-weight: 500;
 }
 
 .alert-card {
     background: white;
-    border-radius: 24px;
-    padding: 14px 20px;
+    border-radius: 28px;
+    border: 1px solid #eef1f4;
+    padding: 18px 20px;
     display: flex;
     align-items: center;
     gap: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
 }
 
-.low-stock-alert i {
-    color: #f39c12;
-    font-size: 1.8rem;
+.alert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
 }
 
-.oversupply-alert i {
-    color: #e67e22;
-    font-size: 1.8rem;
+.alert-card:focus-visible {
+    outline: 2px solid #111;
+    outline-offset: 2px;
 }
 
 .alert-content strong {
     display: block;
     font-size: 0.85rem;
-    color: #2c3e50;
+    color: var(--navy-mid);
 }
 
 .alert-content span {
     font-weight: 800;
     font-size: 1rem;
-    color: #e67e22;
+    color: #c62828;
     margin: 0 4px;
 }
 
@@ -193,6 +250,7 @@
 .inventory-container {
     background: white;
     border-radius: 28px;
+    border: 1px solid #eef1f4;
     padding: 24px;
     margin-bottom: 32px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.04);
@@ -200,10 +258,25 @@
 
 .inventory-tabs {
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
     border-bottom: 1px solid #eef3f8;
     padding-bottom: 12px;
     margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.inventory-tabs-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.inventory-tabs-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
@@ -221,9 +294,9 @@
 }
 
 .tab-btn.active {
-    background: #1f6392;
-    color: white;
-    box-shadow: 0 2px 8px rgba(31,99,146,0.3);
+    background: var(--gold);
+    color: #1A1A1A;
+    box-shadow: 0 2px 8px rgba(200, 150, 12, 0.3);
 }
 
 .inventory-controls {
@@ -235,16 +308,56 @@
     flex-wrap: wrap;
 }
 
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #F5F5F5;
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
+    border: 1.5px solid #E5E5E5;
+    width: 220px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.search-wrapper:focus-within {
+    border-color: var(--gold);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(200, 150, 12, 0.16);
+}
+
+.search-wrapper i {
+    color: #adb5bd;
+    font-size: 0.8rem;
+}
+
+.search-input {
+    border: none;
+    background: transparent;
+    padding: 0;
+    font-size: 0.82rem;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    width: 100%;
+    color: var(--navy-mid);
+}
+
+.search-input::placeholder {
+    color: #adb5bd;
+    font-weight: 400;
+}
+
 .filter-toggle-btn {
-    background: #f8fbfe;
-    border: 1px solid #e2edf2;
+    background: var(--gold-tint);
+    border: 1px solid var(--gold);
     padding: 8px 20px;
     border-radius: 40px;
     font-weight: 600;
     font-size: 0.8rem;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    color: #1f6392;
+    color: var(--gold-dark);
 }
 
 .filter-toggle-btn i {
@@ -252,204 +365,133 @@
 }
 
 .filter-toggle-btn:hover {
-    background: #eef3fc;
+    background: #FFF3D1;
 }
 
-/* View All Button */
+/* View All Button - tertiary text link, matching Dashboard's "View All →" links */
 .view-all-btn {
-    background: #1f6392;
+    background: transparent;
     border: none;
-    padding: 8px 20px;
-    border-radius: 40px;
+    padding: 8px 4px;
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    color: white;
+    color: var(--navy-primary);
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: 0.2s;
+    transition: opacity 0.2s;
 }
 
 .view-all-btn:hover {
-    background: #0d4b70;
-    transform: translateY(-1px);
+    background: transparent;
+    opacity: 0.8;
 }
 
 .view-all-btn i {
     font-size: 0.9rem;
 }
 
+.view-all-btn::after {
+    content: "\2192";
+    font-weight: 700;
+}
+
 /* Table styling */
 .inventory-table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 520px;
     margin-bottom: 40px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+.inventory-table-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.inventory-table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.inventory-table-wrapper::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+}
+
+.inventory-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+body.dark-mode .inventory-table-wrapper {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode .inventory-table-wrapper::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode .inventory-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
 }
 
 .inventory-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
 }
 
 .inventory-table th {
     text-align: left;
-    padding: 14px 12px;
-    background: #f8fbfe;
+    padding: 16px 12px;
     font-weight: 700;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #1c4c6e;
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+    color: var(--navy-mid);
     border-bottom: 2px solid #eef3f8;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: white;
 }
 
 .inventory-table td {
-    padding: 14px 12px;
-    border-bottom: 1px solid #eff3f8;
+    padding: 16px 12px;
+    border-bottom: 1px solid #eef3f8;
     font-weight: 500;
-    color: #2c5a7a;
+    letter-spacing: -0.01em;
+    color: var(--gray-muted);
 }
 
-/* Status Badges with correct colors */
+.inventory-table tbody td:nth-child(2) {
+    color: var(--navy-mid);
+    font-weight: 600;
+}
+
+/* Status Badges - matching Dashboard/ServiceRequest's priority-badge/status-badge sizing */
 .status-badge-instock {
-    background: #d5f5e3;
-    color: #27ae60;
-    padding: 5px 12px;
+    background: var(--green-tint);
+    color: var(--green);
+    padding: 4px 12px;
     border-radius: 30px;
     font-weight: 700;
     font-size: 0.7rem;
+    letter-spacing: 0.3px;
     display: inline-block;
 }
 
 .status-badge-lowstock {
-    background: #ffe0cc;
-    color: #e67e22;
-    padding: 5px 12px;
-    border-radius: 30px;
-    font-weight: 700;
-    font-size: 0.7rem;
-    display: inline-block;
-}
-
-/* Low Stock Cards Section */
-.lowstock-section {
-    margin-top: 20px;
-    border-top: 1px solid #eef3f8;
-    padding-top: 28px;
-}
-
-.lowstock-section h3 {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1c4c6e;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.lowstock-cards-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 32px;
-}
-
-.lowstock-item-card {
-    background: #fff8f0;
-    border-left: 4px solid #f39c12;
-    border-radius: 20px;
-    padding: 12px 20px;
-    min-width: 200px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-
-.lowstock-info h4 {
-    font-size: 0.9rem;
-    font-weight: 800;
-    margin-bottom: 4px;
-    color: #2c3e50;
-}
-
-.lowstock-info p {
-    font-size: 0.7rem;
-    color: #7f8c8d;
-    margin: 0;
-}
-
-.lowstock-qty {
-    font-weight: 800;
-    font-size: 1rem;
-    color: #e67e22;
-}
-
-.reorder-btn {
-    background: #1f6392;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 30px;
-    color: white;
-    font-size: 0.7rem;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-}
-
-.dept-lowstock-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.dept-card {
-    background: #fafcff;
-    border-radius: 20px;
-    padding: 16px;
-    border: 1px solid #eef3f8;
-}
-
-.dept-card h4 {
-    font-size: 1rem;
-    font-weight: 800;
-    color: #0d3b52;
-    margin-bottom: 12px;
-    border-left: 3px solid #1f6392;
-    padding-left: 12px;
-}
-
-.dept-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px dashed #eef3f8;
-}
-
-.dept-item-info span {
-    display: block;
-    font-weight: 600;
-    font-size: 0.8rem;
-}
-
-.dept-item-info small {
-    font-size: 0.65rem;
-    color: #7f8c8d;
-}
-
-.dept-item .reorder-small {
-    background: #f39c12;
-    border: none;
+    background: var(--gold-tint);
+    color: var(--gold-dark);
     padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.65rem;
+    border-radius: 30px;
     font-weight: 700;
-    cursor: pointer;
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
+    display: inline-block;
 }
 
 @media (max-width: 1024px) {
@@ -469,14 +511,11 @@
         flex-direction: column;
         align-items: stretch;
     }
-    .dept-lowstock-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* Bulk Actions Bar */
 .bulk-actions-bar {
-    background: #1f6392;
+    background: #111111;
     border-radius: 16px;
     padding: 12px 24px;
     margin-bottom: 20px;
@@ -564,7 +603,7 @@
     gap: 8px;
     font-size: 0.8rem;
     font-weight: 500;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     cursor: pointer;
 }
 
@@ -573,7 +612,7 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #1f6392;
+    accent-color: var(--gold);
 }
 
 /* Action Buttons in Table Row */
@@ -604,12 +643,12 @@
 }
 
 .row-action-btn.edit {
-    color: #1f6392;
-    background: #eef3fc;
+    color: var(--gold-dark);
+    background: var(--gold-tint);
 }
 
 .row-action-btn.edit:hover {
-    background: #1f6392;
+    background: #111111;
     color: white;
 }
 
@@ -625,7 +664,7 @@
 
 /* Selected row highlight */
 .inventory-table tr.selected {
-    background: #eef3fc;
+    background: #FFF3D1;
 }
 
 /* Responsive adjustments */
@@ -656,7 +695,7 @@
     position: fixed;
     bottom: 30px;
     right: 30px;
-    background: #1f6392;
+    background: #111111;
     color: white;
     padding: 12px 24px;
     border-radius: 40px;
@@ -703,7 +742,8 @@
     width: 90%;
     max-width: 1200px;
     max-height: 80vh;
-    border-radius: 28px;
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
     overflow: hidden;
     transform: scale(0.95);
     transition: transform 0.2s;
@@ -727,7 +767,7 @@
 .modal-header h3 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -761,7 +801,7 @@
 }
 
 .modal-stat {
-    background: #f8fbfe;
+    background: #F5F5F5;
     padding: 10px 20px;
     border-radius: 16px;
     text-align: center;
@@ -775,7 +815,7 @@
 
 .modal-stat strong {
     font-size: 1.3rem;
-    color: #1f6392;
+    color: var(--navy-mid);
 }
 
 .modal-table-wrapper {
@@ -793,21 +833,22 @@
     padding: 12px 10px;
     background: #f9fcfd;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     border-bottom: 2px solid #eef3f8;
 }
 
 .modal-table td {
     padding: 10px 10px;
     border-bottom: 1px solid #eff3f8;
-    color: #2c5a7a;
+    color: var(--gray-muted);
 }
 /* Edit Modal Styles */
 .edit-modal {
     background: white;
     width: 90%;
     max-width: 550px;
-    border-radius: 28px;
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
     overflow: hidden;
     transform: scale(0.95);
     transition: transform 0.2s;
@@ -829,7 +870,7 @@
     display: block;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -838,19 +879,19 @@
 .form-input {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #e2edf2;
+    border: 1px solid #E5E5E5;
     border-radius: 16px;
     font-size: 0.9rem;
     font-family: 'Inter', sans-serif;
     transition: all 0.2s;
-    background: #f8fbfe;
+    background: #F5F5F5;
 }
 
 .form-input:focus {
     outline: none;
-    border-color: #1f6392;
+    border-color: var(--gold-dark);
     background: white;
-    box-shadow: 0 0 0 3px rgba(31, 99, 146, 0.1);
+    box-shadow: 0 0 0 3px rgba(138, 109, 0, 0.15);
 }
 
 .form-row {
@@ -873,7 +914,7 @@
 }
 
 .current-details {
-    background: #f8fbfe;
+    background: #F5F5F5;
     padding: 16px;
     border-radius: 20px;
 }
@@ -881,7 +922,7 @@
 .current-details h4 {
     font-size: 0.85rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     margin-bottom: 12px;
 }
 
@@ -894,11 +935,11 @@
 
 .details-row span {
     font-size: 0.85rem;
-    color: #2c5a7a;
+    color: var(--gray-muted);
 }
 
 .details-row strong {
-    color: #1f6392;
+    color: var(--navy-mid);
     font-size: 1rem;
 }
 
@@ -916,7 +957,7 @@
     border-radius: 40px;
     font-weight: 600;
     font-size: 0.85rem;
-    border: 1px solid #e2edf2;
+    border: 1px solid #E5E5E5;
     background: white;
     color: #5a7e9e;
     cursor: pointer;
@@ -925,7 +966,7 @@
 }
 
 .btn-cancel-modal:hover {
-    background: #f8fbfe;
+    background: #F5F5F5;
 }
 
 .btn-save-modal {
@@ -948,7 +989,7 @@
 
 /* Edit Stock Button (replacing reorder button) */
 .edit-stock-btn {
-    background: #1f6392;
+    background: #111111;
     border: none;
     padding: 6px 14px;
     border-radius: 30px;
@@ -960,11 +1001,11 @@
 }
 
 .edit-stock-btn:hover {
-    background: #0d4b70;
+    background: #000000;
 }
 
 .edit-stock-small {
-    background: #1f6392;
+    background: #111111;
     border: none;
     padding: 4px 12px;
     border-radius: 20px;
@@ -975,7 +1016,7 @@
 }
 
 .edit-stock-small:hover {
-    background: #0d4b70;
+    background: #000000;
 }
 
 @media (max-width: 640px) {
@@ -998,9 +1039,11 @@
         text-align: center;
     }
 }
-/* Allocate Button */
+/* Allocate Button - same gold highlight as the active "Overall Inventory" tab
+   (was solid navy). Dark mode already used this gold/navy-text pairing (see
+   body.dark-mode .allocate-btn below) — light mode now matches it too. */
 .allocate-btn {
-    background: #27ae60;
+    background: var(--gold);
     border: none;
     padding: 8px 20px;
     border-radius: 40px;
@@ -1008,7 +1051,7 @@
     font-size: 0.8rem;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    color: white;
+    color: #1A1A1A;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1016,7 +1059,7 @@
 }
 
 .allocate-btn:hover {
-    background: #219a52;
+    background: var(--gold-dark);
     transform: translateY(-1px);
 }
 
@@ -1029,7 +1072,8 @@
     background: white;
     width: 90%;
     max-width: 550px;
-    border-radius: 28px;
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
     overflow: hidden;
     transform: scale(0.95);
     transition: transform 0.2s;
@@ -1051,7 +1095,7 @@
     display: block;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     margin-bottom: 10px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -1073,17 +1117,17 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #1f6392;
+    accent-color: var(--gold);
 }
 
 .action-option span {
     font-size: 0.9rem;
     font-weight: 500;
-    color: #2c5a7a;
+    color: var(--gray-muted);
 }
 
 .item-details-card {
-    background: #f8fbfe;
+    background: #F5F5F5;
     border-radius: 20px;
     padding: 16px;
     margin-bottom: 20px;
@@ -1092,7 +1136,7 @@
 .item-details-card h4 {
     font-size: 0.85rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid #eef3f8;
@@ -1111,7 +1155,7 @@
 }
 
 .detail-row .value {
-    color: #1c4c6e;
+    color: var(--navy-mid);
     font-weight: 700;
 }
 
@@ -1123,7 +1167,7 @@
     display: block;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -1132,16 +1176,16 @@
 .quantity-input {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #e2edf2;
+    border: 1px solid #E5E5E5;
     border-radius: 16px;
     font-size: 0.9rem;
     font-family: 'Inter', sans-serif;
-    background: #f8fbfe;
+    background: #F5F5F5;
 }
 
 .quantity-input:focus {
     outline: none;
-    border-color: #1f6392;
+    border-color: var(--gold-dark);
     background: white;
 }
 
@@ -1167,12 +1211,12 @@
 .allocated-table th {
     text-align: left;
     padding: 14px 12px;
-    background: #f8fbfe;
+    background: #F5F5F5;
     font-weight: 700;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     border-bottom: 2px solid #eef3f8;
 }
 
@@ -1180,7 +1224,7 @@
     padding: 12px 12px;
     border-bottom: 1px solid #eff3f8;
     font-weight: 500;
-    color: #2c5a7a;
+    color: var(--gray-muted);
 }
 
 .return-btn {
@@ -1214,16 +1258,18 @@
 .dept-allocated-header h4 {
     font-size: 0.9rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
 }
 
 .dept-allocated-header h4 i {
     margin-right: 8px;
-    color: #1f6392;
+    color: var(--gold-dark);
 }
-/* Allocate Button */
+/* Allocate Button - same gold highlight as the active "Overall Inventory" tab
+   (was solid navy). Dark mode already used this gold/navy-text pairing (see
+   body.dark-mode .allocate-btn below) — light mode now matches it too. */
 .allocate-btn {
-    background: #27ae60;
+    background: var(--gold);
     border: none;
     padding: 8px 20px;
     border-radius: 40px;
@@ -1231,7 +1277,7 @@
     font-size: 0.8rem;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    color: white;
+    color: #1A1A1A;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1239,7 +1285,7 @@
 }
 
 .allocate-btn:hover {
-    background: #219a52;
+    background: var(--gold-dark);
     transform: translateY(-1px);
 }
 
@@ -1248,7 +1294,8 @@
     background: white;
     width: 90%;
     max-width: 550px;
-    border-radius: 28px;
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
     overflow: hidden;
     transform: scale(0.95);
     transition: transform 0.2s;
@@ -1266,7 +1313,7 @@
     display: block;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     margin-bottom: 10px;
     text-transform: uppercase;
 }
@@ -1287,11 +1334,11 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #1f6392;
+    accent-color: var(--gold);
 }
 
 .item-details-card {
-    background: #f8fbfe;
+    background: #F5F5F5;
     border-radius: 20px;
     padding: 16px;
     margin-bottom: 20px;
@@ -1300,7 +1347,7 @@
 .item-details-card h4 {
     font-size: 0.85rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid #eef3f8;
@@ -1314,7 +1361,7 @@
 }
 
 .detail-row .label { color: #7f8c8d; font-weight: 500; }
-.detail-row .value { color: #1c4c6e; font-weight: 700; }
+.detail-row .value { color: var(--navy-mid); font-weight: 700; }
 
 .quantity-input-group {
     margin-bottom: 20px;
@@ -1324,7 +1371,7 @@
     display: block;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     margin-bottom: 8px;
     text-transform: uppercase;
 }
@@ -1332,16 +1379,16 @@
 .quantity-input {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #e2edf2;
+    border: 1px solid #E5E5E5;
     border-radius: 16px;
     font-size: 0.9rem;
     font-family: 'Inter', sans-serif;
-    background: #f8fbfe;
+    background: #F5F5F5;
 }
 
 .quantity-input:focus {
     outline: none;
-    border-color: #1f6392;
+    border-color: var(--gold-dark);
     background: white;
 }
 
@@ -1367,18 +1414,18 @@
 .allocated-table th {
     text-align: left;
     padding: 14px 12px;
-    background: #f8fbfe;
+    background: #F5F5F5;
     font-weight: 700;
     font-size: 0.75rem;
     text-transform: uppercase;
-    color: #1c4c6e;
+    color: var(--navy-mid);
     border-bottom: 2px solid #eef3f8;
 }
 
 .allocated-table td {
     padding: 12px 12px;
     border-bottom: 1px solid #eff3f8;
-    color: #2c5a7a;
+    color: var(--gray-muted);
 }
 
 .return-btn {
@@ -1411,18 +1458,20 @@
 .dept-allocated-header h4 {
     font-size: 0.9rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: var(--navy-mid);
 }
 
 .dept-allocated-header h4 i {
     margin-right: 8px;
-    color: #1f6392;
+    color: var(--gold-dark);
 }
 
-/* Dark mode support for Inventory */
+/* Dark mode support for Inventory (2026-07-18: was a navy #0b1220 that
+   silently overrode Sidebar.css's shared body.dark-mode background —
+   repointed to the neutral warm-black palette used everywhere else). */
 body.dark-mode {
-    background: #0b1220;
-    color: #f8fafc;
+    background: #0b0b0d;
+    color: #f2f2f3;
 }
 
 body.dark-mode .main-content,
@@ -1435,9 +1484,6 @@ body.dark-mode .inventory-controls,
 body.dark-mode .search-wrapper,
 body.dark-mode .select-all-row,
 body.dark-mode .inventory-table-wrapper,
-body.dark-mode .lowstock-section,
-body.dark-mode .lowstock-cards-container,
-body.dark-mode .dept-lowstock-grid,
 body.dark-mode .item-details-card,
 body.dark-mode .modal-overlay,
 body.dark-mode .view-all-modal,
@@ -1446,23 +1492,18 @@ body.dark-mode .allocate-modal,
 body.dark-mode .current-details,
 body.dark-mode .allocated-table,
 body.dark-mode .dept-allocated-header {
-    background: #111827;
-    border-color: #1f2937;
-    color: #f8fafc;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+    background: #17171a;
+    border-color: #232326;
+    color: #f2f2f3;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);
 }
 
 body.dark-mode .stats-row .stat-card {
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid #232326;
 }
 
 body.dark-mode .stat-card {
-    background: #111827;
-}
-
-body.dark-mode .stat-icon {
-    background: #15202f;
-    color: #7dd3fc;
+    background: #17171a;
 }
 
 body.dark-mode .stat-label,
@@ -1472,7 +1513,6 @@ body.dark-mode .summary-header,
 body.dark-mode .summary-count,
 body.dark-mode .summary-label,
 body.dark-mode .alert-content strong,
-body.dark-mode .alert-content span,
 body.dark-mode .detail-row .label,
 body.dark-mode .detail-row .value,
 body.dark-mode .quantity-input-group label,
@@ -1494,64 +1534,75 @@ body.dark-mode .btn-add-item,
 body.dark-mode .return-btn,
 body.dark-mode .edit-stock-btn,
 body.dark-mode .edit-stock-small {
-    color: #f8fafc !important;
+    color: #f2f2f3 !important;
+}
+
+body.dark-mode .alert-content span {
+    color: #fca5a5 !important;
 }
 
 body.dark-mode .inventory-container {
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid #232326;
 }
 
 body.dark-mode .inventory-tabs {
-    border-bottom-color: #1f2937;
+    border-bottom-color: #232326;
 }
 
+/* No border here in dark mode - light mode's .tab-btn has none, and adding
+   one only in dark mode (combined with the transition below) makes inactive
+   tabs visibly grow/shift when the theme toggles. Same fix already applied
+   to ServiceRequest.css's .filter-btn for the identical bug. */
 body.dark-mode .tab-btn {
-    background: #151f2f;
-    color: #cbd5e8;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: #1d1d21;
+    color: #d2d2d4;
 }
 
 body.dark-mode .tab-btn.active {
-    background: #1f6392;
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(31, 99, 146, 0.35);
+    background: var(--gold);
+    color: #1A1A1A;
+    box-shadow: 0 4px 12px rgba(200, 150, 12, 0.4);
 }
 
 body.dark-mode .search-wrapper {
-    background: #111827;
-    border: 1px solid #1f2937;
+    background: #17171a;
+    border: 1px solid #232326;
 }
 
 body.dark-mode .search-input {
-    background: #0f172a;
-    color: #f8fafc;
-    border-color: #334155;
+    background: #1d1d21;
+    color: #f2f2f3;
+    border-color: #29292e;
 }
 
 body.dark-mode .search-input::placeholder {
-    color: #94a3b8;
+    color: #7a7a80;
 }
 
+/* No border added here - light mode has none on these three, so introducing
+   one only in dark mode causes a visible size shift on toggle (same bug as
+   .tab-btn above). .btn-add-item keeps its border since light mode already
+   has one - only its color changes. */
 body.dark-mode .filter-toggle-btn,
-body.dark-mode .view-all-btn,
-body.dark-mode .allocate-btn,
 body.dark-mode .edit-stock-btn,
 body.dark-mode .edit-stock-small,
-body.dark-mode .btn-add-item,
 body.dark-mode .return-btn {
-    background: #17213b;
-    color: #e2e8f0;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: #1d1d21;
+    color: #e5e5e5;
+}
+
+body.dark-mode .btn-add-item {
+    background: #1d1d21;
+    color: #e5e5e5;
+    border: 1px solid #232326;
 }
 
 body.dark-mode .filter-toggle-btn:hover,
-body.dark-mode .view-all-btn:hover,
-body.dark-mode .allocate-btn:hover,
 body.dark-mode .edit-stock-btn:hover,
 body.dark-mode .edit-stock-small:hover,
 body.dark-mode .btn-add-item:hover,
 body.dark-mode .return-btn:hover {
-    background: #1f2a4b;
+    background: #242428;
     color: #ffffff;
 }
 
@@ -1560,14 +1611,14 @@ body.dark-mode .inventory-table {
 }
 
 body.dark-mode .inventory-table th {
-    background: #111827;
-    border-bottom-color: #1f2937;
-    color: #f8fafc;
+    background: #17171a;
+    border-bottom-color: #232326;
+    color: #f2f2f3;
 }
 
 body.dark-mode .inventory-table td {
-    border-bottom-color: #1f2937;
-    color: #e2e8f0;
+    border-bottom-color: #232326;
+    color: #e5e5e5;
 }
 
 body.dark-mode .inventory-table tr:hover {
@@ -1578,56 +1629,44 @@ body.dark-mode .inventory-table tr.selected {
     background: rgba(255,255,255,0.08) !important;
 }
 
-body.dark-mode .lowstock-cards-container .lowstock-item-card,
-body.dark-mode .dept-lowstock-grid .dept-card,
 body.dark-mode .item-details-card,
 body.dark-mode .current-details {
-    background: #111827;
-    border: 1px solid rgba(255,255,255,0.08);
-}
-
-body.dark-mode .lowstock-section h3,
-body.dark-mode .lowstock-item-card h4,
-body.dark-mode .lowstock-item-card p,
-body.dark-mode .lowstock-qty,
-body.dark-mode .dept-card h4,
-body.dark-mode .dept-item-info span,
-body.dark-mode .dept-item-info small {
-    color: #f8fafc !important;
+    background: #17171a;
+    border: 1px solid #232326;
 }
 
 body.dark-mode .modal-header,
 body.dark-mode .modal-body,
 body.dark-mode .modal-footer {
-    background: #111827;
-    color: #f8fafc;
+    background: #17171a;
+    color: #f2f2f3;
 }
 
 body.dark-mode .modal-table th {
-    background: #111827;
-    color: #f8fafc;
-    border-bottom-color: #1f2937;
+    background: #17171a;
+    color: #f2f2f3;
+    border-bottom-color: #232326;
 }
 
 body.dark-mode .modal-table td {
-    color: #e2e8f0;
-    border-bottom-color: #1f2937;
+    color: #e5e5e5;
+    border-bottom-color: #232326;
 }
 
 body.dark-mode .form-input,
 body.dark-mode .quantity-input {
-    background: #0f172a;
-    color: #f8fafc;
-    border-color: #334155;
+    background: #1d1d21;
+    color: #f2f2f3;
+    border-color: #29292e;
 }
 
 body.dark-mode .summary-item,
 body.dark-mode .alert-content span {
-    color: #dbeafe;
+    color: #d4d4d6;
 }
 
 body.dark-mode .add-stock-card {
-    background: linear-gradient(135deg, #1f6392 0%, #0d4b70 100%) !important;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%) !important;
 }
 
 body.dark-mode .btn-add-item,
@@ -1642,3 +1681,41 @@ body.dark-mode .low-stock-alert i {
 body.dark-mode .oversupply-alert i {
     color: #f97316;
 }
+
+/* View All Items - tertiary text link stays transparent in dark mode too,
+   instead of picking up the generic navy-pill treatment used by the other
+   utility buttons above. */
+body.dark-mode .view-all-btn {
+    background: transparent !important;
+    border: none !important;
+    color: var(--dm-accent-navy) !important;
+}
+
+body.dark-mode .view-all-btn:hover {
+    background: transparent !important;
+    opacity: 0.8;
+}
+
+body.dark-mode .inventory-table tbody td:nth-child(2) {
+    color: var(--dm-text-primary) !important;
+}
+
+/* Allocate Item - gold/yellow in dark mode (blue/navy stays for light mode). */
+body.dark-mode .allocate-btn {
+    background: var(--gold) !important;
+    color: var(--navy-deep) !important;
+    border: none !important;
+}
+
+body.dark-mode .allocate-btn:hover {
+    background: var(--gold-dark) !important;
+    color: var(--navy-deep) !important;
+}
+
+/* View All Items modal stat boxes - these had no dark-mode background at
+   all, so they stayed near-white while the broad dark-mode text-color rule
+   forced their text to near-white too: invisible white-on-white. */
+body.dark-mode .modal-stat {
+    background: var(--dm-bg-inset);
+}
+

@@ -44,7 +44,7 @@
 
     // ═══ HELPERS ═════════════════════════════════════════════════════════════
     function fmtPeso(v) {
-        return `₱${parseFloat(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `${parseFloat(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     function esc(str) {
         if (str === null || str === undefined) return '';
@@ -259,13 +259,11 @@
             overlay.classList.toggle('active');
         });
     }
-    function initLogout() {
-        $('sidebarLogoutBtn')?.addEventListener('click', () => {
-            sessionStorage.removeItem('currentUser');
-            localStorage.removeItem('rememberedUser');
-            window.location.href = 'Login.html';
-        });
-    }
+    // Logout is handled by Sidebar.js's shared showLogoutModal() (binds to
+    // #sidebarLogoutBtn on every admin page) — this page used to also bind
+    // its own direct click handler here that skipped the confirmation modal
+    // and logged out immediately, racing Sidebar.js's handler on every click.
+    // Removed so this page behaves the same as every other module.
 
     // ═══ INIT ════════════════════════════════════════════════════════════════
     async function init() {
@@ -285,7 +283,6 @@
         detailModal?.addEventListener('click', (e) => { if (e.target === detailModal) closeDetailModal(); });
 
         initMobileSidebar();
-        initLogout();
 
         await loadFailures();
     }

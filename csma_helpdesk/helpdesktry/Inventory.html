@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,8 +6,9 @@
     <title>IT Helpdesk | Inventory Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="Sidebar.css">
-    <link rel="stylesheet" href="Inventory.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="Sidebar.css?v=19">
+    <link rel="stylesheet" href="Inventory.css?v=9">
 </head>
 <body>
 
@@ -20,72 +21,89 @@
                 </div>
                 <div class="logo-text">
                     <h2>CSMA</h2>
-                    <span>IT Helpdesk Portal</span>
+                    <span>IT Helpdesk</span>
                 </div>
             </div>
         </div>
 
         <nav class="nav-menu">
             <a href="Dashboard.html" class="nav-item" data-page="dashboard">
-                <i class="fas fa-tachometer-alt"></i>
+                <i class="ti ti-layout-dashboard"></i>
                 <span>Dashboard</span>
             </a>
             <a href="ServiceRequest.html" class="nav-item" data-page="servicerequest">
-                <i class="fas fa-ticket-alt"></i>
+                <i class="ti ti-ticket"></i>
                 <span>Service Requests</span>
             </a>
             <a href="Inventory.html" class="nav-item active" data-page="inventory">
-                <i class="fas fa-boxes"></i>
+                <i class="ti ti-packages"></i>
                 <span>Inventory</span>
             </a>
             <a href="EquipmentFailures.html" class="nav-item">
-                <i class="fas fa-microchip"></i>
+                <i class="ti ti-tool"></i>
                 <span>Equipment Failures</span>
             </a>
             <a href="CostAnalysis.html" class="nav-item">
-                <i class="fas fa-chart-pie"></i>
+                <i class="ti ti-chart-pie"></i>
                 <span>Cost Analysis</span>
             </a>
             <a href="BudgetPlanning.html" class="nav-item">
-                <i class="fas fa-calculator"></i>
+                <i class="ti ti-calculator"></i>
                 <span>Budget Planning</span>
             </a>
             <a href="UserManagement.html" class="nav-item">
-                <i class="fas fa-users"></i>
+                <i class="ti ti-users"></i>
                 <span>User Management</span>
             </a>
             <a href="Reports.html" class="nav-item">
-                <i class="fas fa-chart-line"></i>
+                <i class="ti ti-chart-line"></i>
                 <span>Reports</span>
             </a>
         </nav>
 
         <div class="sidebar-footer">
             <button class="logout-sidebar-btn" id="sidebarLogoutBtn">
-                <i class="fas fa-sign-out-alt"></i>
+                <i class="ti ti-logout"></i>
                 <span>Logout</span>
             </button>
         </div>
     </aside>
-    
+
     <main class="main-content">
         <header class="top-bar">
             <div class="menu-toggle" id="menuToggle">
-                <i class="fas fa-bars"></i>
+                <i class="ti ti-menu-2"></i>
             </div>
             <div class="page-title">
                 <h1>Inventory Management</h1>
+                <span class="page-subtitle">Colegio de Sta. Monica de Angat</span>
             </div>
+
+            <div class="topbar-search">
+                <i class="ti ti-search"></i>
+                <input type="text" placeholder="Search tickets, assets..." aria-label="Search">
+            </div>
+
             <div class="user-actions">
                 <div class="theme-toggle-wrapper">
-                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <i class="ti ti-moon" id="themeIcon"></i>
                     <label class="switch">
                         <input type="checkbox" id="themeSwitchCheckbox">
                         <span class="slider round"></span>
                     </label>
                 </div>
+                <div class="user-avatar" title="Admin">A</div>
             </div>
         </header>
+
+        <!-- Everything below the top-bar scrolls internally in this wrapper (same
+             pattern as Dashboard's .activities-list/.ticket-list panels) instead of
+             .main-content itself scrolling — a full-viewport scrolling container
+             gets promoted to Chrome's "implicit root scroller" and falls back to
+             the native OS scrollbar, ignoring the thin custom scrollbar styling
+             below. Nesting the scroll here keeps the top-bar fixed and gives the
+             scrollbar the same thin, styled look used everywhere else. -->
+        <div class="inventory-scroll-area">
 
         <!-- Bulk Actions Bar -->
         <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
@@ -93,7 +111,7 @@
                 <span id="selectedCount">0</span> items selected
                 <div class="bulk-action-buttons">
                     <button class="bulk-delete-btn" id="bulkDeleteBtn"><i class="fas fa-trash-alt"></i> Delete</button>
-                    <button class="bulk-update-btn" id="bulkUpdateBtn"><i class="fas fa-edit"></i> Update Stock</button>
+                    <button class="bulk-update-btn" id="bulkUpdateBtn"><i class="fas fa-pencil-alt"></i> Update Stock</button>
                     <button class="bulk-cancel-btn" id="bulkCancelBtn"><i class="fas fa-times"></i> Cancel</button>
                 </div>
             </div>
@@ -101,36 +119,33 @@
 
         <!-- Stats Cards Row 1: Total Value Cards -->
         <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-card" id="totalInventoryValueCard" role="button" tabindex="0" aria-label="View all inventory items">
                 <div class="stat-info">
                     <span class="stat-label">Total Inventory Value</span>
-                    <strong class="stat-value" id="totalInventoryValue">₱0</strong>
+                    <strong class="stat-value" id="totalInventoryValue">0</strong>
                     <span class="stat-sub">All items combined</span>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-desktop"></i></div>
+            <div class="stat-card" id="equipmentValueCard" role="button" tabindex="0" aria-label="View equipment items">
                 <div class="stat-info">
                     <span class="stat-label">Equipment Value</span>
-                    <strong class="stat-value" id="equipmentValue">₱0</strong>
+                    <strong class="stat-value" id="equipmentValue">0</strong>
                     <span class="stat-sub" id="equipmentCount">0 units</span>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-print"></i></div>
+            <div class="stat-card" id="consumableValueCard" role="button" tabindex="0" aria-label="View consumable items">
                 <div class="stat-info">
                     <span class="stat-label">Consumable Value</span>
-                    <strong class="stat-value" id="consumableValue">₱0</strong>
+                    <strong class="stat-value" id="consumableValue">0</strong>
                     <span class="stat-sub" id="consumableCount">0 units</span>
                 </div>
             </div>
             <div class="stat-card add-stock-card">
                 <div class="add-stock-btn" id="addStockBtn">
-                    <i class="fas fa-plus-circle"></i>
+                    <i class="fas fa-plus"></i>
                     <span>Add Stock</span>
                 </div>
-                <button class="btn-add-item" id="addNewItemBtn">+ Add New Item</button>
+                <button class="btn-add-item" id="addNewItemBtn"><i class="fas fa-plus"></i> Add New Item</button>
             </div>
         </div>
 
@@ -138,7 +153,6 @@
         <div class="alerts-row">
             <div class="summary-card">
                 <div class="summary-header">
-                    <i class="fas fa-chart-pie"></i>
                     <span>Combined Stock Summary</span>
                 </div>
                 <div class="summary-numbers">
@@ -160,16 +174,14 @@
                     </div>
                 </div>
             </div>
-            <div class="alert-card low-stock-alert">
-                <i class="fas fa-exclamation-triangle"></i>
+            <div class="alert-card low-stock-alert" id="lowStockAlertCard" role="button" tabindex="0" aria-label="View low stock items">
                 <div class="alert-content">
                     <strong>Low Stock Alert</strong>
                     <span id="lowStockCount">0</span>
                     <span>items are below the low stock threshold</span>
                 </div>
             </div>
-            <div class="alert-card oversupply-alert">
-                <i class="fas fa-chart-line"></i>
+            <div class="alert-card oversupply-alert" id="oversupplyAlertCard" role="button" tabindex="0" aria-label="View oversupply items">
                 <div class="alert-content">
                     <strong>Oversupply Alert</strong>
                     <span id="oversupplyCount">0</span>
@@ -181,30 +193,15 @@
         <!-- Inventory Tabs -->
         <div class="inventory-container">
             <div class="inventory-tabs" id="inventoryTabs">
-                <button class="tab-btn active" data-tab="overall">Overall Inventory</button>
-                <button class="tab-btn" data-tab="equipment">Equipment</button>
-                <button class="tab-btn" data-tab="consumables">Consumables</button>
-                <button class="tab-btn" data-tab="allocated">Allocated Items</button>
-            </div>
-
-            <div class="inventory-controls">
-                <div class="search-wrapper">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="inventorySearch" class="search-input" placeholder="Search inventory items...">
+                <div class="inventory-tabs-buttons">
+                    <button class="tab-btn active" data-tab="overall">Overall Inventory</button>
+                    <button class="tab-btn" data-tab="equipment">Equipment</button>
+                    <button class="tab-btn" data-tab="consumables">Consumables</button>
+                    <button class="tab-btn" data-tab="allocated">Allocated Items</button>
                 </div>
-                <div class="filter-btn-wrapper" style="display: flex; gap: 12px;">
-                    <button class="filter-toggle-btn" id="filterToggleBtn"><i class="fas fa-filter"></i> Filters</button>
-                    <button class="view-all-btn" id="viewAllItemsBtn"><i class="fas fa-eye"></i> View All Items</button>
+                <div class="inventory-tabs-controls">
                     <button class="allocate-btn" id="allocateItemBtn"><i class="fas fa-exchange-alt"></i> Allocate Item</button>
                 </div>
-            </div>
-
-            <!-- Select All Checkbox Row -->
-            <div class="select-all-row">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="selectAllCheckbox">
-                    <span>Select All</span>
-                </label>
             </div>
 
             <!-- Inventory Table -->
@@ -230,22 +227,13 @@
 
             <!-- Allocated Items Container (shown only on allocated tab) -->
             <div id="allocatedItemsContainer" style="display: none;"></div>
+        </div>
 
-            <!-- Low Stock Section (Cards layout) -->
-            <div class="lowstock-section" id="lowstockSection">
-                <h3><i class="fas fa-exclamation-circle"></i> Low Stock Items - Consumables</h3>
-                <div class="lowstock-cards-container" id="lowstockCardsContainer"></div>
-
-                <h3 class="dept-title"><i class="fas fa-building"></i> Low Stock Items by Department</h3>
-                <div class="dept-lowstock-grid" id="deptLowstockGrid"></div>
-            </div>
         </div>
     </main>
 </div>
 
-<div id="logoutToast" class="logout-toast">🔐 Logging out, redirecting to login...</div>
-
-<script src="Sidebar.js"></script>
+<script src="Sidebar.js?v=1"></script>
 <script src="Inventory.js"></script>
 <script src="admin-notifications.js"></script>
 </body>

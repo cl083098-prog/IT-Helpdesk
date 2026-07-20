@@ -37,11 +37,15 @@
     let myTicketFilter      = 'all';
     let fullListFilter      = 'all';
     let pendingResolveId    = null;   // ticket id waiting for resolve confirmation
-    let pendingRejectId     = null;   // ticket id waiting for reject confirmation
+    let pendingRejectIds    = [];     // ticket id(s) waiting for reject confirmation (single or bulk)
     let pendingFeedbackId   = null;   // ticket id waiting for feedback
+    let selectedApprovalIds = new Set(); // ids currently checked for bulk action
     let selectedStarRating  = 0;
     let _currentSLA = { priority: 'Low', response_hours: 8, resolution_hours: 48 };
     let _pendingAttachments = []; // v28: files queued for upload after submit
+    let approvalDateFrom    = '';  // yyyy-mm-dd, inclusive
+    let approvalDateTo      = '';  // yyyy-mm-dd, inclusive
+    let currentDelegate     = null; // active delegation record for this dept head, if any
 
     // ─── Init ─────────────────────────────────────────────────────────────────
     async function init() {
@@ -55,8 +59,12 @@
         initMyRequestTabs();
         initFullListFilters();
         initStarRating();
+        initBulkActionBar();
+        initDateRangeFilter();
+        initDelegateModal();
 
         await refreshAll();
+        await loadDelegateStatus();
     }
 
     function applyUserInfo() {
@@ -64,8 +72,6 @@
         const dept = currentUser?.department || '';
         const el = document.getElementById('welcomeName');
         if (el) el.textContent = name.split(' ')[0];
-        const profileEl = document.getElementById('profileName');
-        if (profileEl) profileEl.textContent = `${name} (${dept})`;
         const deptLabel = document.getElementById('deptLabel');
         if (deptLabel && dept) deptLabel.textContent = dept;
     }
@@ -123,26 +129,46 @@
 
     function renderApprovalCards(container) {
         if (!container) return;
-        if (approvalTickets.length === 0) {
-            container.innerHTML = `<div class="empty-state"><i class="fas fa-clipboard-check" style="font-size:2rem;color:#dee4ea;margin-bottom:12px;display:block;"></i>No requests ${approvalFilter === 'all' ? '' : `with status "${approvalFilter}"`} to review.</div>`;
+
+        // Drop stale selections for tickets no longer pending / no longer in the list
+        const pendingIdSet = new Set(
+            approvalTickets.filter(t => t.approval_status === 'Pending Approval').map(t => Number(t.id))
+        );
+        [...selectedApprovalIds].forEach(id => { if (!pendingIdSet.has(id)) selectedApprovalIds.delete(id); });
+
+        // Apply date-range filter (on top of the status tab / text search already applied upstream)
+        const visibleTickets = approvalTickets.filter(t => ticketInDateRange(t.submitted_at));
+
+        if (visibleTickets.length === 0) {
+            const hasDateFilter = approvalDateFrom || approvalDateTo;
+            const reason = hasDateFilter
+                ? 'in the selected date range'
+                : (approvalFilter === 'all' ? '' : `with status "${approvalFilter}"`);
+            container.innerHTML = `<div class="empty-state"><i class="fas fa-clipboard-check" style="font-size:2rem;color:#dee4ea;margin-bottom:12px;display:block;"></i>No requests ${reason} to review.</div>`;
+            updateBulkActionBar();
             return;
         }
 
-        container.innerHTML = approvalTickets.map(t => {
+        container.innerHTML = visibleTickets.map(t => {
+            const isPending = t.approval_status === 'Pending Approval';
             const statusClass = { 'Pending Approval': 'badge-pending', 'Approved': 'badge-approved', 'Rejected': 'badge-rejected' }[t.approval_status] || 'badge-pending';
-            const costDisplay = t.estimated_cost ? `<div class="card-estimated-cost"><i class="fas fa-peso-sign"></i> Est. Cost: ₱${Number(t.estimated_cost).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>` : '';
-            const actions = t.approval_status === 'Pending Approval' ? `
+            const costDisplay = t.estimated_cost ? `<div class="card-estimated-cost"><i class="fas fa-peso-sign"></i> Est. Cost: ${Number(t.estimated_cost).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>` : '';
+            const actions = isPending ? `
                 <div class="approval-card-actions">
                     <button class="btn-approve" data-id="${t.id}" data-code="${escapeHtml(t.ticket_code)}">
-                        <i class="fas fa-check"></i> Approve
+                        <i class="fas fa-check-circle"></i> Approve
                     </button>
                     <button class="btn-reject-card" data-id="${t.id}" data-code="${escapeHtml(t.ticket_code)}">
-                        <i class="fas fa-times"></i> Reject
+                        <i class="fas fa-times-circle"></i> Reject
                     </button>
                 </div>` : `<p style="font-size:0.72rem;color:#8aa5bf;margin-top:4px;">${t.decided_at ? 'Decided: ' + formatDate(t.decided_at) : ''}</p>`;
+            const checkbox = isPending
+                ? `<input type="checkbox" class="approval-card-select" data-id="${t.id}" ${selectedApprovalIds.has(Number(t.id)) ? 'checked' : ''} title="Select for bulk action">`
+                : '';
 
             return `
-                <div class="approval-card" data-ticket-id="${t.id}">
+                <div class="approval-card ${isPending ? 'has-checkbox' : ''} ${selectedApprovalIds.has(Number(t.id)) ? 'card-selected' : ''}" data-ticket-id="${t.id}">
+                    ${checkbox}
                     <div class="approval-card-header">
                         <span class="approval-card-id">#${escapeHtml(t.ticket_code)}</span>
                         <span class="approval-status-badge ${statusClass}">${escapeHtml(t.approval_status)}</span>
@@ -151,7 +177,7 @@
                     <div class="approval-card-meta">
                         <span><i class="fas fa-user"></i> ${escapeHtml(t.requester_name)}</span>
                         <span><i class="fas fa-desktop"></i> ${escapeHtml(t.equipment_item)}</span>
-                        <span><i class="fas fa-calendar"></i> ${formatDate(t.submitted_at)}</span>
+                        <span><i class="fas fa-calendar-alt"></i> ${formatDate(t.submitted_at)}</span>
                     </div>
                     ${costDisplay}
                     ${actions}
@@ -161,10 +187,21 @@
         // Card click → detail modal
         container.querySelectorAll('.approval-card').forEach(card => {
             card.addEventListener('click', (e) => {
-                if (e.target.closest('.approval-card-actions')) return;
+                if (e.target.closest('.approval-card-actions') || e.target.classList.contains('approval-card-select')) return;
                 const ticketId = Number(card.dataset.ticketId);
                 const ticket = approvalTickets.find(t => Number(t.id) === ticketId);
                 if (ticket) openApprovalDetailModal(ticket);
+            });
+        });
+
+        // Selection checkboxes
+        container.querySelectorAll('.approval-card-select').forEach(cb => {
+            cb.addEventListener('click', (e) => e.stopPropagation());
+            cb.addEventListener('change', (e) => {
+                const id = Number(cb.dataset.id);
+                if (cb.checked) selectedApprovalIds.add(id); else selectedApprovalIds.delete(id);
+                cb.closest('.approval-card')?.classList.toggle('card-selected', cb.checked);
+                updateBulkActionBar();
             });
         });
 
@@ -182,17 +219,133 @@
         container.querySelectorAll('.btn-reject-card').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                pendingRejectId = Number(btn.dataset.id);
+                pendingRejectIds = [Number(btn.dataset.id)];
                 document.getElementById('rejectTicketCode').textContent = '#' + btn.dataset.code;
                 document.getElementById('rejectionNote').value = '';
                 openModal('rejectModal');
             });
         });
+
+        updateBulkActionBar();
+    }
+
+    // ─── Date range filter (approvals list) ───────────────────────────────────
+    function ticketInDateRange(submittedAt) {
+        if (!approvalDateFrom && !approvalDateTo) return true;
+        if (!submittedAt) return false;
+        // Compare on the date portion only (yyyy-mm-dd), ignoring time-of-day.
+        const submittedDate = new Date(submittedAt);
+        if (isNaN(submittedDate)) return false;
+        const y = submittedDate.getFullYear();
+        const m = String(submittedDate.getMonth() + 1).padStart(2, '0');
+        const d = String(submittedDate.getDate()).padStart(2, '0');
+        const ymd = `${y}-${m}-${d}`;
+        if (approvalDateFrom && ymd < approvalDateFrom) return false;
+        if (approvalDateTo && ymd > approvalDateTo) return false;
+        return true;
+    }
+
+    function initDateRangeFilter() {
+        const fromInput  = document.getElementById('approvalsDateFrom');
+        const toInput    = document.getElementById('approvalsDateTo');
+        const clearBtn   = document.getElementById('approvalsDateClearBtn');
+        const container  = document.getElementById('approvalCardsList');
+
+        const rerender = () => {
+            approvalDateFrom = fromInput?.value || '';
+            approvalDateTo   = toInput?.value || '';
+            // Guard against an inverted range (from later than to) by syncing the
+            // "to" field forward rather than silently returning zero results.
+            if (approvalDateFrom && approvalDateTo && approvalDateFrom > approvalDateTo) {
+                toInput.value = approvalDateFrom;
+                approvalDateTo = approvalDateFrom;
+            }
+            renderApprovalCards(container);
+        };
+
+        fromInput?.addEventListener('change', rerender);
+        toInput?.addEventListener('change', rerender);
+        clearBtn?.addEventListener('click', () => {
+            if (fromInput) fromInput.value = '';
+            if (toInput) toInput.value = '';
+            approvalDateFrom = '';
+            approvalDateTo   = '';
+            renderApprovalCards(container);
+        });
+    }
+
+    // ─── Bulk approve / reject ────────────────────────────────────────────────
+    function updateBulkActionBar() {
+        const bar = document.getElementById('bulkActionBar');
+        if (!bar) return;
+        const count = selectedApprovalIds.size;
+        bar.style.display = count > 0 ? 'flex' : 'none';
+
+        const countEl = document.getElementById('bulkSelectedCount');
+        if (countEl) countEl.textContent = `${count} selected`;
+
+        const selectAllCb = document.getElementById('bulkSelectAllCheckbox');
+        if (selectAllCb) {
+            const pendingCount = approvalTickets.filter(t => t.approval_status === 'Pending Approval').length;
+            selectAllCb.checked = pendingCount > 0 && count === pendingCount;
+            selectAllCb.indeterminate = count > 0 && count < pendingCount;
+        }
+    }
+
+    function initBulkActionBar() {
+        document.getElementById('bulkSelectAllCheckbox')?.addEventListener('change', (e) => {
+            const checked = e.target.checked;
+            selectedApprovalIds.clear();
+            if (checked) {
+                approvalTickets
+                    .filter(t => t.approval_status === 'Pending Approval')
+                    .forEach(t => selectedApprovalIds.add(Number(t.id)));
+            }
+            renderApprovalCards(document.getElementById('approvalCardsList'));
+        });
+
+        document.getElementById('bulkClearBtn')?.addEventListener('click', () => {
+            selectedApprovalIds.clear();
+            renderApprovalCards(document.getElementById('approvalCardsList'));
+        });
+
+        document.getElementById('bulkApproveBtn')?.addEventListener('click', async () => {
+            const ids = [...selectedApprovalIds];
+            if (!ids.length) return;
+            if (!confirm(`Approve ${ids.length} selected request${ids.length === 1 ? '' : 's'}? No estimated cost will be attached — open a request individually if you need to record one.`)) return;
+
+            const btn = document.getElementById('bulkApproveBtn');
+            if (btn) btn.disabled = true;
+            let successCount = 0, failCount = 0;
+            for (const id of ids) {
+                const json = await apiFetch(`${DEPT_API}?action=approve_ticket`, {
+                    method: 'POST',
+                    body: JSON.stringify({ ticket_id: id, dept_head_id: USER_ID, dept_head_name: currentUser?.name, estimated_cost: null })
+                });
+                if (json?.success) successCount++; else failCount++;
+            }
+            if (btn) btn.disabled = false;
+
+            selectedApprovalIds.clear();
+            showToast(failCount === 0
+                ? `✅ ${successCount} request${successCount === 1 ? '' : 's'} approved.`
+                : `Approved ${successCount}, failed ${failCount}.`, failCount > 0);
+            await refreshAll();
+        });
+
+        document.getElementById('bulkRejectBtn')?.addEventListener('click', () => {
+            const ids = [...selectedApprovalIds];
+            if (!ids.length) return;
+            pendingRejectIds = ids;
+            document.getElementById('rejectTicketCode').textContent = `${ids.length} selected request${ids.length === 1 ? '' : 's'}`;
+            document.getElementById('rejectionNote').value = '';
+            openModal('rejectModal');
+        });
     }
 
     function openApproveFlow(ticketId, ticketCode) {
         // Inline approve with optional cost — no separate modal needed
-        const cost = prompt(`Approve #${ticketCode}\n\nEnter estimated cost in ₱ (or leave blank):`);
+        const cost = prompt(`Approve #${ticketCode}\n\nEnter estimated cost (or leave blank):`);
         if (cost === null) return; // cancelled
         submitApproval(ticketId, cost ? parseFloat(cost) : null);
     }
@@ -257,7 +410,7 @@
                 <div class="info-item"><span class="info-label"><i class="fas fa-hashtag"></i> Ticket ID</span><span class="info-value">#${escapeHtml(ticket.ticket_code)}</span></div>
                 <div class="info-item"><span class="info-label"><i class="fas fa-user"></i> Requester</span><span class="info-value">${escapeHtml(ticket.requester_name)}</span></div>
                 <div class="info-item"><span class="info-label"><i class="fas fa-building"></i> Department</span><span class="info-value">${escapeHtml(ticket.department_name)}</span></div>
-                <div class="info-item"><span class="info-label"><i class="fas fa-calendar"></i> Submitted</span><span class="info-value">${formatDate(ticket.submitted_at)}</span></div>
+                <div class="info-item"><span class="info-label"><i class="fas fa-calendar-alt"></i> Submitted</span><span class="info-value">${formatDate(ticket.submitted_at)}</span></div>
                 <div class="info-item"><span class="info-label"><i class="fas fa-chart-line"></i> Priority</span><span class="info-value">${escapeHtml(ticket.priority)}</span></div>
                 <div class="info-item"><span class="info-label"><i class="fas fa-desktop"></i> Equipment/Item</span><span class="info-value">${escapeHtml(ticket.equipment_item)}</span></div>
             </div>
@@ -269,20 +422,20 @@
                 <div class="sla-row"><span class="sla-label"><i class="fas fa-hourglass-half"></i> Expected Resolution Time</span><span class="sla-value">${slaResolutionH > 0 ? (slaResolutionH < 1 ? Math.round(slaResolutionH * 60) + ' min' : slaResolutionH + ' hour(s)') : '—'}</span></div>
                 <div class="sla-row"><span class="sla-label"><i class="fas fa-clock"></i> SLA Deadline</span><span class="sla-value">${slaResText}</span></div>
             </div>
-            ${ticket.estimated_cost ? `<div class="card-estimated-cost" style="margin-bottom:12px;"><i class="fas fa-peso-sign"></i> Estimated Cost: ₱${Number(ticket.estimated_cost).toLocaleString('en-PH',{minimumFractionDigits:2})}</div>` : ''}
+            ${ticket.estimated_cost ? `<div class="card-estimated-cost" style="margin-bottom:12px;"><i class="fas fa-peso-sign"></i> Estimated Cost: ${Number(ticket.estimated_cost).toLocaleString('en-PH',{minimumFractionDigits:2})}</div>` : ''}
             ${ticket.rejection_note ? `<div class="approval-warning" style="margin-bottom:12px;"><i class="fas fa-info-circle"></i> <div><strong>Rejection Note:</strong> ${escapeHtml(ticket.rejection_note)}</div></div>` : ''}
             ${attachmentHtml}
             ${ticket.approval_status === 'Pending Approval' ? `
             <div class="estimated-cost-input-row">
-                <label for="detailEstCost">Estimated Cost (₱)</label>
+                <label for="detailEstCost">Estimated Cost</label>
                 <input type="number" id="detailEstCost" placeholder="Optional" min="0" step="0.01">
             </div>
             <div class="approval-actions-row">
                 <button class="btn-reject-detail" id="detailRejectBtn" data-id="${ticket.id}" data-code="${escapeHtml(ticket.ticket_code)}">
-                    <i class="fas fa-times"></i> Reject Request
+                    <i class="fas fa-times-circle"></i> Reject Request
                 </button>
                 <button class="btn-approve-detail" id="detailApproveBtn" data-id="${ticket.id}">
-                    <i class="fas fa-check"></i> Approve Request
+                    <i class="fas fa-check-circle"></i> Approve Request
                 </button>
             </div>` : ''}
             <div class="dh-section-title" style="margin-top:20px;"><i class="fas fa-comments"></i> Conversation &amp; Updates</div>
@@ -301,7 +454,7 @@
             closeModal('approvalDetailModal');
         });
         document.getElementById('detailRejectBtn')?.addEventListener('click', () => {
-            pendingRejectId = Number(ticket.id);
+            pendingRejectIds = [Number(ticket.id)];
             document.getElementById('rejectTicketCode').textContent = '#' + ticket.ticket_code;
             document.getElementById('rejectionNote').value = '';
             closeModal('approvalDetailModal');
@@ -403,7 +556,7 @@
                     <span class="status-badge status-${ticket.status.toLowerCase()}">${escapeHtml(ticket.status)}</span>
                 </div>
                 <div class="info-grid">
-                    <div class="info-item"><span class="info-label"><i class="fas fa-calendar"></i> Submitted</span><span class="info-value">${formatDate(ticket.submitted_at)}</span></div>
+                    <div class="info-item"><span class="info-label"><i class="fas fa-calendar-alt"></i> Submitted</span><span class="info-value">${formatDate(ticket.submitted_at)}</span></div>
                     <div class="info-item"><span class="info-label"><i class="fas fa-chart-line"></i> Priority</span><span class="info-value">${escapeHtml(ticket.priority)}</span></div>
                     <div class="info-item"><span class="info-label"><i class="fas fa-tag"></i> Category</span><span class="info-value">${escapeHtml(ticket.category)}</span></div>
                     <div class="info-item"><span class="info-label"><i class="fas fa-building"></i> Department</span><span class="info-value">${escapeHtml(ticket.department)}</span></div>
@@ -548,29 +701,187 @@
 
     function highlightStars(count) {
         document.querySelectorAll('#starRating i').forEach(s => {
-            s.classList.toggle('active', Number(s.dataset.value) <= count);
+            const filled = Number(s.dataset.value) <= count;
+            s.classList.toggle('active', filled);
+            s.classList.toggle('fas', filled);
+            s.classList.toggle('far', !filled);
         });
     }
 
     // ─── Reject Flow ──────────────────────────────────────────────────────────
     function initRejectModal() {
         document.getElementById('confirmRejectBtn')?.addEventListener('click', async () => {
-            if (!pendingRejectId) return;
+            if (!pendingRejectIds.length) return;
             const note = document.getElementById('rejectionNote')?.value.trim() || '';
-            const json = await apiFetch(`${DEPT_API}?action=reject_ticket`, {
-                method: 'POST',
-                body: JSON.stringify({ ticket_id: pendingRejectId, dept_head_id: USER_ID, dept_head_name: currentUser?.name, rejection_note: note })
-            });
-            if (json?.success) {
-                closeModal('rejectModal');
-                pendingRejectId = null;
-                showToast('Request rejected.');
-                await refreshAll();
+            const confirmBtn = document.getElementById('confirmRejectBtn');
+            const ids = [...pendingRejectIds];
+            const isBulk = ids.length > 1;
+
+            if (confirmBtn) confirmBtn.disabled = true;
+            let successCount = 0, failCount = 0;
+            for (const id of ids) {
+                const json = await apiFetch(`${DEPT_API}?action=reject_ticket`, {
+                    method: 'POST',
+                    body: JSON.stringify({ ticket_id: id, dept_head_id: USER_ID, dept_head_name: currentUser?.name, rejection_note: note })
+                });
+                if (json?.success) successCount++; else failCount++;
+            }
+            if (confirmBtn) confirmBtn.disabled = false;
+
+            closeModal('rejectModal');
+            pendingRejectIds = [];
+            selectedApprovalIds.clear();
+
+            if (isBulk) {
+                showToast(failCount === 0
+                    ? `✅ ${successCount} request${successCount === 1 ? '' : 's'} rejected.`
+                    : `Rejected ${successCount}, failed ${failCount}.`, failCount > 0);
             } else {
-                showToast('Rejection failed: ' + (json?.message || ''), true);
+                showToast(successCount ? 'Request rejected.' : 'Rejection failed: ' + failCount, failCount > 0);
+            }
+            await refreshAll();
+        });
+        document.getElementById('cancelRejectBtn')?.addEventListener('click', () => { pendingRejectIds = []; closeModal('rejectModal'); });
+    }
+
+    // ─── Delegate Approval ──────────────────────────────────────────────────────
+    // Lets a dept head hand off approval authority to a stand-in (e.g. while on
+    // leave) for a bounded date range, so pending requests don't stall.
+    //
+    // Expected backend contract (dept-head-data.php):
+    //   GET  ?action=get_delegate_status&dept_head_id=ID
+    //        -> { success:true, delegate: null | { id, delegate_id, delegate_name, start_date, end_date, note } }
+    //   GET  ?action=get_delegate_candidates&dept_head_id=ID
+    //        -> { success:true, candidates: [ { id, name }, ... ] }
+    //   POST body:{ action:'set_delegate', dept_head_id, delegate_id, start_date, end_date, note }
+    //        -> { success:true, delegate: {...} } | { success:false, message }
+    //   POST body:{ action:'end_delegation', dept_head_id }
+    //        -> { success:true }
+    function initDelegateModal() {
+        document.getElementById('openDelegateModalBtn')?.addEventListener('click', openDelegateModal);
+        document.getElementById('closeDelegateModalBtn')?.addEventListener('click', () => closeModal('delegateModal'));
+        document.getElementById('cancelDelegateBtn')?.addEventListener('click', () => closeModal('delegateModal'));
+        document.getElementById('delegateBannerEndBtn')?.addEventListener('click', endDelegation);
+
+        document.getElementById('delegateForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const delegateId = document.getElementById('delegateUserSelect')?.value;
+            const startDate  = document.getElementById('delegateStartDate')?.value;
+            const endDate    = document.getElementById('delegateEndDate')?.value;
+            const note       = document.getElementById('delegateNote')?.value.trim() || '';
+
+            if (!delegateId) { showToast('Please choose a delegate.', true); return; }
+            if (!startDate || !endDate) { showToast('Please set a start and end date.', true); return; }
+            if (endDate < startDate) { showToast('End date must be on or after the start date.', true); return; }
+
+            const submitBtn = e.target.querySelector('.btn-submit-modal');
+            if (submitBtn) submitBtn.disabled = true;
+
+            const json = await apiFetch(DEPT_API, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'set_delegate',
+                    dept_head_id: USER_ID,
+                    delegate_id: delegateId,
+                    start_date: startDate,
+                    end_date: endDate,
+                    note
+                })
+            });
+
+            if (submitBtn) submitBtn.disabled = false;
+
+            if (json?.success) {
+                showToast('Delegate assigned. They can now approve on your behalf during this period.');
+                closeModal('delegateModal');
+                await loadDelegateStatus();
+            } else {
+                showToast(json?.message || 'Could not assign delegate.', true);
             }
         });
-        document.getElementById('cancelRejectBtn')?.addEventListener('click', () => closeModal('rejectModal'));
+    }
+
+    async function openDelegateModal() {
+        openModal('delegateModal');
+        renderDelegateActiveNotice();
+        await loadDelegateCandidates();
+
+        // Default the date range to today → today, so the head just has to
+        // adjust the end date for the common "out for N days" case.
+        const today = new Date().toISOString().slice(0, 10);
+        const startInput = document.getElementById('delegateStartDate');
+        const endInput   = document.getElementById('delegateEndDate');
+        if (startInput && !startInput.value) startInput.value = today;
+        if (endInput && !endInput.value) endInput.value = today;
+    }
+
+    function renderDelegateActiveNotice() {
+        const box = document.getElementById('delegateActiveNotice');
+        if (!box) return;
+        if (!currentDelegate) { box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.style.display = 'block';
+        box.innerHTML = `
+            <div class="delegate-notice-box">
+                <i class="fas fa-info-circle"></i>
+                Currently delegated to <strong>${escapeHtml(currentDelegate.delegate_name || 'a delegate')}</strong>
+                from ${formatDate(currentDelegate.start_date)} to ${formatDate(currentDelegate.end_date)}.
+                Submitting a new assignment below will replace it.
+            </div>`;
+    }
+
+    async function loadDelegateCandidates() {
+        const select = document.getElementById('delegateUserSelect');
+        if (!select) return;
+        select.innerHTML = '<option value="">Loading eligible users…</option>';
+
+        const json = await apiFetch(`${DEPT_API}?action=get_delegate_candidates&dept_head_id=${USER_ID}`);
+        if (!json?.success || !Array.isArray(json.candidates) || json.candidates.length === 0) {
+            select.innerHTML = '<option value="">No eligible users found</option>';
+            return;
+        }
+        select.innerHTML = '<option value="">Select a delegate…</option>';
+        json.candidates.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name;
+            select.appendChild(opt);
+        });
+        if (currentDelegate?.delegate_id) select.value = String(currentDelegate.delegate_id);
+    }
+
+    async function loadDelegateStatus() {
+        const json = await apiFetch(`${DEPT_API}?action=get_delegate_status&dept_head_id=${USER_ID}`);
+        currentDelegate = json?.success ? (json.delegate || null) : null;
+        renderDelegateBanner();
+    }
+
+    function renderDelegateBanner() {
+        const banner = document.getElementById('delegateBanner');
+        const text   = document.getElementById('delegateBannerText');
+        if (!banner || !text) return;
+
+        if (!currentDelegate) {
+            banner.style.display = 'none';
+            return;
+        }
+        banner.style.display = 'flex';
+        text.innerHTML = `Approvals are delegated to <strong>${escapeHtml(currentDelegate.delegate_name || 'a delegate')}</strong>
+            (${formatDate(currentDelegate.start_date)} – ${formatDate(currentDelegate.end_date)})${currentDelegate.note ? ' — ' + escapeHtml(currentDelegate.note) : ''}.`;
+    }
+
+    async function endDelegation() {
+        if (!currentDelegate) return;
+        const json = await apiFetch(DEPT_API, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'end_delegation', dept_head_id: USER_ID })
+        });
+        if (json?.success) {
+            currentDelegate = null;
+            renderDelegateBanner();
+            showToast('Delegation ended. You are the sole approver again.');
+        } else {
+            showToast(json?.message || 'Could not end delegation.', true);
+        }
     }
 
     // ─── New Request Form ─────────────────────────────────────────────────────
@@ -1014,19 +1325,61 @@
     }
 
     function initProfileDropdown() {
-        document.getElementById('profileBtn')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const menu = document.getElementById('dropdownMenu');
-            menu?.classList.toggle('open');
-        });
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#profileDropdown')) {
-                document.getElementById('dropdownMenu')?.classList.remove('open');
-            }
-        });
         document.getElementById('logoutBtn')?.addEventListener('click', () => {
+            showLogoutModal();
+        });
+    }
+
+    // Same confirm-logout modal (markup + behavior) used by Sidebar.js on
+    // the Admin/School Admin pages, so every role gets the same logout
+    // confirmation experience instead of logging out immediately.
+    function showLogoutModal() {
+        const existingModal = document.querySelector('.logout-modal-overlay');
+        if (existingModal) {
+            existingModal.classList.add('active');
+            return;
+        }
+
+        const modalHTML = `
+            <div class="logout-modal-overlay" id="logoutModal">
+                <div class="logout-modal">
+                    <div class="modal-header">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <h3>Confirm Logout</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to logout from IT Helpdesk?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" id="cancelLogoutBtn">Cancel</button>
+                        <button class="btn-confirm" id="confirmLogoutBtn">Logout</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = document.getElementById('logoutModal');
+
+        setTimeout(() => {
+            if (modal) modal.classList.add('active');
+        }, 10);
+
+        const closeModalEl = () => {
+            if (!modal) return;
+            modal.classList.remove('active');
+            setTimeout(() => { if (modal && modal.remove) modal.remove(); }, 300);
+        };
+
+        document.getElementById('cancelLogoutBtn')?.addEventListener('click', closeModalEl);
+
+        document.getElementById('confirmLogoutBtn')?.addEventListener('click', () => {
             sessionStorage.removeItem('currentUser');
             window.location.href = 'Login.html';
+        });
+
+        modal?.addEventListener('click', (e) => {
+            if (e.target === modal) closeModalEl();
         });
     }
 
@@ -1036,13 +1389,13 @@
         const isDark = localStorage.getItem('theme') === 'dark';
         if (toggle) toggle.checked = isDark;
         document.body.classList.toggle('dark-mode', isDark);
-        if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        if (icon) icon.className = isDark ? 'ti ti-sun' : 'ti ti-moon';
 
         toggle?.addEventListener('change', (e) => {
             const dark = e.target.checked;
             document.body.classList.toggle('dark-mode', dark);
             localStorage.setItem('theme', dark ? 'dark' : 'light');
-            if (icon) icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+            if (icon) icon.className = dark ? 'ti ti-sun' : 'ti ti-moon';
         });
     }
 

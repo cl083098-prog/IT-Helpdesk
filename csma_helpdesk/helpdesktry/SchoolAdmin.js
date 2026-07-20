@@ -44,7 +44,12 @@
         initUserManagementFilters();
         initReportsSection();
         initSaNotifBell();
-        await navigateTo('dashboard');
+        // Resume whatever section the URL hash points at (set by navigateTo()
+        // below) so a refresh stays put instead of always bouncing back to
+        // Dashboard — fall back to Dashboard if the hash is empty/invalid.
+        const hashSection  = location.hash.slice(1);
+        const startSection = hashSection && document.getElementById(`section-${hashSection}`) ? hashSection : 'dashboard';
+        await navigateTo(startSection);
     }
 
     // ─── User info ────────────────────────────────────────────────────────────
@@ -60,12 +65,12 @@
         const isDark = localStorage.getItem('theme') === 'dark';
         if (toggle) toggle.checked = isDark;
         document.body.classList.toggle('dark-mode', isDark);
-        if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        if (icon) icon.className = isDark ? 'ti ti-sun' : 'ti ti-moon';
         toggle?.addEventListener('change', e => {
             const dark = e.target.checked;
             document.body.classList.toggle('dark-mode', dark);
             localStorage.setItem('theme', dark ? 'dark' : 'light');
-            if (icon) icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+            if (icon) icon.className = dark ? 'ti ti-sun' : 'ti ti-moon';
         });
     }
 
@@ -85,6 +90,10 @@
         const navEl     = document.querySelector(`.nav-item[data-section="${section}"]`);
         if (sectionEl) sectionEl.classList.add('active');
         if (navEl)     navEl.classList.add('active');
+        // replaceState (not pushState/location.hash=) so switching sections
+        // doesn't spam browser back-button history — it just keeps the URL in
+        // sync so a refresh (or a bookmarked/shared link) resumes here.
+        history.replaceState(null, '', `#${section}`);
 
         const titles = { dashboard:'Dashboard', 'service-requests':'Service Requests', inventory:'Inventory',
             'cost-analysis':'Cost Analysis', feedback:'Feedback Monitoring', reports:'Reports',
@@ -105,6 +114,20 @@
         if (loaders[section]) await loaders[section]();
     }
 
+    // Dashboard stat-card shortcuts (mirrors Dashboard.html's clickable
+    // .stat-card onclick behavior). Exposed on window since it's called from
+    // inline onclick= in SchoolAdmin.html. filterStatus is applied BEFORE
+    // navigateTo() so its own loadServiceRequests() call picks up the right
+    // tab immediately instead of whatever tab was last selected.
+    window.saQuickNav = function (section, filterStatus) {
+        if (section === 'service-requests' && filterStatus) {
+            srStatusFilter = filterStatus;
+            const sel = document.getElementById('srStatusFilterSelect');
+            if (sel) sel.value = filterStatus;
+        }
+        navigateTo(section);
+    };
+
     // ─── Dashboard ────────────────────────────────────────────────────────────
     async function loadDashboard() {
         const json = await apiFetch(`${API}?action=get_dashboard&user_id=${encodeURIComponent(USER_ID || '')}`);
@@ -117,7 +140,7 @@
         setAll('ongoing',   s.ongoing);
         setAll('completed', s.completed);
         setAll('low_stock', s.low_stock);
-        setAll('inv_value', formatPeso(s.inv_value));
+        setAll('inv_value', '₱' + formatPeso(s.inv_value));
 
         const container = document.getElementById('dashboardActivityList');
         if (!container) return;
@@ -134,37 +157,21 @@
 
     // ─── Service Requests ─────────────────────────────────────────────────────
     function initServiceRequestFilters() {
-        document.querySelectorAll('.tab-btn[data-filter-status]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn[data-filter-status]').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                srStatusFilter = btn.dataset.filterStatus;
-                loadServiceRequests();
-            });
+        document.getElementById('srStatusFilterSelect')?.addEventListener('change', e => {
+            srStatusFilter = e.target.value;
+            loadServiceRequests();
         });
         ['srDeptFilter','srPriorityFilter'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', loadServiceRequests);
-        });
-        let srSearchTimer;
-        document.getElementById('srSearch')?.addEventListener('input', e => {
-            clearTimeout(srSearchTimer);
-            srSearchTimer = setTimeout(loadServiceRequests, 320);
         });
     }
 
     async function loadServiceRequests() {
         const dept     = document.getElementById('srDeptFilter')?.value     || 'all';
         const priority = document.getElementById('srPriorityFilter')?.value || 'all';
-        const search   = document.getElementById('srSearch')?.value         || '';
-        const params   = new URLSearchParams({ action:'get_service_requests', status:srStatusFilter, department:dept, priority, search });
+        const params   = new URLSearchParams({ action:'get_service_requests', status:srStatusFilter, department:dept, priority });
         const json     = await apiFetch(`${API}?${params}`);
         if (!json?.success) return;
-
-        // Summary cards
-        const c = json.counts || {};
-        const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-        s('srTotal', json.total); s('srPending', c.Pending||0); s('srOngoing', c.Ongoing||0);
-        s('srCompleted', c.Completed||0); s('srClosed', c.Closed||0);
 
         const tbody = document.getElementById('srTableBody');
         if (!tbody) return;
@@ -172,7 +179,7 @@
 
         tbody.innerHTML = json.data.map(t => `
             <tr>
-                <td><strong style="color:#1f6392;">#${escHtml(t.ticket_code)}</strong></td>
+                <td><strong class="sr-ticket-id">#${escHtml(t.ticket_code)}</strong></td>
                 <td>${escHtml(t.requester)}</td>
                 <td>${escHtml(t.department)}</td>
                 <td>${escHtml(t.category)}</td>
@@ -182,7 +189,7 @@
                 <td>${t.status==='Completed'||t.status==='Closed' ? formatDate(t.updated_at) : '—'}</td>
                 <td>${t.status==='Closed' ? formatDate(t.closed_at) : '—'}</td>
                 <td>${escHtml(t.assigned_to||'Awaiting')}</td>
-                <td><button class="btn-view" data-ticket-id="${t.id}">View</button></td>
+                <td><button class="btn-view" data-ticket-id="${t.id}"><i class="fas fa-eye"></i> View</button></td>
             </tr>`).join('');
 
         tbody.querySelectorAll('.btn-view[data-ticket-id]').forEach(btn => {
@@ -398,7 +405,7 @@
 
         const sm = json.summary || {};
         const s  = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-        s('fbAvgRating', sm.avg_rating ? Number(sm.avg_rating).toFixed(1) + ' ★' : '—');
+        s('fbAvgRating', sm.avg_rating ? Number(sm.avg_rating).toFixed(1) : '—');
         s('fbTotal',    sm.total    || 0);
         s('fbPositive', sm.positive || 0);
         s('fbNegative', sm.negative || 0);
@@ -415,7 +422,7 @@
                 <td>${escHtml((f.comment||'—').substring(0,60))}${(f.comment||'').length>60?'…':''}</td>
                 <td>${escHtml(f.department)}</td>
                 <td>${formatDate(f.submitted_at)}</td>
-                <td><button class="btn-view" data-fb='${JSON.stringify(f).replace(/'/g,"&apos;")}'>View</button></td>
+                <td><button class="btn-view" data-fb='${JSON.stringify(f).replace(/'/g,"&apos;")}'><i class="fas fa-eye"></i> View</button></td>
             </tr>`).join('');
 
         tbody.querySelectorAll('.btn-view[data-fb]').forEach(btn => {
@@ -764,7 +771,7 @@
                 <td>${escHtml(a.module)}</td>
                 <td>${escHtml(a.action)}</td>
                 <td><span class="badge ${a.status==='Success'?'badge-completed':a.status==='Failed'?'badge-critical':'badge-high'}">${escHtml(a.status)}</span></td>
-                <td><button class="btn-view" data-audit='${JSON.stringify(a).replace(/'/g,"&apos;")}'>View</button></td>
+                <td><button class="btn-view" data-audit='${JSON.stringify(a).replace(/'/g,"&apos;")}'><i class="fas fa-eye"></i> View</button></td>
             </tr>`).join('');
 
         tbody.querySelectorAll('.btn-view[data-audit]').forEach(btn => {
@@ -1079,7 +1086,7 @@
 
     function formatPeso(val) {
         const n = parseFloat(val) || 0;
-        return '₱' + n.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+        return n.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
     }
 
     function escHtml(str) {

@@ -5,36 +5,140 @@
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Inter', sans-serif;
-    background: #f5f9fe;
-    color: #1e2f3e;
-    overflow-x: hidden;
+html {
+    height: 100%;
 }
 
+body {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    background: #F7F5F0;
+    color: #1A1A1A;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+/* Outer/page-level scrollbar fallback — single source of truth for every
+   admin page sharing this file. If the browser promotes a page's main
+   scrolling div (.dashboard-scroll-area / .cost-scroll-area / etc.) to the
+   implicit root scroller, native OS scrollbar chrome replaces that div's own
+   thin ::-webkit-scrollbar styling; theming html/body directly here keeps
+   the look identical either way, on every page, without duplicating this
+   block per-file. */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+body.dark-mode {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body.dark-mode::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+}
+
+/* ============================================================
+   GLOBAL ICON COLOR (2026-07-17, revised same day): every Font
+   Awesome icon glyph app-wide uses plain black/near-white instead
+   of the gold accent tried earlier — replacing per-component tints
+   everywhere else (e.g. EquipmentFailures' metric-icon-danger/amber/
+   blue, ServiceRequest's gold .section-header h2 i).
+   !important since per-page CSS declares its own icon colors
+   after this file loads. Icons inside a <button> are excluded via
+   the next, higher-specificity rule so they keep matching their
+   own button's text color instead of clashing with a fixed black
+   (e.g. Inventory's "+ Add New Item" white icon+label pair).
+   Tabler icons (ti ti-*, used only in this file's sidebar/topbar
+   chrome) are deliberately left alone — that chrome already colors
+   its icons to match adjacent nav text by design. */
+i.fas, i.far, i.fab, i.fa {
+    color: #111111 !important;
+}
+
+button i.fas, button i.far, button i.fab, button i.fa {
+    color: inherit !important;
+}
+
+body.dark-mode i.fas,
+body.dark-mode i.far,
+body.dark-mode i.fab,
+body.dark-mode i.fa {
+    color: #F5F5F5 !important;
+}
+
+body.dark-mode button i.fas,
+body.dark-mode button i.far,
+body.dark-mode button i.fab,
+body.dark-mode button i.fa {
+    color: inherit !important;
+}
+
+/* Card-chrome restyle (2026-07-17): sidebar + main content now sit as two
+   separate floating cards with a visible page-background gap between them,
+   instead of a flush edge-to-edge dark sidebar. This wrapper is the single
+   place that owns the page-level box model (height/padding/gap) — every
+   page's own CSS must NOT redeclare padding/gap here, same dedup rule as
+   .top-bar below. */
 .dashboard-wrapper {
     display: flex;
+    height: 100vh;
     min-height: 100vh;
     position: relative;
+    gap: 20px;
+    padding: 24px;
+    box-sizing: border-box;
 }
 
 /* ========== SIDEBAR STYLES ========== */
+/* 2026-07-17 mockup-fidelity pass: white card sidebar (was a dark gradient
+   panel) with a solid-black active pill, matching the supplied reference
+   image exactly rather than the app's older gold-accent dark sidebar. */
 .sidebar {
-    width: 280px;
-    background: linear-gradient(180deg, #0a2b3e 0%, #0d3b52 100%);
-    color: white;
+    width: 250px;
+    flex-shrink: 0;
+    background: #fff;
+    color: #1A1A1A;
     display: flex;
     flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
+    height: 100%;
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
     transition: transform 0.3s ease;
     z-index: 1000;
 }
 
 .sidebar-header {
-    padding: 24px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 20px 16px;
 }
 
 .logo-area {
@@ -44,103 +148,107 @@ body {
 }
 
 .logo-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     overflow: hidden;
-    background: white;
-    padding: 4px;
+    background: #f4f4f5;
+    border: 1px solid #ececec;
+    padding: 3px;
 }
 
 .logo-icon img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: 50%;
 }
 
 .logo-text h2 {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
     margin-bottom: 2px;
     letter-spacing: -0.3px;
+    color: #111;
 }
 
 .logo-text span {
-    font-size: 0.7rem;
-    opacity: 0.7;
+    font-size: 0.68rem;
     font-weight: 500;
+    color: #b0b0b0;
+    opacity: 1;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
 }
 
 .nav-menu {
     flex: 1;
-    padding: 20px 16px;
+    padding: 16px 12px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 3px;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 12px 16px;
-    border-radius: 14px;
-    color: rgba(255,255,255,0.7);
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    color: #555;
     text-decoration: none;
     font-weight: 500;
-    font-size: 0.9rem;
-    transition: all 0.2s;
+    font-size: 0.87rem;
+    transition: all 0.25s ease-in-out;
 }
 
 .nav-item i {
-    width: 22px;
-    font-size: 1.1rem;
+    width: 18px;
+    font-size: 1.05rem;
     text-align: center;
 }
 
 .nav-item:hover {
-    background: rgba(255,255,255,0.1);
-    color: white;
+    background: #f4f4f5;
+    color: #111;
 }
 
 .nav-item.active {
-    background: #1f6392;
-    color: white;
-    box-shadow: 0 4px 12px rgba(31, 99, 146, 0.3);
+    background: #111;
+    color: #fff;
+    box-shadow: none;
 }
 
 .nav-divider {
     height: 1px;
-    background: rgba(255,255,255,0.1);
+    background: #ececec;
     margin: 12px 0;
 }
 
 .sidebar-footer {
-    padding: 20px 16px;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 16px 12px;
 }
 
 .logout-sidebar-btn {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 12px 16px;
-    border-radius: 14px;
-    background: rgba(220, 53, 69, 0.2);
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    background: #fef2f2;
     border: none;
-    color: #ff9b9b;
+    color: #dc2626;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.87rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease-in-out;
     font-family: 'Inter', sans-serif;
 }
 
 .logout-sidebar-btn i {
-    width: 22px;
-    font-size: 1.1rem;
+    width: 18px;
+    font-size: 1.05rem;
 }
 
 .logout-sidebar-btn:hover {
@@ -154,14 +262,16 @@ body {
     overflow-x: auto;
 }
 
+/* 2026-07-18 dark-mode reskin: neutral warm-black palette (#0b0b0d page /
+   #17171a card / #232326 border) replacing the previous plain #121212/#1E1E1E
+   grays, matching the supplied csma_dashboard_dark.html reference exactly.
+   Light mode is untouched by this pass. */
 body.dark-mode {
-    background: #0b1220 !important;
-    color: #f8fafc !important;
+    background: #0b0b0d !important;
+    color: #f2f2f3 !important;
 }
 
 body.dark-mode .dashboard-wrapper,
-body.dark-mode .main-content,
-body.dark-mode .top-bar,
 body.dark-mode .user-profile,
 body.dark-mode .sidebar-header,
 body.dark-mode .sidebar-footer,
@@ -187,27 +297,37 @@ body.dark-mode .activities-panel,
 body.dark-mode .notification-panel,
 body.dark-mode .modal-container,
 body.dark-mode .dropdown-menu {
-    background: #111827 !important;
-    border-color: #1f2937 !important;
-    color: #f8fafc !important;
+    background: #17171a !important;
+    border-color: #232326 !important;
+    color: #f2f2f3 !important;
     box-shadow: none !important;
 }
 
+/* Sidebar becomes a floating dark card (bg matches every other panel) instead
+   of a flat near-black fill with no visible edge, matching the reference's
+   .sidebar.card treatment. */
 body.dark-mode .sidebar {
-    background: #0d1729 !important;
+    background: #17171a !important;
+    border: 1px solid #232326 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3) !important;
 }
 
 body.dark-mode .nav-item {
     color: rgba(255,255,255,0.85) !important;
 }
 
-body.dark-mode .nav-item.active,
 body.dark-mode .nav-item:hover {
     background: rgba(255,255,255,0.08) !important;
     color: #ffffff !important;
 }
 
-body.dark-mode .top-bar,
+/* Active nav-item highlight: same gold in dark mode as light mode — the
+   highlight reads identically regardless of theme. */
+body.dark-mode .nav-item.active {
+    background: #FDC913 !important;
+    color: #1A1A1A !important;
+}
+
 body.dark-mode .section-header,
 body.dark-mode .dashboard-header,
 body.dark-mode .panel-header,
@@ -232,9 +352,9 @@ body.dark-mode .user-management-container,
 body.dark-mode .notifications-container,
 body.dark-mode .request-detail-card,
 body.dark-mode .conversation-thread {
-    background: rgba(15,23,42,0.92) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.22) !important;
+    background: #17171a !important;
+    border: 1px solid #232326 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3) !important;
 }
 
 body.dark-mode .page-title h1,
@@ -259,29 +379,62 @@ body.dark-mode .user-profile,
 body.dark-mode .logout-sidebar-btn,
 body.dark-mode .nav-item i,
 body.dark-mode .theme-toggle-wrapper i {
-    color: #f8fafc !important;
+    color: #f2f2f3 !important;
 }
 
 body.dark-mode .notification-icon {
-    background: #1f2937 !important;
-    color: #ffffff !important;
+    background: transparent !important;
+    color: #a3a3a8 !important;
+}
+
+body.dark-mode .notification-icon:hover {
+    color: #f2f2f3 !important;
 }
 
 body.dark-mode .menu-toggle {
     color: #ffffff !important;
 }
 
+body.dark-mode .page-subtitle {
+    color: #7a7a80 !important;
+}
+
+/* Dark-mode coverage for the promoted .topbar-search / .user-avatar (see
+   their canonical definitions above). Colors match the reference's
+   .search pill (#1d1d21 bg / #29292e border / #7a7a80 placeholder) exactly. */
+body.dark-mode .topbar-search input {
+    background: #1d1d21 !important;
+    border-color: #29292e !important;
+    color: #f2f2f3 !important;
+}
+
+body.dark-mode .topbar-search input::placeholder {
+    color: #7a7a80 !important;
+}
+
+body.dark-mode .topbar-search i {
+    color: #7a7a80 !important;
+}
+
+/* Gold avatar on dark — matches the reference's .avatar (solid gold circle,
+   dark ink text) instead of the previous inverted white-on-dark treatment. */
+body.dark-mode .user-avatar {
+    background: #facc15 !important;
+    color: #1A1A1A !important;
+    box-shadow: none !important;
+}
+
 body.dark-mode input,
 body.dark-mode textarea,
 body.dark-mode select {
-    background: #1e293b !important;
-    color: #f8fafc !important;
-    border-color: #334155 !important;
+    background: #1d1d21 !important;
+    color: #f2f2f3 !important;
+    border-color: #29292e !important;
 }
 
 body.dark-mode option {
-    background: #1e293b !important;
-    color: #f8fafc !important;
+    background: #1d1d21 !important;
+    color: #f2f2f3 !important;
 }
 
 body.dark-mode .search-input {
@@ -289,49 +442,137 @@ body.dark-mode .search-input {
 }
 
 body.dark-mode .search-input::placeholder {
-    color: #94a3b8 !important;
+    color: #7a7a80 !important;
 }
 
 body.dark-mode .filter-btn.active {
-    background: #2563eb !important;
-    color: #ffffff !important;
+    background: #FDC913 !important;
+    color: #1A1A1A !important;
 }
 
+/* Logout modal — dark mode. Previously only ServiceRequest.html had any
+   dark-mode coverage for this modal (via a duplicated block in
+   ServiceRequest.css); every other page showed a fully light-mode white
+   card even with dark mode on. Icon accent keeps the same school-gold used
+   in light mode, just brightened for contrast on the dark card. */
+body.dark-mode .logout-modal-overlay {
+    background: rgba(2, 6, 14, 0.7) !important;
+}
+
+body.dark-mode .logout-modal-overlay .logout-modal {
+    background: #17171a !important;
+    border: 1px solid #232326;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3) !important;
+}
+
+body.dark-mode .logout-modal-overlay .modal-header {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-bottom-color: #232326 !important;
+}
+
+body.dark-mode .logout-modal-overlay .modal-header i {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #FFD84D !important;
+}
+
+body.dark-mode .logout-modal-overlay .modal-header h3 {
+    color: #f2f2f3 !important;
+}
+
+body.dark-mode .logout-modal-overlay .modal-body {
+    color: #7a7a80 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.dark-mode .logout-modal-overlay .modal-footer {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-top: none !important;
+}
+
+body.dark-mode .logout-modal-overlay .btn-cancel {
+    background: #1d1d21 !important;
+    color: #f2f2f3 !important;
+}
+
+body.dark-mode .logout-modal-overlay .btn-cancel:hover {
+    background: #242428 !important;
+}
+
+body.dark-mode .logout-modal-overlay .btn-confirm {
+    background: #b71c1c !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-mode .logout-modal-overlay .btn-confirm:hover {
+    background: #9e1414 !important;
+}
+
+/* Canonical top-bar / header-cluster sizing — SINGLE SOURCE OF TRUTH.
+   Every admin page (Dashboard, Service Requests, Inventory, Equipment
+   Failures, Cost Analysis, Budget Planning, User Management, Reports) loads
+   this file first and must NOT re-declare .top-bar/.page-title/.page-subtitle
+   with different numbers — that per-page duplication (each page's own CSS
+   shadowing these with a different margin-bottom/font-size) is what caused
+   the header to visibly resize when navigating between modules. */
+/* 2026-07-17 mockup-fidelity pass: transparent header row (no card/border) —
+   the reference has the page title/search/avatar sitting directly on the
+   page background, not inside a white bar. Removed from both dark-mode
+   "give it a card" combined selectors above so it stays transparent in
+   dark mode too. */
 .top-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 32px;
-    background: white;
-    padding: 16px 24px;
-    border-radius: 28px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    margin-bottom: 20px;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
 }
 
 .menu-toggle {
     cursor: pointer;
     font-size: 1.4rem;
-    color: #1f6392;
+    color: #1A1A1A;
     display: none;
 }
 
+.page-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .page-title h1 {
+    margin: 0;
     font-size: 1.6rem;
-    font-weight: 700;
-    color: #1c4c6e;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #111;
+}
+
+.page-subtitle {
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: #585858;
 }
 
 .user-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
 .theme-toggle-wrapper {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: #1f6392;
+    color: #1A1A1A;
     font-size: 1.05rem;
 }
 
@@ -343,25 +584,110 @@ body.dark-mode .filter-btn.active {
     height: 24px;
 }
 
+/* Theme-toggle glyph uses the FILLED Tabler font (default Tabler set is a thin
+   outline that reads too light/gray against the reference design's solid
+   black moon) — scoped to #themeIcon only so every other ti-* icon in the app
+   keeps the outline style. */
+@font-face {
+    font-family: "tabler-icons-filled";
+    src: url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.45.0/dist/fonts/tabler-icons-filled.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+}
+#themeIcon {
+    font-family: "tabler-icons-filled" !important;
+}
+#themeIcon.ti-moon::before { content: "\f684"; }
+#themeIcon.ti-sun::before { content: "\f6a9"; }
+
+/* 2026-07-17 mockup-fidelity pass: bare icon glyph, no button chrome (was a
+   bordered circle) — matches the reference's plain bell icon next to the
+   avatar. */
 .notification-icon {
-    background: #f4f6f9;
-    border: 1px solid #e2e8ed;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    background: transparent;
+    border: none;
+    width: auto;
+    height: auto;
+    border-radius: 0;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    font-size: 1.1rem;
-    color: #1a4a6e;
+    transition: color 0.2s ease-in-out;
+    font-size: 1.25rem;
+    color: #555;
     position: relative;
 }
 
 .notification-icon:hover {
-    background: #eef2f6;
-    transform: scale(1.02);
+    background: transparent;
+    color: #111;
+    transform: none;
+}
+
+/* Canonical .topbar-search / .user-avatar — SINGLE SOURCE OF TRUTH, same rule
+   as .top-bar/.page-title/.page-subtitle above. Originally only declared in
+   Dashbaord.css (Dashboard.html was the first page to use them); promoted
+   here now that a second page (SchoolAdmin.html) needs the identical
+   decorative search box + avatar in its header. Do not re-add these to any
+   page-specific CSS file. */
+.topbar-search {
+    flex: 0 1 300px;
+    margin-left: auto;
+    margin-right: 16px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.topbar-search i {
+    position: absolute;
+    left: 16px;
+    color: #A0A0A0;
+    font-size: 0.8rem;
+    pointer-events: none;
+}
+
+.topbar-search input {
+    width: 100%;
+    padding: 0.55rem 1rem 0.55rem 2.4rem;
+    border-radius: 999px;
+    border: 1px solid #ececec;
+    background: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #1A1A1A;
+    transition: all 0.25s ease-in-out;
+}
+
+.topbar-search input::placeholder {
+    color: #A0A0A0;
+    font-weight: 400;
+}
+
+.topbar-search input:focus {
+    outline: none;
+    border-color: #8A6D00;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(138, 109, 0, 0.15);
+}
+
+/* 2026-07-17 mockup-fidelity pass: solid black circle (was a gold gradient
+   with a drop shadow) — matches the reference's plain avatar. */
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #111;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    box-shadow: none;
 }
 
 .switch {
@@ -401,7 +727,7 @@ body.dark-mode .filter-btn.active {
 }
 
 .switch input:checked + .slider {
-    background-color: #2563eb;
+    background-color: #FDC913;
 }
 
 .switch input:checked + .slider:before {
@@ -416,27 +742,33 @@ body.dark-mode .filter-btn.active {
     display: flex;
     align-items: center;
     gap: 16px;
-    background: #f0f4f9;
+    background: #F5F5F5;
     padding: 8px 20px;
     border-radius: 40px;
     cursor: pointer;
 }
 
+/* Shared logout-confirmation modal — generated by Sidebar.js's
+   showLogoutModal() on every page, so this is the ONLY place its styling
+   belongs. Do not duplicate .logout-modal/.modal-header/.modal-body into a
+   page-specific CSS file (ServiceRequest.css used to have its own drifted
+   copy, incl. the only dark-mode version of it — removed; see the dark-mode
+   block below for the version now shared by every page). */
 .logout-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(3px);
+    background: rgba(10, 20, 34, 0.55);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2000;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.2s;
+    transition: opacity 0.2s, visibility 0.2s;
 }
 
 .logout-modal-overlay.active {
@@ -444,91 +776,109 @@ body.dark-mode .filter-btn.active {
     visibility: visible;
 }
 
-.logout-modal {
+.logout-modal-overlay .logout-modal {
     background: white;
     width: 90%;
     max-width: 400px;
-    border-radius: 32px;
+    border-radius: 20px;
     overflow: hidden;
-    transform: scale(0.95);
-    transition: transform 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
+    transform: scale(0.95) translateY(8px);
+    transition: transform 0.25s ease;
 }
 
 .logout-modal-overlay.active .logout-modal {
-    transform: scale(1);
+    transform: scale(1) translateY(0);
 }
 
-.modal-header {
-    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+/* Every property below is set explicitly, even ones that look like page
+   defaults (justify-content, background, box-shadow, border-top on the
+   footer) — Inventory.css/EquipmentFailures.css/etc. each declare their own
+   bare .modal-header/.modal-footer for their OWN modals (add-stock, edit,
+   allocate...) with justify-content:space-between and a footer border-top.
+   Those rules don't set every property this modal needs, so anything left
+   unset here fell through the cascade to their values instead (icon/title
+   pushed to opposite ends, a stray divider line above the buttons). */
+.logout-modal-overlay .modal-header {
+    padding: 1.5rem 1.5rem 1rem;
     display: flex;
     align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid #eef3f8;
+    justify-content: flex-start;
+    gap: 14px;
+    background: transparent;
+    box-shadow: none;
+    border-bottom: 1px solid #E5E5E5;
 }
 
-.modal-header i {
-    font-size: 1.8rem;
-    color: #e67e22;
-    background: #fff0e0;
-    border-radius: 50%;
-    padding: 10px;
-}
-
-.modal-header h3 {
+/* Icon accent restored to the CSMA gold brand accent. */
+.logout-modal-overlay .modal-header i {
     font-size: 1.3rem;
+    color: #8A6D00;
+    background: #FFF3D1;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.logout-modal-overlay .modal-header h3 {
+    font-size: 1.2rem;
     font-weight: 700;
-    color: #1c4c6e;
+    color: #1A1A1A;
     margin: 0;
 }
 
-.modal-body {
-    padding: 1.5rem;
-    color: #2c5a7a;
-    font-size: 1rem;
+.logout-modal-overlay .modal-body {
+    padding: 1.1rem 1.5rem 1.5rem;
+    color: #585858;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    background: transparent;
 }
 
-.modal-footer {
-    padding: 1rem 1.5rem 1.5rem;
+.logout-modal-overlay .modal-footer {
+    padding: 0 1.5rem 1.5rem;
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 10px;
+    background: transparent;
+    border-top: none;
+    box-shadow: none;
 }
 
-.btn-cancel, .btn-confirm {
-    padding: 0.6rem 1.4rem;
-    border-radius: 40px;
+.logout-modal-overlay .btn-cancel,
+.logout-modal-overlay .btn-confirm {
+    padding: 0.65rem 1.4rem;
+    border-radius: 999px;
     font-weight: 600;
+    font-size: 0.9rem;
     border: none;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
+    transition: all 0.25s ease-in-out;
 }
 
-.btn-cancel {
-    background: #f0f4f9;
-    color: #446c8c;
+.logout-modal-overlay .btn-cancel {
+    background: #F5F5F5;
+    color: #1A1A1A;
+    border: 1px solid #E5E5E5;
 }
 
-.btn-confirm {
+.logout-modal-overlay .btn-cancel:hover {
+    background: #EAEAEA;
+}
+
+.logout-modal-overlay .btn-confirm {
     background: #c62828;
     color: white;
+    box-shadow: 0 6px 16px rgba(198, 40, 40, 0.25);
 }
 
-.logout-toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #1f6392;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 40px;
-    z-index: 2100;
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-}
-
-.logout-toast.show {
-    opacity: 1;
+.logout-modal-overlay .btn-confirm:hover {
+    background: #b71c1c;
 }
 
 @media (max-width: 1024px) {
@@ -582,14 +932,8 @@ body.dark-mode .filter-btn.active {
 /* ══════════════════════════════════════════════════════════════════════════
    Admin Notification Bell — shared across all IT Admin pages
    Injected by admin-notifications.js into .user-actions wrapper
+   (.user-actions itself is declared once, near .top-bar above)
 ══════════════════════════════════════════════════════════════════════════ */
-
-/* Top-bar user-actions flex wrapper */
-.user-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
 
 /* Bell button (reuses .notification-icon from Dashbaord.css shape) */
 .admin-notif-wrapper {
@@ -597,8 +941,8 @@ body.dark-mode .filter-btn.active {
 }
 
 .admin-notif-bell {
-    background: #f4f6f9;
-    border: 1px solid #e2e8ed;
+    background: #F5F5F5;
+    border: 1px solid #E5E5E5;
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -607,14 +951,14 @@ body.dark-mode .filter-btn.active {
     align-items: center;
     justify-content: center;
     font-size: 1.1rem;
-    color: #1a4a6e;
+    color: #1A1A1A;
     position: relative;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease-in-out;
 }
 .admin-notif-bell:hover {
-    background: #eef2f6;
-    border-color: #1f6392;
-    color: #1f6392;
+    background: #FFF3D1;
+    border-color: #8A6D00;
+    color: #8A6D00;
 }
 
 /* Unread count badge */
@@ -642,14 +986,14 @@ body.dark-mode .filter-btn.active {
     width: 320px;
     max-height: 420px;
     background: white;
-    border: 1px solid #e2e8ed;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    border: 1px solid #E5E5E5;
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03);
     z-index: 1200;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px);
-    transition: all 0.2s ease;
+    transform: translateY(-8px) scale(0.98);
+    transition: all 0.25s ease-in-out;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -657,7 +1001,7 @@ body.dark-mode .filter-btn.active {
 .admin-notif-dropdown.open {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
 }
 
 /* Dropdown header */
@@ -666,17 +1010,17 @@ body.dark-mode .filter-btn.active {
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid #f0f4f8;
+    border-bottom: 1px solid #F5F5F5;
     font-size: 0.82rem;
     font-weight: 600;
-    color: #1c4c6e;
+    color: #1A1A1A;
     flex-shrink: 0;
 }
 .admin-notif-mark-read {
     background: none;
     border: none;
     font-size: 0.72rem;
-    color: #1f6392;
+    color: #8A6D00;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     font-weight: 600;
@@ -694,14 +1038,14 @@ body.dark-mode .filter-btn.active {
     display: flex;
     gap: 10px;
     padding: 12px 16px;
-    border-bottom: 1px solid #f8fafc;
+    border-bottom: 1px solid #F5F5F5;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.2s ease-in-out;
     align-items: flex-start;
 }
-.admin-notif-item:hover { background: #f8fafc; }
-.admin-notif-item.unread { background: #f0f7ff; }
-.admin-notif-item.unread:hover { background: #e8f2ff; }
+.admin-notif-item:hover { background: #F5F5F5; }
+.admin-notif-item.unread { background: #FFF3D1; }
+.admin-notif-item.unread:hover { background: #FFEBB0; }
 
 .admin-notif-dot {
     width: 8px;
@@ -711,19 +1055,19 @@ body.dark-mode .filter-btn.active {
     flex-shrink: 0;
     margin-top: 5px;
 }
-.admin-notif-item.unread .admin-notif-dot { background: #1f6392; }
+.admin-notif-item.unread .admin-notif-dot { background: #FDC913; }
 
 .admin-notif-text { flex: 1; }
 .admin-notif-title {
     font-size: 0.8rem;
     font-weight: 600;
-    color: #1c4c6e;
+    color: #1A1A1A;
     margin-bottom: 3px;
     line-height: 1.3;
 }
 .admin-notif-desc {
     font-size: 0.74rem;
-    color: #5a7e9e;
+    color: #585858;
     line-height: 1.4;
     margin-bottom: 3px;
 }
@@ -745,23 +1089,25 @@ body.dark-mode .filter-btn.active {
     text-align: center;
     padding: 10px;
     font-size: 0.75rem;
-    color: #1f6392;
+    color: #8A6D00;
     text-decoration: none;
     font-weight: 600;
-    border-top: 1px solid #f0f4f8;
+    border-top: 1px solid #F5F5F5;
     flex-shrink: 0;
 }
-.admin-notif-footer-link:hover { background: #f8fafc; }
+.admin-notif-footer-link:hover { background: #F5F5F5; }
 
-/* Dark mode */
-body.dark-mode .admin-notif-bell { background: #1a2234; border-color: #2d3345; color: #8aa5bf; }
-body.dark-mode .admin-notif-bell:hover { background: #1f6392; color: white; }
-body.dark-mode .admin-notif-dropdown { background: #111827; border-color: #1f2937; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-body.dark-mode .admin-notif-header { color: #c9d6e3; border-bottom-color: #1f2937; }
-body.dark-mode .admin-notif-item { border-bottom-color: #1a2234; }
-body.dark-mode .admin-notif-item:hover { background: #1a2234; }
-body.dark-mode .admin-notif-item.unread { background: #172038; }
-body.dark-mode .admin-notif-title { color: #e8edf2; }
-body.dark-mode .admin-notif-desc  { color: #8aa5bf; }
-body.dark-mode .admin-notif-footer-link { border-top-color: #1f2937; }
-body.dark-mode .admin-notif-footer-link:hover { background: #1a2234; }
+/* Dark mode (2026-07-18: neutral warm-black palette, see body.dark-mode above) */
+body.dark-mode .admin-notif-bell { background: #1d1d21; border-color: #232326; color: #a3a3a8; }
+body.dark-mode .admin-notif-bell:hover { background: #3A2F14; color: #FFD84D; }
+body.dark-mode .admin-notif-dropdown { background: #17171a; border-color: #232326; box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3); }
+body.dark-mode .admin-notif-header { color: #f2f2f3; border-bottom-color: #232326; }
+body.dark-mode .admin-notif-mark-read { color: #FFD84D; }
+body.dark-mode .admin-notif-item { border-bottom-color: #232326; }
+body.dark-mode .admin-notif-item:hover { background: #1d1d21; }
+body.dark-mode .admin-notif-item.unread { background: #3A2F14; }
+body.dark-mode .admin-notif-item.unread .admin-notif-dot { background: #FFD84D; }
+body.dark-mode .admin-notif-title { color: #f2f2f3; }
+body.dark-mode .admin-notif-desc  { color: #7a7a80; }
+body.dark-mode .admin-notif-footer-link { color: #FFD84D; border-top-color: #232326; }
+body.dark-mode .admin-notif-footer-link:hover { background: #1d1d21; }

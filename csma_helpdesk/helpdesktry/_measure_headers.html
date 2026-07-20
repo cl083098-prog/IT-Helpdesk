@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>measure</title></head>
+<body style="font-family:monospace;font-size:13px;background:#fff;color:#000;">
+<pre id="out">measuring...</pre>
+<script>
+sessionStorage.setItem('currentUser', JSON.stringify({
+    id: 1, employee_id: 'EMP001', full_name: 'Verify Admin',
+    email: 'verify@csma.edu', role: 'admin', role_label: 'IT Admin',
+    department: 'IT', status_text: 'Active', is_active: 1
+}));
+
+var pages = ['Dashboard.html','ServiceRequest.html','Inventory.html','EquipmentFailures.html','CostAnalysis.html','BudgetPlanning.html','UserManagement.html','Reports.html'];
+var results = [];
+var loaded = 0;
+
+function measure(page, win, doc) {
+    function rect(sel) {
+        var el = doc.querySelector(sel);
+        if (!el) return 'MISSING';
+        var r = el.getBoundingClientRect();
+        var cs = win.getComputedStyle(el);
+        return 'x='+r.x.toFixed(1)+' y='+r.y.toFixed(1)+' w='+r.width.toFixed(1)+' h='+r.height.toFixed(1)+
+               ' radius='+cs.borderRadius+' shadow='+cs.boxShadow.replace(/\s+/g,' ').slice(0,40);
+    }
+    function h1font() {
+        var el = doc.querySelector('.page-title h1');
+        if (!el) return 'MISSING';
+        var cs = win.getComputedStyle(el);
+        return 'font='+cs.fontSize+'/'+cs.fontWeight+' ls='+cs.letterSpacing;
+    }
+    results.push(page.padEnd(24) + '\n  .top-bar        ' + rect('.top-bar') +
+                 '\n  .page-title h1  ' + h1font() +
+                 '\n  .topbar-search  ' + rect('.topbar-search') +
+                 '\n  .user-avatar    ' + rect('.user-avatar'));
+}
+
+pages.forEach(function(page) {
+    var iframe = document.createElement('iframe');
+    iframe.style.width = '1400px';
+    iframe.style.height = '900px';
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    iframe.src = page;
+    iframe.onload = function() {
+        try {
+            measure(page, iframe.contentWindow, iframe.contentDocument);
+        } catch (e) {
+            results.push(page + ': ERROR ' + e.message);
+        }
+        loaded++;
+        if (loaded === pages.length) {
+            results.sort();
+            document.getElementById('out').textContent = results.join('\n\n');
+        }
+    };
+    document.body.appendChild(iframe);
+});
+</script>
+</body>
+</html>
