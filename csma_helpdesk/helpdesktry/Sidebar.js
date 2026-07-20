@@ -66,7 +66,7 @@
 
         const themeIcon = document.getElementById('themeIcon');
         if (themeIcon) {
-            themeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            themeIcon.className = isDark ? 'ti ti-sun' : 'ti ti-moon';
         }
     }
 
@@ -77,13 +77,13 @@
 
         const isDark = getPreferredTheme();
         themeSwitch.checked = isDark;
-        themeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        themeIcon.className = isDark ? 'ti ti-sun' : 'ti ti-moon';
 
         themeSwitch.addEventListener('change', e => {
             const dark = e.target.checked;
             document.body.classList.toggle('dark-mode', dark);
             localStorage.setItem('theme', dark ? 'dark' : 'light');
-            themeIcon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+            themeIcon.className = dark ? 'ti ti-sun' : 'ti ti-moon';
         });
     }
     
@@ -138,7 +138,7 @@
             <div class="logout-modal-overlay" id="logoutModal">
                 <div class="logout-modal">
                     <div class="modal-header">
-                        <i class="fas fa-sign-out-alt"></i>
+                        <i class="ti ti-logout"></i>
                         <h3>Confirm Logout</h3>
                     </div>
                     <div class="modal-body">
@@ -174,7 +174,7 @@
         const confirmBtn = document.getElementById('confirmLogoutBtn');
         if (confirmBtn) {
             confirmBtn.addEventListener('click', () => {
-                showToastAndRedirect();
+                redirectToLogin();
             });
         }
         
@@ -194,30 +194,15 @@
     // can call it without duplicating the implementation.
     window.showLogoutModal = showLogoutModal;
 
-    function showToastAndRedirect() {
-        let toastElement = document.getElementById('logoutToast');
-        
-        if (!toastElement) {
-            toastElement = document.createElement('div');
-            toastElement.id = 'logoutToast';
-            toastElement.className = 'logout-toast';
-            toastElement.textContent = '🔐 Logging out, redirecting to login...';
-            document.body.appendChild(toastElement);
-        }
-        
-        toastElement.textContent = '🔐 Logging out, redirecting to login...';
-        toastElement.classList.add('show');
-        
+    function redirectToLogin() {
         const modal = document.getElementById('logoutModal');
         if (modal) {
             modal.classList.remove('active');
         }
-        
+
         // Clear session so auto-redirect doesn't loop back
         sessionStorage.removeItem('currentUser');
-        
-        setTimeout(() => {
-            window.location.href = "Login.html";
-        }, 1200);
+
+        window.location.href = "Login.html";
     }
 })();

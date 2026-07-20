@@ -31,7 +31,7 @@
             ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
     }
     function peso(v) {
-        return '₱' + parseFloat(v || 0).toLocaleString('en-PH',
+        return parseFloat(v || 0).toLocaleString('en-PH',
             { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     function badge(s) {

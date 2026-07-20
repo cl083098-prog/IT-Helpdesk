@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,9 +6,10 @@
     <title>CSMA IT Helpdesk | Equipment Failures</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="Sidebar.css">
-    <link rel="stylesheet" href="EquipmentFailures.css">
-    <link rel="stylesheet" href="EquipmentFailures.append.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="Sidebar.css?v=19">
+    <link rel="stylesheet" href="EquipmentFailures.css?v=8">
+    <link rel="stylesheet" href="EquipmentFailures.append.css?v=4">
 </head>
 <body>
 <div class="dashboard-wrapper">
@@ -21,47 +22,57 @@
                 </div>
                 <div class="logo-text">
                     <h2>CSMA</h2>
-                    <span>IT Helpdesk Portal</span>
+                    <span>IT HELPDESK</span>
                 </div>
             </div>
         </div>
         <nav class="nav-menu">
-            <a href="Dashboard.html" class="nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
-            <a href="ServiceRequest.html" class="nav-item"><i class="fas fa-ticket-alt"></i><span>Service Requests</span></a>
-            <a href="Inventory.html" class="nav-item"><i class="fas fa-boxes"></i><span>Inventory</span></a>
-            <a href="EquipmentFailures.html" class="nav-item active"><i class="fas fa-microchip"></i><span>Equipment Failures</span></a>
-            <a href="CostAnalysis.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Cost Analysis</span></a>
-            <a href="BudgetPlanning.html" class="nav-item"><i class="fas fa-calculator"></i><span>Budget Planning</span></a>
-            <a href="UserManagement.html" class="nav-item"><i class="fas fa-users"></i><span>User Management</span></a>
-            <a href="Reports.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reports</span></a>
+            <a href="Dashboard.html" class="nav-item"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></a>
+            <a href="ServiceRequest.html" class="nav-item"><i class="ti ti-ticket"></i><span>Service Requests</span></a>
+            <a href="Inventory.html" class="nav-item"><i class="ti ti-packages"></i><span>Inventory</span></a>
+            <a href="EquipmentFailures.html" class="nav-item active"><i class="ti ti-tool"></i><span>Equipment Failures</span></a>
+            <a href="CostAnalysis.html" class="nav-item"><i class="ti ti-chart-pie"></i><span>Cost Analysis</span></a>
+            <a href="BudgetPlanning.html" class="nav-item"><i class="ti ti-calculator"></i><span>Budget Planning</span></a>
+            <a href="UserManagement.html" class="nav-item"><i class="ti ti-users"></i><span>User Management</span></a>
+            <a href="Reports.html" class="nav-item"><i class="ti ti-chart-line"></i><span>Reports</span></a>
         </nav>
         <div class="sidebar-footer">
-            <button class="logout-sidebar-btn" id="sidebarLogoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+            <button class="logout-sidebar-btn" id="sidebarLogoutBtn"><i class="ti ti-logout"></i><span>Logout</span></button>
         </div>
     </aside>
 
     <main class="main-content">
         <header class="top-bar">
-            <div class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></div>
+            <div class="menu-toggle" id="menuToggle"><i class="ti ti-menu-2"></i></div>
             <div class="page-title">
                 <h1>Equipment Failures &amp; Maintenance</h1>
-                <p class="page-subtitle">Records are generated automatically from Service Request tickets in the Equipment category. Log a failure by creating a service request; the record appears here once submitted.</p>
+                <span class="page-subtitle">Colegio de Sta. Monica de Angat</span>
             </div>
+            <div class="topbar-search">
+                <i class="ti ti-search"></i>
+                <input type="text" placeholder="Search tickets, assets..." aria-label="Search">
+            </div>
+
             <div class="user-actions">
                 <div class="theme-toggle-wrapper">
-                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <i class="ti ti-moon" id="themeIcon"></i>
                     <label class="switch">
                         <input type="checkbox" id="themeSwitchCheckbox">
                         <span class="slider round"></span>
                     </label>
                 </div>
+                <div class="user-avatar" title="Admin">A</div>
             </div>
         </header>
+
+        <!-- Everything below the top-bar scrolls internally in this wrapper
+             instead of .main-content itself scrolling — see EquipmentFailures.css
+             for why. -->
+        <div class="equip-scroll-area">
 
         <!-- Summary cards -->
         <div class="summary-cards">
             <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
                 <div class="metric-info">
                     <div class="metric-label">Total Failures</div>
                     <div class="metric-value" id="totalFailures">0</div>
@@ -69,15 +80,13 @@
                 </div>
             </div>
             <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-coins"></i></div>
                 <div class="metric-info">
                     <div class="metric-label">Total Repair Cost</div>
-                    <div class="metric-value" id="totalCost">₱0.00</div>
+                    <div class="metric-value" id="totalCost">0.00</div>
                     <div class="metric-sub">cumulative</div>
                 </div>
             </div>
             <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-clock"></i></div>
                 <div class="metric-info">
                     <div class="metric-label">Avg Resolution Time</div>
                     <div class="metric-value" id="avgResolution">0</div>
@@ -88,7 +97,7 @@
 
         <div class="failures-container">
             <div class="section-header">
-                <h2><i class="fas fa-microchip"></i> Failure Records</h2>
+                <h2>Failure Records</h2>
                 <!-- Report Failure button intentionally removed: records now come
                      from Service Request tickets (Equipment category). -->
             </div>
@@ -131,7 +140,7 @@
                             <th>Issue</th>
                             <th>Action Taken</th>
                             <th>Resolution Date</th>
-                            <th>Cost (₱)</th>
+                            <th>Cost</th>
                             <th>Status</th>
                             <th style="width:100px;">Actions</th>
                         </tr>
@@ -139,6 +148,8 @@
                     <tbody id="failuresTableBody"></tbody>
                 </table>
             </div>
+        </div>
+
         </div>
     </main>
 </div>
@@ -159,8 +170,8 @@
     </div>
 </div>
 
-<script src="Sidebar.js"></script>
-<script src="EquipmentFailures.js"></script>
+<script src="Sidebar.js?v=1"></script>
+<script src="EquipmentFailures.js?v=2"></script>
 <script src="admin-notifications.js"></script>
 </body>
 </html>

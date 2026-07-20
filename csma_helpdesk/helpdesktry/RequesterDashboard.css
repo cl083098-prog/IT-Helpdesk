@@ -1,4 +1,15 @@
-/* RequesterDashboard.css - Enhanced with Activity Timeline Redesign */
+/* RequesterDashboard.css - Enhanced with Activity Timeline Redesign
+   2026-07-19 admin-parity pass: brand colors repointed to match the Admin
+   Dashboard's palette (Dashbaord.css) and the Department Head portal, so all
+   three feel like one product. Primary/ink: #1A1A1A | Accent (text/border):
+   #8A6D00 (gold-dark) | Accent (solid fills): #FDC913 (gold) | Font: Inter.
+   Dark mode uses the same neutral warm-black tokens as the other two portals
+   (#0b0b0d page / #17171a card / #232326 border / #f2f2f3 text / #7a7a80
+   secondary text / #FFD84D gold-as-text) for a clean, minimalist look —
+   header blends flat into the page, cards/panels use borders only (no
+   shadow), and gold replaces the previous blue as the only accent color.
+   Semantic status colors (pending/ongoing/completed/rejected) are untouched.
+*/
 
 * {
     margin: 0;
@@ -6,19 +17,43 @@
     box-sizing: border-box;
 }
 
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+/* GLOBAL ICON COLOR (2026-07-17, revised same day): same app-wide
+   black icon unification as Sidebar.css (the main admin app) — see
+   that file for the full rationale. Icons inside a <button> keep
+   matching their own button's text color instead of a fixed black. */
+i.fas, i.far, i.fab, i.fa { color: #1A1A1A !important; }
+button i.fas, button i.far, button i.fab, button i.fa { color: inherit !important; }
+body.dark-mode i.fas, body.dark-mode i.far, body.dark-mode i.fab, body.dark-mode i.fa { color: #F5F5F5 !important; }
+body.dark-mode button i.fas, body.dark-mode button i.far, body.dark-mode button i.fab, body.dark-mode button i.fa { color: inherit !important; }
+
 body {
     font-family: 'Inter', sans-serif;
-    background: #f0f2f5;
-    overflow-x: hidden;
+    background: #F5F3EE;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Dark Mode Styles */
+/* Dark Mode Styles (2026-07-18 reskin: neutral warm-black palette matching
+   the supplied csma_dashboard_dark.html reference — #0b0b0d page / #17171a
+   card / #232326 border, same values as the IT Admin portal's Sidebar.css.
+   This portal's own cream/white accent (#F5F3EE — filter-chip-active,
+   btn-create-welcome) is deliberately left untouched, same as DeptHead's
+   blue: it's this portal's own identity color, not the IT Admin gold.) */
 body.dark-mode {
-    background: #0f1419;
+    background: #0b0b0d;
 }
 
-body.dark-mode .dashboard-header,
+body.dark-mode .dashboard-header {
+    background: transparent;
+    border-bottom-color: #232326;
+}
+
 body.dark-mode .stat-card,
 body.dark-mode .requests-panel,
 body.dark-mode .activities-panel,
@@ -27,7 +62,6 @@ body.dark-mode .modal-container.modal-large,
 body.dark-mode .confirmation-modal,
 body.dark-mode .modal-header,
 body.dark-mode .notification-panel,
-body.dark-mode .dropdown-menu,
 body.dark-mode .request-detail-card,
 body.dark-mode .follow-up-section,
 body.dark-mode .conversation-thread,
@@ -35,39 +69,39 @@ body.dark-mode .sla-card,
 body.dark-mode .conversation-message,
 body.dark-mode .full-list-container,
 body.dark-mode .timeline-item {
-    background: #1a1f2e;
-    border-color: #2a3040;
+    background: #17171a;
+    border-color: #232326;
 }
 
 body.dark-mode .welcome-banner {
-    background: linear-gradient(135deg, #1a1f2e 0%, #161b28 100%);
-    border-color: #2a3040;
+    background: linear-gradient(135deg, #17171a 0%, #131315 100%);
+    border-color: #232326;
 }
 
 body.dark-mode .welcome-banner h1,
 body.dark-mode .logo-text h2,
 body.dark-mode .panel-header h3,
 body.dark-mode .stat-title,
+body.dark-mode .stat-number,
 body.dark-mode .modal-header h3,
 body.dark-mode .notification-header h3,
 body.dark-mode .notification-item p,
-body.dark-mode .dropdown-item span,
-body.dark-mode .theme-switch-label span,
 body.dark-mode .request-title,
 body.dark-mode .info-label,
 body.dark-mode .message-text,
 body.dark-mode .author-name,
 body.dark-mode .filter-chip,
 body.dark-mode .results-count,
+body.dark-mode .ticket-id,
+body.dark-mode .ticket-desc,
+body.dark-mode .ticket-meta,
 body.dark-mode .timeline-title,
 body.dark-mode .timeline-date {
-    color: #e8edf2;
+    color: #f2f2f3;
 }
 
 body.dark-mode .welcome-banner p,
 body.dark-mode .logo-text span,
-body.dark-mode .stat-number,
-body.dark-mode .ticket-meta,
 body.dark-mode .activity-time,
 body.dark-mode .summary-label,
 body.dark-mode .help-text,
@@ -76,38 +110,76 @@ body.dark-mode .message-timestamp,
 body.dark-mode .sla-label,
 body.dark-mode .sla-value,
 body.dark-mode .timeline-description {
-    color: #8a9bb0;
+    color: #7a7a80;
 }
 
 body.dark-mode .ticket-item,
 body.dark-mode .activity-item:hover,
 body.dark-mode .request-summary-card,
 body.dark-mode .notification-item,
-body.dark-mode .user-profile-btn,
 body.dark-mode .conversation-message,
 body.dark-mode .filter-chip,
 body.dark-mode .timeline-item {
-    background: #222736;
-    border-color: #2d3345;
+    background: #1d1d21;
+    border-color: #29292e;
 }
 
-body.dark-mode .ticket-desc,
 body.dark-mode .activity-title,
-body.dark-mode .summary-value,
-body.dark-mode .timeline-title {
-    color: #cfdcec;
+body.dark-mode .summary-value {
+    color: #e5e5e5;
+}
+
+body.dark-mode .notification-icon {
+    color: #7a7a80;
+}
+
+body.dark-mode .notification-icon:hover {
+    color: #f2f2f3;
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    background: #1d1d21;
+    border-color: #29292e;
+    color: #f2f2f3;
+}
+
+body.dark-mode .priority-section {
+    background: #1d1d21;
+    border-color: #232326;
+}
+
+body.dark-mode .theme-toggle-wrapper,
+body.dark-mode .theme-toggle-wrapper i {
+    color: #f2f2f3;
+}
+
+body.dark-mode .user-avatar {
+    background: #f2f2f3;
+    color: #1A1A1A;
+}
+
+body.dark-mode .logout-icon-btn {
+    background: #1d1d21;
+    border-color: #29292e;
+}
+
+body.dark-mode .logout-icon-btn:hover {
+    background: #2a1f22;
 }
 
 body.dark-mode .btn-create-welcome {
-    background: #2c7cb6;
+    background: #FDC913;
+    color: #1A1A1A;
 }
 
 body.dark-mode .btn-create-welcome:hover {
-    background: #3a8cc6;
+    background: #e6b70f;
 }
 
 body.dark-mode .action-link {
-    color: #5a9bcb;
+    color: #f2f2f3;
 }
 
 body.dark-mode .approval-warning {
@@ -116,32 +188,121 @@ body.dark-mode .approval-warning {
 }
 
 body.dark-mode .filter-chip-active {
-    background: #2c7cb6;
-    color: white;
+    background: #F5F3EE;
+    color: #1A1A1A;
 }
 
 body.dark-mode .timeline-icon {
-    background: #2a3040;
-    color: #5a9bcb;
+    background: #232326;
+    color: #f2f2f3;
 }
 
 body.dark-mode .timeline-connector {
-    background: #2a3040;
+    background: #232326;
 }
 
 /* Requester layout */
 .requester-dashboard {
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
+}
+
+/* Only this panel scrolls — header stays put, scrollbar lives inside the
+   panel instead of on the window edge, and its width is always reserved so
+   short pages don't render wider than tall ones. */
+.dashboard-content-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+.dashboard-content-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dashboard-content-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dashboard-content-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+}
+
+.dashboard-content-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+body.dark-mode .dashboard-content-scroll {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode .dashboard-content-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode .dashboard-content-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+}
+
+/* Outer/page-level scrollbar fallback — matches Admin Dashboard's
+   Sidebar.css/Dashbaord.css treatment. If the browser promotes
+   .dashboard-content-scroll to the implicit root scroller (it's the only
+   scrolling child filling the viewport), native OS scrollbar chrome would
+   otherwise replace the thin custom scrollbar styled above; theming html/body
+   directly keeps it visually identical either way. */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+body.dark-mode {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+body.dark-mode::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body.dark-mode::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
 }
 
 /* Header */
 .dashboard-header {
     background: white;
     padding: 0 2.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border-bottom: 1px solid #e8ecef;
+    box-shadow: none;
+    border-bottom: 1px solid #E8E6E0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -167,14 +328,14 @@ body.dark-mode .timeline-connector {
 .logo-text h2 {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #1a4a6e;
+    color: #1A1A1A;
     letter-spacing: -0.02em;
 }
 
 .logo-text span {
     font-size: 0.7rem;
     font-weight: 500;
-    color: #6c86a0;
+    color: #6B6B6B;
     text-transform: uppercase;
 }
 
@@ -191,24 +352,25 @@ body.dark-mode .timeline-connector {
 }
 
 .notification-icon {
-    background: #f4f6f9;
-    border: 1px solid #e2e8ed;
-    width: 40px;
-    height: 40px;
-    border-radius: 40px;
+    background: transparent;
+    border: none;
+    width: auto;
+    height: auto;
+    border-radius: 0;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
-    font-size: 1.1rem;
-    color: #1a4a6e;
+    transition: color 0.25s ease-in-out;
+    font-size: 1.25rem;
+    color: #1A1A1A;
     position: relative;
 }
 
 .notification-icon:hover {
-    background: #eef2f6;
-    transform: scale(1.02);
+    background: transparent;
+    color: #000000;
+    transform: none;
 }
 
 .notification-badge {
@@ -234,12 +396,12 @@ body.dark-mode .timeline-connector {
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-    border: 1px solid #eef2f5;
+    border: 1px solid #E8E6E0;
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);
-    transition: all 0.25s ease;
+    transition: all 0.25s ease-in-out;
     overflow: hidden;
 }
 
@@ -254,13 +416,13 @@ body.dark-mode .timeline-connector {
     justify-content: space-between;
     align-items: center;
     padding: 18px 20px;
-    border-bottom: 1px solid #eef2f5;
+    border-bottom: 1px solid #E8E6E0;
 }
 
 .notification-header h3 {
     font-size: 1rem;
     font-weight: 600;
-    color: #1a4a6e;
+    color: #1A1A1A;
 }
 
 .mark-read-btn {
@@ -268,7 +430,7 @@ body.dark-mode .timeline-connector {
     border: none;
     font-size: 0.7rem;
     font-weight: 500;
-    color: #1a4a6e;
+    color: #1A1A1A;
     cursor: pointer;
 }
 
@@ -281,128 +443,83 @@ body.dark-mode .timeline-connector {
     display: flex;
     gap: 12px;
     padding: 14px 20px;
-    border-bottom: 1px solid #eef2f5;
+    border-bottom: 1px solid #E8E6E0;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.25s ease-in-out;
 }
 
 .notification-item:hover {
-    background: #f8fafc;
+    background: #F1F0EC;
 }
 
 .notification-item.unread {
-    background: #f0f7ff;
+    background: #F5F3EE;
 }
 
-/* Profile Dropdown */
-.profile-dropdown {
-    position: relative;
+.notification-item.unread:hover {
+    background: #EAE8E2;
 }
 
-.user-profile-btn {
+/* Theme toggle (flat header row, matches Admin/School Admin layout) */
+.theme-toggle-wrapper {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #f4f6f9;
-    padding: 8px 18px;
-    border-radius: 40px;
+    color: #1A1A1A;
+    font-size: 1.05rem;
+}
+
+.theme-toggle-wrapper i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+/* User avatar */
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1A1A1A;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+/* Logout icon button */
+.logout-icon-btn {
+    background: #F1F0EC;
+    border: 1px solid #E8E6E0;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
     cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid #e2e8ed;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #2c4c6e;
-}
-
-.user-profile-btn:hover {
-    background: #eef2f6;
-    transform: translateY(-1px);
-}
-
-.dropdown-arrow {
-    font-size: 0.75rem;
-    transition: transform 0.2s ease;
-    color: #8aa5bf;
-}
-
-.profile-dropdown.open .dropdown-arrow {
-    transform: rotate(180deg);
-}
-
-.dropdown-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    width: 260px;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
-    border: 1px solid #eef2f5;
-    z-index: 1000;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-8px);
-    transition: all 0.2s ease;
-    overflow: hidden;
-}
-
-.profile-dropdown.open .dropdown-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.dropdown-divider {
-    height: 1px;
-    background: #eef2f5;
-    margin: 8px 0;
-}
-
-.dropdown-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 18px;
-    cursor: pointer;
-    transition: background 0.2s;
-    border: none;
-    background: none;
-    width: 100%;
-    font-family: inherit;
-    font-size: 0.85rem;
-    color: #2c4c6e;
+    justify-content: center;
+    transition: all 0.25s ease-in-out;
+    font-size: 1.1rem;
+    color: #c74a4a;
 }
 
-.theme-toggle-item {
-    cursor: default;
-}
-
-.dropdown-item:hover {
-    background: #f8fafc;
-}
-
-.theme-toggle-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: default;
-}
-
-.theme-switch-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #2c4c6e;
+.logout-icon-btn:hover {
+    background: #EAE8E2;
 }
 
 /* Toggle Switch */
+/* RESTYLED: width 48px→44px, matching the shared Sidebar.css/admin-page switch
+   size (see matching change in DeptHeadDashboard.css) so the theme toggle is
+   the same size across every role's dashboard. */
 .switch {
     position: relative;
     display: inline-block;
-    width: 48px;
+    width: 44px;
     height: 24px;
 }
 
@@ -419,7 +536,7 @@ body.dark-mode .timeline-connector {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #cbd5e1;
+    background-color: #d1d5db;
     transition: 0.3s;
     border-radius: 24px;
 }
@@ -437,32 +554,20 @@ body.dark-mode .timeline-connector {
 }
 
 input:checked + .slider {
-    background-color: #1a4a6e;
+    background-color: #FDC913;
 }
 
 input:checked + .slider:before {
-    transform: translateX(24px);
-}
-
-.dropdown-divider {
-    height: 1px;
-    background: #eef2f5;
-    margin: 4px 0;
-}
-
-.logout-btn {
-    color: #c74a4a;
-    justify-content: flex-start;
-    gap: 10px;
+    transform: translateX(20px);
 }
 
 /* Welcome Banner */
 .welcome-banner {
-    background: linear-gradient(120deg, #ffffff 0%, #f7fafc 100%);
+    background: linear-gradient(120deg, #ffffff 0%, #F5F3EE 100%);
     margin: 28px 32px 0 32px;
     padding: 28px 36px;
     border-radius: 20px;
-    border: 1px solid #eef2f5;
+    border: 1px solid #E8E6E0;
 }
 
 .welcome-content {
@@ -479,28 +584,28 @@ input:checked + .slider:before {
 
 .welcome-text h1 {
     font-size: 1.6rem;
-    font-weight: 600;
-    color: #1a4a6e;
+    font-weight: 700;
+    color: #1A1A1A;
     margin-bottom: 6px;
 }
 
 .btn-create-welcome {
-    background: #1a4a6e;
+    background: #1A1A1A;
     color: white;
     border: none;
     padding: 12px 28px;
-    border-radius: 40px;
+    border-radius: 999px;
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: all 0.25s ease-in-out;
     display: inline-flex;
     align-items: center;
     gap: 10px;
 }
 
 .btn-create-welcome:hover {
-    background: #0f3d5a;
+    background: #2a2a2a;
     transform: translateY(-2px);
 }
 
@@ -530,14 +635,14 @@ input:checked + .slider:before {
     font-weight: 600;
     letter-spacing: 0.6px;
     text-transform: uppercase;
-    color: #7c97b0;
+    color: #585858;
     margin-bottom: 12px;
 }
 
 .stat-number {
     font-size: 1.8rem;
     font-weight: 700;
-    color: #1a4a6e;
+    color: #1A1A1A;
 }
 
 /* Dashboard Grid */
@@ -567,11 +672,11 @@ input:checked + .slider:before {
 .panel-header h3 {
     font-size: 1rem;
     font-weight: 600;
-    color: #1a4a6e;
+    color: #1A1A1A;
 }
 
 .action-link {
-    color: #1a4a6e;
+    color: #1A1A1A;
     text-decoration: none;
     font-size: 0.75rem;
     font-weight: 500;
@@ -622,20 +727,20 @@ input:checked + .slider:before {
 .timeline-title {
     font-weight: 600;
     font-size: 0.85rem;
-    color: #2c4c6e;
+    color: #1A1A1A;
     line-height: 1.4;
 }
 
 .timeline-date {
     font-size: 0.7rem;
     font-weight: 500;
-    color: #8aa5bf;
+    color: #A0A0A0;
     letter-spacing: 0.2px;
 }
 
 .timeline-description {
     font-size: 0.8rem;
-    color: #6c86a0;
+    color: #585858;
     line-height: 1.5;
     margin: 4px 0 0 0;
 }
@@ -692,7 +797,7 @@ input:checked + .slider:before {
 .activities-empty {
     text-align: center;
     padding: 48px 24px;
-    color: #8aa5bf;
+    color: #A0A0A0;
 }
 
 .activities-empty i {
@@ -737,7 +842,7 @@ input:checked + .slider:before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: #2c4c6e;
+    color: #1A1A1A;
 }
 
 .priority-badge {
@@ -746,7 +851,7 @@ input:checked + .slider:before {
     padding: 3px 10px;
     border-radius: 30px;
 }
-.priority-badge.high { background: #f7ede3; color: #c97a2e; }
+.priority-badge.high { background: #f7ede3; color: #8A6D00; }
 .priority-badge.medium { background: #f7f0df; color: #b8922a; }
 .priority-badge.critical { background: #f5e4e4; color: #c23a3a; }
 
@@ -754,12 +859,12 @@ input:checked + .slider:before {
     font-weight: 500;
     font-size: 0.85rem;
     margin-bottom: 8px;
-    color: #2c4c6e;
+    color: #1A1A1A;
 }
 
 .ticket-meta {
     font-size: 0.7rem;
-    color: #8aa5bf;
+    color: #A0A0A0;
 }
 
 /* Filter Bar & Full List Modal Styles */
@@ -798,7 +903,7 @@ input:checked + .slider:before {
     border-radius: 40px;
     font-size: 0.8rem;
     font-weight: 500;
-    color: #2c4c6e;
+    color: #1A1A1A;
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: 'Inter', sans-serif;
@@ -810,15 +915,15 @@ input:checked + .slider:before {
 }
 
 .filter-chip-active {
-    background: #1a4a6e;
-    border-color: #1a4a6e;
+    background: #1A1A1A;
+    border-color: #1A1A1A;
     color: white;
 }
 
 body.dark-mode .filter-chip-active {
-    background: #2c7cb6;
-    border-color: #2c7cb6;
-    color: white;
+    background: #FDC913;
+    border-color: #FDC913;
+    color: #1A1A1A;
 }
 
 .filter-stats {
@@ -830,7 +935,7 @@ body.dark-mode .filter-chip-active {
 .results-count {
     font-size: 0.75rem;
     font-weight: 500;
-    color: #6c86a0;
+    color: #585858;
     background: #f8fafc;
     padding: 4px 12px;
     border-radius: 30px;
@@ -848,9 +953,87 @@ body.dark-mode .filter-chip-active {
 .empty-state {
     text-align: center;
     padding: 48px 20px;
-    color: #8aa5bf;
+    color: #A0A0A0;
     font-size: 0.85rem;
 }
+
+.empty-state .empty-state-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    background: #1f6392;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+.empty-state .empty-state-cta:hover { background: #17547d; }
+body.dark-mode .empty-state .empty-state-cta { background: #2f7fb0; }
+body.dark-mode .empty-state .empty-state-cta:hover { background: #3a91c4; }
+
+/* ── Search + sort toolbar (full list modal) ─────────────────────────────── */
+.list-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.ticket-search-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #dee4ea;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-family: 'Inter', sans-serif;
+    color: #2c4c6e;
+}
+.ticket-search-input:focus { outline: none; border-color: #1f6392; }
+.ticket-sort-select {
+    padding: 10px 12px;
+    border: 1px solid #dee4ea;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    background: #fff;
+    color: #2c4c6e;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+}
+body.dark-mode .ticket-search-input,
+body.dark-mode .ticket-sort-select {
+    background: #1e2a33;
+    color: #f0f4f7;
+    border-color: #3a4a56;
+}
+body.dark-mode .ticket-search-input::placeholder { color: #7d8f9c; }
+
+/* ── Cancel request button (detail modal, Pending tickets only) ──────────── */
+.btn-cancel-request {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff0f0;
+    color: #c0392b;
+    border: 1.5px solid #f3b8b8;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+    margin-top: 12px;
+    margin-left: 10px;
+}
+.btn-cancel-request:hover { background: #ffe1e1; }
+body.dark-mode .btn-cancel-request {
+    background: #3a1f1f;
+    color: #ff8a8a;
+    border-color: #5a2c2c;
+}
+body.dark-mode .btn-cancel-request:hover { background: #4a2626; }
 
 /* Modal Styles */
 .modal-overlay {
@@ -921,7 +1104,7 @@ body.dark-mode .filter-chip-active {
 .modal-header h3 {
     font-weight: 600;
     font-size: 1.2rem;
-    color: #1a4a6e;
+    color: #1A1A1A;
 }
 
 .modal-close {
@@ -929,12 +1112,84 @@ body.dark-mode .filter-chip-active {
     border: none;
     font-size: 1.6rem;
     cursor: pointer;
-    color: #8aa5bf;
+    color: #A0A0A0;
 }
 
 .modal-body {
     padding: 28px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LOGOUT CONFIRMATION MODAL — same component (markup + styling) as the
+   Admin/School Admin logout modal in Sidebar.css. Scoped under
+   .logout-modal-overlay so it doesn't inherit the generic .modal-container/
+   .modal-header/.modal-body rules above, which are sized for the larger
+   request/approval modals on this page.
+══════════════════════════════════════════════════════════════════════════ */
+.logout-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 20, 34, 0.55);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2500; opacity: 0; visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+.logout-modal-overlay.active { opacity: 1; visibility: visible; }
+.logout-modal-overlay .logout-modal {
+    background: white; width: 90%; max-width: 400px;
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(10, 30, 50, 0.25);
+    transform: scale(0.95) translateY(8px);
+    transition: transform 0.25s ease;
+}
+.logout-modal-overlay.active .logout-modal { transform: scale(1) translateY(0); }
+/* Every property below is set explicitly, even ones that look like page
+   defaults (justify-content, background, box-shadow, footer border-top) —
+   this page's own generic .modal-header (used by the request/approval
+   modals) sets justify-content:space-between, which would otherwise leak
+   into this modal's header since it's a different property than anything
+   declared here. */
+.logout-modal-overlay .modal-header {
+    padding: 1.5rem 1.5rem 1rem; display: flex; align-items: center;
+    justify-content: flex-start; gap: 14px;
+    background: transparent; box-shadow: none;
+    border-bottom: 1px solid #E8E6E0;
+}
+.logout-modal-overlay .modal-header i {
+    font-size: 1.3rem; color: #1A1A1A; background: #F1F0EC;
+    border-radius: 50%; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logout-modal-overlay .modal-header h3 { font-size: 1.2rem; font-weight: 700; color: #1A1A1A; margin: 0; }
+.logout-modal-overlay .modal-body { padding: 1.1rem 1.5rem 1.5rem; color: #6B6B6B; font-size: 0.95rem; line-height: 1.5; background: transparent; }
+.logout-modal-overlay .modal-footer { padding: 0 1.5rem 1.5rem; display: flex; justify-content: flex-end; gap: 10px; background: transparent; box-shadow: none; border-top: none; }
+.logout-modal-overlay .btn-cancel,
+.logout-modal-overlay .btn-confirm {
+    padding: 0.65rem 1.4rem; border-radius: 999px; font-weight: 600; font-size: 0.9rem;
+    border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.25s ease-in-out;
+}
+.logout-modal-overlay .btn-cancel { background: #F1F0EC; color: #1A1A1A; border: 1px solid #E8E6E0; }
+.logout-modal-overlay .btn-cancel:hover { background: #EAE8E2; }
+.logout-modal-overlay .btn-confirm { background: #c62828; color: white; box-shadow: 0 6px 16px rgba(198, 40, 40, 0.25); }
+.logout-modal-overlay .btn-confirm:hover { background: #b71c1c; }
+
+body.dark-mode .logout-modal-overlay { background: rgba(2, 6, 14, 0.7); }
+body.dark-mode .logout-modal-overlay .logout-modal { background: #17171a; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+body.dark-mode .logout-modal-overlay .modal-header { background: transparent; box-shadow: none; border-bottom-color: #232326; }
+body.dark-mode .logout-modal-overlay .modal-header i { background: rgba(255, 255, 255, 0.1); color: #f2f2f3; }
+body.dark-mode .logout-modal-overlay .modal-header h3 { color: #f2f2f3; }
+body.dark-mode .logout-modal-overlay .modal-body { color: #d4d4d6; background: transparent; box-shadow: none; }
+body.dark-mode .logout-modal-overlay .modal-footer { background: transparent; box-shadow: none; border-top: none; }
+body.dark-mode .logout-modal-overlay .btn-cancel { background: #1d1d21; color: #d2d2d4; }
+body.dark-mode .logout-modal-overlay .btn-cancel:hover { background: #242428; }
+body.dark-mode .logout-modal-overlay .btn-confirm { background: #b71c1c; color: #ffffff; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
+body.dark-mode .logout-modal-overlay .btn-confirm:hover { background: #9e1414; }
+
+/* The cancel-request confirmation reuses .logout-modal-overlay's styling but
+   can be opened while the request detail modal (.modal-overlay, z-index 3000)
+   is still open behind it, so it needs a higher stacking context or it
+   renders invisibly underneath until the detail modal is closed. */
+.cancel-request-modal-overlay { z-index: 3100; }
 
 .form-row {
     display: grid;
@@ -953,7 +1208,7 @@ label {
     font-size: 0.7rem;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    color: #6c86a0;
+    color: #585858;
     margin-bottom: 8px;
 }
 
@@ -966,13 +1221,13 @@ input, select, textarea {
     border-radius: 14px;
     background: white;
     transition: all 0.2s;
-    color: #2c4c6e;
+    color: #1A1A1A;
 }
 
 input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: #1a4a6e;
-    box-shadow: 0 0 0 3px rgba(26, 74, 110, 0.08);
+    border-color: #1A1A1A;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
 }
 
 .priority-section {
@@ -988,6 +1243,9 @@ input:focus, select:focus, textarea:focus {
     gap: 16px;
 }
 
+.priority-label { font-size: 0.78rem; font-weight: 600; color: #585858; display: flex; align-items: center; gap: 8px; }
+.priority-value { display: flex; align-items: center; gap: 12px; }
+
 .priority-badge-large {
     padding: 6px 24px;
     border-radius: 40px;
@@ -996,8 +1254,9 @@ input:focus, select:focus, textarea:focus {
 }
 .priority-badge-large.low { background: #e2f0ea; color: #2a7a55; }
 .priority-badge-large.medium { background: #f7f0df; color: #b8922a; }
-.priority-badge-large.high { background: #f7ede3; color: #c97a2e; }
+.priority-badge-large.high { background: #f7ede3; color: #8A6D00; }
 .priority-badge-large.critical { background: #f5e4e4; color: #c23a3a; }
+.priority-note { font-size: 0.75rem; color: #A0A0A0; }
 
 .form-actions {
     display: flex;
@@ -1015,22 +1274,27 @@ input:focus, select:focus, textarea:focus {
     border-radius: 40px;
     font-weight: 500;
     font-size: 0.8rem;
-    color: #6c86a0;
+    color: #585858;
     cursor: pointer;
 }
 
 .btn-submit-modal {
-    background: #1a4a6e;
+    background: #FDC913;
     border: none;
     padding: 10px 32px;
     border-radius: 40px;
     font-weight: 600;
     font-size: 0.8rem;
-    color: white;
+    color: #1A1A1A;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 10px;
+    transition: background 0.2s;
+}
+
+.btn-submit-modal:hover {
+    background: #e6b70f;
 }
 
 .confirmation-modal {
@@ -1059,12 +1323,12 @@ input:focus, select:focus, textarea:focus {
 .confirmation-modal .modal-header h2 {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #1a4a6e;
+    color: #1A1A1A;
     margin: 0;
 }
 .confirmation-modal .modal-header p {
     font-size: 0.85rem;
-    color: #6c86a0;
+    color: #585858;
     margin: 0;
 }
 .confirmation-modal .modal-footer-actions {
@@ -1074,7 +1338,7 @@ input:focus, select:focus, textarea:focus {
     margin-top: 4px;
 }
 .confirmation-modal .btn-done {
-    background: #1a4a6e;
+    background: #1A1A1A;
     color: white;
     border: none;
     padding: 10px 28px;
@@ -1089,7 +1353,7 @@ input:focus, select:focus, textarea:focus {
 }
 .confirmation-modal .btn-new-request {
     background: transparent;
-    color: #1a4a6e;
+    color: #1A1A1A;
     border: 1.5px solid #dee4ea;
     padding: 10px 24px;
     border-radius: 40px;
@@ -1102,7 +1366,7 @@ input:focus, select:focus, textarea:focus {
     gap: 8px;
 }
 .confirmation-modal .btn-done:hover      { background: #1c5680; }
-.confirmation-modal .btn-new-request:hover { background: #f5f9fe; border-color: #1a4a6e; }
+.confirmation-modal .btn-new-request:hover { background: #f5f9fe; border-color: #1A1A1A; }
 
 .request-summary-card {
     background: #f8fafc;
@@ -1146,7 +1410,7 @@ input:focus, select:focus, textarea:focus {
 .request-title {
     font-size: 1.3rem;
     font-weight: 700;
-    color: #1a4a6e;
+    color: #1A1A1A;
 }
 
 .status-badge {
@@ -1178,13 +1442,13 @@ input:focus, select:focus, textarea:focus {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #6c86a0;
+    color: #585858;
 }
 
 .info-value {
     font-size: 0.9rem;
     font-weight: 500;
-    color: #2c4c6e;
+    color: #1A1A1A;
 }
 
 .sla-card {
@@ -1192,7 +1456,7 @@ input:focus, select:focus, textarea:focus {
     border-radius: 16px;
     padding: 16px 20px;
     margin: 20px 0;
-    border-left: 4px solid #c97a2e;
+    border-left: 4px solid #8A6D00;
 }
 
 .sla-row {
@@ -1205,13 +1469,13 @@ input:focus, select:focus, textarea:focus {
 .sla-label {
     font-size: 0.8rem;
     font-weight: 500;
-    color: #6c86a0;
+    color: #585858;
 }
 
 .sla-value {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #c97a2e;
+    color: #8A6D00;
 }
 
 .approval-warning {
@@ -1238,6 +1502,20 @@ input:focus, select:focus, textarea:focus {
     margin-top: 20px;
 }
 
+.follow-up-section h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1A1A1A;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+body.dark-mode .follow-up-section h3 {
+    color: #f2f2f3;
+}
+
 .conversation-thread {
     max-height: 400px;
     overflow-y: auto;
@@ -1262,17 +1540,17 @@ input:focus, select:focus, textarea:focus {
 .author-name {
     font-weight: 600;
     font-size: 0.85rem;
-    color: #1a4a6e;
+    color: #1A1A1A;
 }
 
 .message-timestamp {
     font-size: 0.65rem;
-    color: #8aa5bf;
+    color: #A0A0A0;
 }
 
 .message-text {
     font-size: 0.85rem;
-    color: #2c4c6e;
+    color: #1A1A1A;
     line-height: 1.5;
 }
 
@@ -1293,7 +1571,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .send-followup-btn {
-    background: #1a4a6e;
+    background: #1A1A1A;
     border: none;
     padding: 12px 24px;
     border-radius: 40px;
@@ -1304,27 +1582,20 @@ input:focus, select:focus, textarea:focus {
 }
 
 .send-followup-btn:hover {
-    background: #0f3d5a;
+    background: #000000;
+}
+
+body.dark-mode .send-followup-btn {
+    background: #FDC913;
+    color: #1A1A1A;
+}
+
+body.dark-mode .send-followup-btn:hover {
+    background: #e6b70f;
 }
 
 .toast-message {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #2c4c6e;
-    color: white;
-    padding: 10px 24px;
-    border-radius: 40px;
-    font-size: 0.8rem;
-    z-index: 9999; /* above all modals */
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-}
-
-.toast-message.show {
-    opacity: 1;
+    display: none !important;
 }
 
 /* Scrollbar Styling */
@@ -1351,7 +1622,7 @@ input:focus, select:focus, textarea:focus {
 .tickets-grid::-webkit-scrollbar-thumb:hover,
 .conversation-thread::-webkit-scrollbar-thumb:hover,
 .notification-list::-webkit-scrollbar-thumb:hover {
-    background: #1a4a6e;
+    background: #1A1A1A;
 }
 
 @media (max-width: 900px) {
@@ -1393,7 +1664,7 @@ input:focus, select:focus, textarea:focus {
 ══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Closed status (new) ────────────────────────────────────────────────── */
-.status-closed    { background: #eef2f5; color: #6c86a0; }
+.status-closed    { background: #eef2f5; color: #585858; }
 .status-chip {
     display: inline-block; padding: 3px 10px; border-radius: 40px;
     font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
@@ -1401,7 +1672,7 @@ input:focus, select:focus, textarea:focus {
 .status-chip.status-pending   { background: #f7f0df; color: #b8922a; }
 .status-chip.status-ongoing   { background: #e3f0fa; color: #2c7cb6; }
 .status-chip.status-completed { background: #e2f0ea; color: #2a7a55; }
-.status-chip.status-closed    { background: #eef2f5; color: #6c86a0; }
+.status-chip.status-closed    { background: #eef2f5; color: #585858; }
 
 /* ── My Requests tab bar (per PDF spec) ─────────────────────────────────── */
 .request-status-tabs {
@@ -1413,10 +1684,10 @@ input:focus, select:focus, textarea:focus {
     background: #f4f6f9; border: none;
     padding: 6px 16px; border-radius: 40px;
     font-size: 0.78rem; font-weight: 600; font-family: 'Inter', sans-serif;
-    color: #6c86a0; cursor: pointer; transition: all 0.2s;
+    color: #585858; cursor: pointer; transition: all 0.2s;
 }
-.req-tab:hover { background: #eef2f6; color: #1a4a6e; }
-.req-tab.active { background: #1a4a6e; color: white; box-shadow: 0 2px 8px rgba(26,74,110,0.2); }
+.req-tab:hover { background: #eef2f6; color: #1A1A1A; }
+.req-tab.active { background: #1A1A1A; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 
 /* ── SLA preview inside submission form ─────────────────────────────────── */
 .sla-preview-section {
@@ -1426,23 +1697,23 @@ input:focus, select:focus, textarea:focus {
 }
 .sla-preview-title {
     font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.5px; color: #2c7cb6; margin-bottom: 10px;
+    letter-spacing: 0.5px; color: #1A1A1A; margin-bottom: 10px;
     display: flex; align-items: center; gap: 6px;
 }
 .sla-preview-row {
     display: flex; justify-content: space-between; align-items: center; padding: 5px 0;
 }
-.sla-preview-label { font-size: 0.78rem; color: #4c7a9e; font-weight: 500; }
-.sla-preview-val   { font-size: 0.85rem; font-weight: 700; color: #1a4a6e; }
+.sla-preview-label { font-size: 0.78rem; color: #1A1A1A; font-weight: 500; }
+.sla-preview-val   { font-size: 0.85rem; font-weight: 700; color: #1A1A1A; }
 
 /* ── Confirm-resolve button inside detail modal ──────────────────────────── */
 .btn-confirm-resolve-trigger {
     display: flex; align-items: center; gap: 8px;
-    margin-top: 16px; background: #1a4a6e; color: white; border: none;
+    margin-top: 16px; background: #1A1A1A; color: white; border: none;
     padding: 11px 24px; border-radius: 40px; font-weight: 600; font-size: 0.82rem;
     font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s;
 }
-.btn-confirm-resolve-trigger:hover { background: #0f3d5a; }
+.btn-confirm-resolve-trigger:hover { background: #000000; }
 
 /* ── Issue Resolution Confirmation modal ─────────────────────────────────── */
 .resolve-ticket-ref {
@@ -1450,42 +1721,42 @@ input:focus, select:focus, textarea:focus {
     background: #f8fafc; border-radius: 12px; padding: 12px 16px;
     margin-bottom: 16px; border: 1px solid #eef2f5;
 }
-.resolve-label   { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c86a0; }
-.resolve-ticket-id { font-size: 0.92rem; font-weight: 700; color: #1a4a6e; }
-.resolve-message { font-size: 0.88rem; color: #2c4c6e; line-height: 1.5; margin-bottom: 20px; }
+.resolve-label   { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #585858; }
+.resolve-ticket-id { font-size: 0.92rem; font-weight: 700; color: #1A1A1A; }
+.resolve-message { font-size: 0.88rem; color: #1A1A1A; line-height: 1.5; margin-bottom: 20px; }
 .resolve-actions { display: flex; flex-direction: column; gap: 12px; }
 .btn-confirm-resolved {
-    background: #1a4a6e; color: white; border: none;
+    background: #1A1A1A; color: white; border: none;
     padding: 12px 24px; border-radius: 40px; font-weight: 600; font-size: 0.85rem;
     font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s;
     display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.btn-confirm-resolved:hover { background: #0f3d5a; }
+.btn-confirm-resolved:hover { background: #000000; }
 .btn-reopen {
-    background: transparent; color: #c97a2e; border: 1.5px solid #e8d0b4;
+    background: transparent; color: #8A6D00; border: 1.5px solid #e8d0b4;
     padding: 12px 24px; border-radius: 40px; font-weight: 600; font-size: 0.85rem;
     font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s;
     display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.btn-reopen:hover { background: #fff5eb; border-color: #c97a2e; }
+.btn-reopen:hover { background: #fff5eb; border-color: #8A6D00; }
 
 /* ── Feedback modal ──────────────────────────────────────────────────────── */
 .feedback-ticket-ref { margin-bottom: 16px; }
 .feedback-ref-row {
     display: flex; align-items: center; gap: 8px;
     background: #f8fafc; border-radius: 12px; padding: 12px 16px;
-    font-size: 0.85rem; color: #2c4c6e; border: 1px solid #eef2f5;
+    font-size: 0.85rem; color: #1A1A1A; border: 1px solid #eef2f5;
 }
-.feedback-label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c86a0; margin-bottom: 10px; }
+.feedback-label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #585858; margin-bottom: 10px; }
 .feedback-optional { font-weight: 400; text-transform: none; letter-spacing: 0; color: #95a5a6; }
 .feedback-rating-group { margin-bottom: 4px; }
 .star-rating-row { display: flex; gap: 6px; margin-bottom: 6px; }
 .star-icon { font-size: 1.8rem; color: #dee4ea; cursor: pointer; transition: color 0.15s, transform 0.15s; }
 .star-icon:hover,
-.star-icon.star-active { color: #c97a2e; transform: scale(1.15); }
-.star-count-label { font-size: 0.8rem; font-weight: 600; color: #6c86a0; }
+.star-icon.star-active { color: #8A6D00; transform: scale(1.15); }
+.star-count-label { font-size: 0.8rem; font-weight: 600; color: #585858; }
 .feedback-help-text {
-    font-size: 0.78rem; color: #6c86a0; margin: 12px 0 0;
+    font-size: 0.78rem; color: #585858; margin: 12px 0 0;
     display: flex; align-items: center; gap: 6px;
 }
 .feedback-help-text i { color: #2c7cb6; }
@@ -1493,11 +1764,11 @@ input:focus, select:focus, textarea:focus {
 /* ── Notification icon-content layout ────────────────────────────────────── */
 .notif-icon {
     width: 36px; height: 36px; background: #eef3fc; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; color: #1a4a6e;
+    display: flex; align-items: center; justify-content: center; color: #1A1A1A;
     font-size: 0.9rem; flex-shrink: 0;
 }
-.notif-content p  { font-size: 0.8rem; color: #2c4c6e; line-height: 1.4; }
-.notif-content small { font-size: 0.65rem; color: #8aa5bf; }
+.notif-content p  { font-size: 0.8rem; color: #1A1A1A; line-height: 1.4; }
+.notif-content small { font-size: 0.65rem; color: #A0A0A0; }
 
 /* ── Timeline in Activities panel ────────────────────────────────────────── */
 .timeline-item {
@@ -1507,34 +1778,33 @@ input:focus, select:focus, textarea:focus {
 .timeline-item:last-child { border-bottom: none; }
 .timeline-icon {
     width: 34px; height: 34px; background: #eef3fc; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; color: #1a4a6e;
+    display: flex; align-items: center; justify-content: center; color: #1A1A1A;
     font-size: 0.85rem; flex-shrink: 0;
 }
 .timeline-content { flex: 1; }
-.timeline-title       { font-size: 0.82rem; font-weight: 600; color: #1a4a6e; margin-bottom: 2px; }
-.timeline-description { font-size: 0.78rem; color: #2c4c6e; margin-bottom: 2px; }
-.timeline-date        { font-size: 0.68rem; color: #8aa5bf; }
+.timeline-title       { font-size: 0.82rem; font-weight: 600; color: #1A1A1A; margin-bottom: 2px; }
+.timeline-description { font-size: 0.78rem; color: #1A1A1A; margin-bottom: 2px; }
+.timeline-date        { font-size: 0.68rem; color: #A0A0A0; }
 
 /* ── Dark mode additions ─────────────────────────────────────────────────── */
-body.dark-mode .req-tab               { background: #222736; color: #8aa5bf; }
-body.dark-mode .req-tab.active        { background: #2c7cb6; color: white; }
-body.dark-mode .sla-preview-section   { background: #172038; border-left-color: #2c7cb6; }
+body.dark-mode .req-tab               { background: #1d1d21; color: #7a7a80; }
+body.dark-mode .req-tab.active        { background: #FDC913; color: #1A1A1A; }
+body.dark-mode .sla-preview-section   { background: #1d1d21; border-left-color: #2c7cb6; }
 body.dark-mode .sla-preview-title     { color: #5a9bcb; }
-body.dark-mode .sla-preview-label     { color: #8aa5bf; }
-body.dark-mode .sla-preview-val       { color: #e8edf2; }
+body.dark-mode .sla-preview-label     { color: #7a7a80; }
+body.dark-mode .sla-preview-val       { color: #f2f2f3; }
 body.dark-mode .resolve-ticket-ref,
-body.dark-mode .feedback-ref-row      { background: #222736; border-color: #2d3345; }
-body.dark-mode .resolve-ticket-id     { color: #5a9bcb; }
-body.dark-mode .resolve-message       { color: #c9d6e3; }
-body.dark-mode .timeline-item         { background: transparent; border-bottom-color: #2a3040; }
-body.dark-mode .timeline-icon         { background: #2a3040; color: #5a9bcb; }
-body.dark-mode .timeline-title        { color: #e8edf2; }
-body.dark-mode .timeline-description  { color: #8aa5bf; }
-body.dark-mode .notif-icon            { background: #2a3040; color: #5a9bcb; }
+body.dark-mode .feedback-ref-row      { background: #1d1d21; border-color: #29292e; }
+body.dark-mode .resolve-ticket-id     { color: #f2f2f3; }
+body.dark-mode .resolve-message       { color: #e5e5e5; }
+body.dark-mode .timeline-item         { background: transparent; border-bottom-color: #232326; }
+body.dark-mode .timeline-icon         { background: #232326; color: #FFD84D; }
+body.dark-mode .timeline-title        { color: #f2f2f3; }
+body.dark-mode .timeline-description  { color: #7a7a80; }
+body.dark-mode .notif-icon            { background: #232326; color: #FFD84D; }
 body.dark-mode .status-chip.status-pending   { background: #2a1f0a; color: #e6a254; }
 body.dark-mode .status-chip.status-ongoing   { background: #132238; color: #5a9bcb; }
 body.dark-mode .status-chip.status-completed { background: #0f2d1e; color: #4caf8a; }
-body.dark-mode .status-chip.status-closed    { background: #1e2535; color: #6c86a0; }
 
 /* ── FIX 1/3: Approval notice banner + Pending Confirmation status chip ──── */
 .approval-notice-banner {
@@ -1542,7 +1812,7 @@ body.dark-mode .status-chip.status-closed    { background: #1e2535; color: #6c86
     background: #fff9e6; border: 1.5px solid #f0c040; border-radius: 14px;
     padding: 14px 18px; margin-bottom: 16px;
 }
-.approval-notice-banner i { color: #c97a2e; font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+.approval-notice-banner i { color: #8A6D00; font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
 .approval-notice-banner strong { display: block; font-size: 0.85rem; color: #7a4a0a; margin-bottom: 4px; }
 .approval-notice-banner p { font-size: 0.78rem; color: #5a4a1e; line-height: 1.5; margin: 0; }
 .status-pending-confirmation { background: #f0e6ff; color: #7c3aed; }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,8 +6,9 @@
     <title>CSMA IT Helpdesk | School Admin Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="Sidebar.css">
-    <link rel="stylesheet" href="SchoolAdmin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="Sidebar.css?v=19">
+    <link rel="stylesheet" href="SchoolAdmin.css?v=20">
 </head>
 <body>
 
@@ -25,47 +26,38 @@
                 </div>
                 <div class="logo-text">
                     <h2>CSMA</h2>
-                    <span>School Admin Portal</span>
+                    <span>IT HELPDESK</span>
                 </div>
             </div>
         </div>
 
         <nav class="nav-menu">
             <a href="#" class="nav-item active" data-section="dashboard">
-                <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+                <i class="ti ti-layout-dashboard"></i><span>Dashboard</span>
             </a>
             <a href="#" class="nav-item" data-section="service-requests">
-                <i class="fas fa-ticket-alt"></i><span>Service Requests</span>
+                <i class="ti ti-ticket"></i><span>Service Requests</span>
             </a>
             <a href="#" class="nav-item" data-section="inventory">
-                <i class="fas fa-boxes"></i><span>Inventory</span>
+                <i class="ti ti-packages"></i><span>Inventory</span>
             </a>
             <a href="#" class="nav-item" data-section="cost-analysis">
-                <i class="fas fa-chart-pie"></i><span>Cost Analysis</span>
+                <i class="ti ti-chart-pie"></i><span>Cost Analysis</span>
             </a>
             <a href="#" class="nav-item" data-section="feedback">
-                <i class="fas fa-star"></i><span>Feedback</span>
+                <i class="ti ti-star"></i><span>Feedback</span>
             </a>
             <a href="#" class="nav-item" data-section="reports">
-                <i class="fas fa-file-alt"></i><span>Reports</span>
+                <i class="ti ti-chart-line"></i><span>Reports</span>
             </a>
-            <div class="nav-divider"></div>
             <a href="#" class="nav-item" data-section="user-management">
-                <i class="fas fa-users"></i><span>User Management</span>
+                <i class="ti ti-users"></i><span>User Management</span>
             </a>
-
         </nav>
 
         <div class="sidebar-footer">
-            <div class="sa-user-info">
-                <i class="fas fa-user-shield"></i>
-                <div>
-                    <span class="sa-name" id="sidebarUserName">School Admin</span>
-                    <span class="sa-role">View-Only Access</span>
-                </div>
-            </div>
             <button class="logout-sidebar-btn" id="sidebarLogoutBtn">
-                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+                <i class="ti ti-logout"></i><span>Logout</span>
             </button>
         </div>
     </aside>
@@ -77,18 +69,31 @@
 
         <!-- Top bar -->
         <header class="top-bar">
-            <div class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></div>
-            <div class="page-title"><h1 id="pageTitle">Dashboard</h1></div>
+            <div class="menu-toggle" id="menuToggle"><i class="ti ti-menu-2"></i></div>
+            <div class="page-title">
+                <h1 id="pageTitle">Dashboard</h1>
+                <span class="page-subtitle">Colegio de Sta. Monica de Angat</span>
+            </div>
+
+            <!-- .topbar-search — decorative search field matching Dashboard.html's
+                 top-bar search pill. Purely visual: no JS handler is attached and
+                 SchoolAdmin.js is untouched, so it doesn't filter/search anything
+                 (each section already has its own functional search box below). -->
+            <div class="topbar-search">
+                <i class="ti ti-search"></i>
+                <input type="text" placeholder="Search tickets, assets..." aria-label="Search">
+            </div>
+
             <div class="top-bar-actions">
                 <!-- School Admin Notification Bell -->
                 <div class="admin-notif-wrapper" id="saNotifWrapper">
                     <button class="notification-icon admin-notif-bell" id="saNotifBell" title="Notifications">
-                        <i class="fas fa-bell"></i>
+                        <i class="ti ti-bell"></i>
                         <span class="admin-notif-badge" id="saNotifBadge" style="display:none;">0</span>
                     </button>
                     <div class="admin-notif-dropdown" id="saNotifDropdown">
                         <div class="admin-notif-header">
-                            <span><i class="fas fa-bell"></i> Notifications</span>
+                            <span><i class="ti ti-bell"></i> Notifications</span>
                             <button class="admin-notif-mark-read" id="saMarkAllReadBtn">Mark all read</button>
                         </div>
                         <div class="admin-notif-list" id="saNotifList">
@@ -98,25 +103,68 @@
                 </div>
                 <!-- Theme toggle -->
                 <div class="theme-toggle-wrapper">
-                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <i class="ti ti-moon" id="themeIcon"></i>
                     <label class="switch">
                         <input type="checkbox" id="themeSwitchCheckbox">
                         <span class="slider round"></span>
                     </label>
                 </div>
+                <!-- .user-avatar — decorative avatar matching Dashboard.html's top-right
+                     profile icon. No user-profile data wired up in SchoolAdmin.js, so
+                     this is a static "S" placeholder (not a real name/photo). -->
+                <div class="user-avatar" title="School Admin">S</div>
             </div>
         </header>
 
+        <!-- Everything below the top-bar scrolls internally in this wrapper
+             instead of .main-content itself scrolling — see SchoolAdmin.css
+             for why. -->
+        <div class="schooladmin-scroll-area">
+
         <!-- ══ SECTION: Dashboard ══════════════════════════════════════════ -->
         <section id="section-dashboard" class="sa-section active">
-            <!-- Stats -->
+            <!-- Stats — plain label-over-value cards matching Admin Dashboard's
+                 .stat-card exactly (see #section-dashboard .stat-card overrides in
+                 SchoolAdmin.css); every other section's stats-row keeps the
+                 icon-badge style. Cards are clickable quick-access shortcuts,
+                 mirroring Dashboard.html's onclick behavior via saQuickNav(). -->
             <div class="stats-row">
-                <div class="stat-card"><div class="stat-title">Total Requests</div><div class="stat-number" data-stat="total">0</div></div>
-                <div class="stat-card"><div class="stat-title">Pending</div><div class="stat-number" data-stat="pending">0</div></div>
-                <div class="stat-card"><div class="stat-title">Ongoing</div><div class="stat-number" data-stat="ongoing">0</div></div>
-                <div class="stat-card"><div class="stat-title">Completed</div><div class="stat-number" data-stat="completed">0</div></div>
-                <div class="stat-card"><div class="stat-title">Low Stock Items</div><div class="stat-number" data-stat="low_stock">0</div></div>
-                <div class="stat-card"><div class="stat-title">Inventory Value</div><div class="stat-number" data-stat="inv_value">₱0</div></div>
+                <div class="stat-card" role="button" tabindex="0"
+                     onclick="saQuickNav('service-requests','all')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                    <div class="stat-title">Total Service Requests</div>
+                    <div class="stat-number" data-stat="total">0</div>
+                </div>
+                <div class="stat-card" role="button" tabindex="0"
+                     onclick="saQuickNav('service-requests','Pending')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                    <div class="stat-title">Pending Requests</div>
+                    <div class="stat-number" data-stat="pending">0</div>
+                </div>
+                <div class="stat-card" role="button" tabindex="0"
+                     onclick="saQuickNav('service-requests','Ongoing')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                    <div class="stat-title">Ongoing Requests</div>
+                    <div class="stat-number" data-stat="ongoing">0</div>
+                </div>
+                <div class="stat-card" role="button" tabindex="0"
+                     onclick="saQuickNav('service-requests','Completed')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                    <div class="stat-title">Completed Requests</div>
+                    <div class="stat-number" data-stat="completed">0</div>
+                </div>
+                <div class="stat-card" role="button" tabindex="0"
+                     onclick="saQuickNav('inventory')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                    <div class="stat-title">Low Stock Items</div>
+                    <div class="stat-number" data-stat="low_stock">0</div>
+                </div>
+                <div class="stat-card dark" role="button" tabindex="0"
+                     onclick="saQuickNav('inventory')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                    <div class="stat-title">Total Inventory Value</div>
+                    <div class="stat-number" data-stat="inv_value">0</div>
+                </div>
             </div>
 
             <!-- Recent activities -->
@@ -132,48 +180,45 @@
 
         <!-- ══ SECTION: Service Requests ══════════════════════════════════ -->
         <section id="section-service-requests" class="sa-section">
-            <!-- Summary cards -->
-            <div class="stats-row" id="srSummaryRow">
-                <div class="stat-card"><div class="stat-title">Total</div><div class="stat-number" id="srTotal">0</div></div>
-                <div class="stat-card"><div class="stat-title">Pending</div><div class="stat-number" id="srPending">0</div></div>
-                <div class="stat-card"><div class="stat-title">Ongoing</div><div class="stat-number" id="srOngoing">0</div></div>
-                <div class="stat-card"><div class="stat-title">Completed</div><div class="stat-number" id="srCompleted">0</div></div>
-                <div class="stat-card"><div class="stat-title">Closed</div><div class="stat-number" id="srClosed">0</div></div>
-            </div>
-
-            <!-- Status tabs -->
-            <div class="tab-bar">
-                <button class="tab-btn active" data-filter-status="all">Overall Requests</button>
-                <button class="tab-btn" data-filter-status="Pending">Pending</button>
-                <button class="tab-btn" data-filter-status="Ongoing">Ongoing</button>
-                <button class="tab-btn" data-filter-status="Completed">Completed</button>
-                <button class="tab-btn" data-filter-status="Closed">Closed</button>
-            </div>
-
-            <!-- Filter row -->
-            <div class="filter-row">
-                <select class="filter-select" id="srDeptFilter">
-                    <option value="all">All Departments</option>
-                    <option value="Elementary">Elementary</option>
-                    <option value="Junior High School">Junior High School</option>
-                    <option value="Senior High School">Senior High School</option>
-                </select>
-                <select class="filter-select" id="srPriorityFilter">
-                    <option value="all">All Priority</option>
-                    <option value="Critical">Critical</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                </select>
-                <div class="search-wrapper">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="srSearch" class="search-input" placeholder="Search ticket ID, requester, description…">
-                </div>
-            </div>
-
-            <!-- Table -->
+            <!-- Table panel — tabs/filters/table all in one card, matching Admin's
+                 "Request Tickets" ServiceRequest.html layout exactly (see
+                 #section-service-requests overrides in SchoolAdmin.css). The old
+                 5-button status tab-bar was replaced with a single dropdown,
+                 mirroring Admin's own 2026-07 restyle from pill buttons to a
+                 status <select> (see initServiceRequestFilters()/saQuickNav() in
+                 SchoolAdmin.js) — filtering behavior is unchanged, only the
+                 control type/appearance. Delete/bulk-select UI (checkboxes, trash
+                 icon, bulk-actions-bar) deliberately NOT copied — School Admin is
+                 view-only here. -->
             <div class="panel">
-                <div class="table-wrapper">
+                <div class="panel-header">
+                    <h3>Request Tickets</h3>
+                </div>
+
+                <div class="filter-tabs">
+                    <select class="sr-filter-select" id="srStatusFilterSelect">
+                        <option value="all">Overall Requests</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                    <select class="sr-filter-select" id="srPriorityFilter">
+                        <option value="all">All Priority</option>
+                        <option value="Critical">Critical</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                    <select class="sr-filter-select" id="srDeptFilter">
+                        <option value="all">All Departments</option>
+                        <option value="Elementary">Elementary</option>
+                        <option value="Junior High School">Junior High School</option>
+                        <option value="Senior High School">Senior High School</option>
+                    </select>
+                </div>
+
+                <div class="table-wrapper sr-table-wrapper">
                     <table class="sa-table" id="srTable">
                         <thead>
                             <tr>
@@ -191,32 +236,22 @@
 
         <!-- ══ SECTION: Inventory ══════════════════════════════════════════ -->
         <section id="section-inventory" class="sa-section">
-            <!-- Inventory stats -->
-            <div class="stats-row" id="invSummaryRow">
-                <div class="stat-card"><div class="stat-title">Total Equipment</div><div class="stat-number" id="invEquipQty">0</div></div>
-                <div class="stat-card"><div class="stat-title">Total Consumables</div><div class="stat-number" id="invConsQty">0</div></div>
-                <div class="stat-card"><div class="stat-title">Equipment Types</div><div class="stat-number" id="invEquipTypes">0</div></div>
-                <div class="stat-card"><div class="stat-title">Consumable Types</div><div class="stat-number" id="invConsTypes">0</div></div>
-                <div class="stat-card sa-alert-card"><div class="stat-title">Low Stock Alert</div><div class="stat-number" id="invLowStock">0</div></div>
-                <div class="stat-card sa-warn-card"><div class="stat-title">Oversupply Alert</div><div class="stat-number" id="invOversupply">0</div></div>
-            </div>
+            <!-- Inventory stats (invEquipQty/invConsQty/invEquipTypes/invConsTypes/
+                 invLowStock/invOversupply) removed per request — Inventory.js still
+                 sets their text via getElementById, which no-ops safely if the
+                 elements don't exist, since setAll-style helpers here are
+                 `document.getElementById(id)?.textContent = ...` guarded. -->
 
-            <!-- Tabs + search/filter -->
+            <!-- Tabs + filter -->
             <div class="tab-bar">
                 <button class="tab-btn active" data-inv-tab="all">Overall Inventory</button>
                 <button class="tab-btn" data-inv-tab="equipment">Equipment</button>
                 <button class="tab-btn" data-inv-tab="consumable">Consumables</button>
                 <button class="tab-btn" data-inv-tab="allocated">Allocated Items</button>
             </div>
-            <div class="filter-row">
-                <div class="search-wrapper">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="invSearch" class="search-input" placeholder="Search item, category, department…">
-                </div>
-            </div>
 
             <div class="panel">
-                <div class="table-wrapper">
+                <div class="table-wrapper inv-table-wrapper">
                     <table class="sa-table" id="invTable">
                         <thead>
                             <tr>
@@ -234,15 +269,27 @@
         <!-- ══ SECTION: Cost Analysis ══════════════════════════════════════ -->
         <section id="section-cost-analysis" class="sa-section">
             <div class="stats-row">
-                <div class="stat-card"><div class="stat-title">Total Repair Costs</div><div class="stat-number" id="caRepair">₱0</div></div>
-                <div class="stat-card"><div class="stat-title">Total Maintenance</div><div class="stat-number" id="caMaintenance">₱0</div></div>
-                <div class="stat-card"><div class="stat-title">Total Replacement</div><div class="stat-number" id="caReplacement">₱0</div></div>
-                <div class="stat-card"><div class="stat-title">Grand Total</div><div class="stat-number" id="caGrandTotal">₱0</div></div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Repair Costs</div>
+                    <div class="stat-number" id="caRepair">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Maintenance</div>
+                    <div class="stat-number" id="caMaintenance">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Replacement</div>
+                    <div class="stat-number" id="caReplacement">0</div>
+                </div>
+                <div class="stat-card dark">
+                    <div class="stat-title">Grand Total</div>
+                    <div class="stat-number" id="caGrandTotal">0</div>
+                </div>
             </div>
 
             <div class="two-col-grid">
                 <div class="panel">
-                    <div class="panel-header"><h3><i class="fas fa-building"></i> Cost by Department</h3></div>
+                    <div class="panel-header"><h3>Cost by Department</h3></div>
                     <div class="table-wrapper">
                         <table class="sa-table" id="caDeptTable">
                             <thead><tr><th>Department</th><th>Repair Cost</th><th>Maintenance Cost</th><th>Total</th></tr></thead>
@@ -251,7 +298,7 @@
                     </div>
                 </div>
                 <div class="panel">
-                    <div class="panel-header"><h3><i class="fas fa-tag"></i> Cost by Category</h3></div>
+                    <div class="panel-header"><h3>Cost by Category</h3></div>
                     <div class="table-wrapper">
                         <table class="sa-table" id="caCatTable">
                             <thead><tr><th>Category</th><th>Total Cost</th><th>Tickets</th><th>%</th></tr></thead>
@@ -263,7 +310,7 @@
 
             <!-- Monthly trend -->
             <div class="panel">
-                <div class="panel-header"><h3><i class="fas fa-chart-line"></i> Monthly Expense Trend</h3></div>
+                <div class="panel-header"><h3>Monthly Expense Trend</h3></div>
                 <div class="chart-wrapper" id="caChartWrapper">
                     <canvas id="caMonthlyChart" height="120"></canvas>
                 </div>
@@ -273,10 +320,18 @@
         <!-- ══ SECTION: Feedback ══════════════════════════════════════════ -->
         <section id="section-feedback" class="sa-section">
             <div class="stats-row">
-                <div class="stat-card"><div class="stat-title">Average Rating</div><div class="stat-number" id="fbAvgRating">—</div></div>
-                <div class="stat-card"><div class="stat-title">Total Feedback</div><div class="stat-number" id="fbTotal">0</div></div>
-                <div class="stat-card"><div class="stat-title">Positive (4–5★)</div><div class="stat-number" id="fbPositive">0</div></div>
-                <div class="stat-card"><div class="stat-title">Negative (1–3★)</div><div class="stat-number" id="fbNegative">0</div></div>
+                <div class="stat-card">
+                    <div class="stat-info"><div class="stat-number" id="fbAvgRating">—</div><div class="stat-title">Average Rating</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info"><div class="stat-number" id="fbTotal">0</div><div class="stat-title">Total Feedback</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info"><div class="stat-number" id="fbPositive">0</div><div class="stat-title">Positive (4–5★)</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info"><div class="stat-number" id="fbNegative">0</div><div class="stat-title">Negative (1–3★)</div></div>
+                </div>
             </div>
 
             <!-- Filters -->
@@ -323,7 +378,7 @@
         <section id="section-reports" class="sa-section">
             <div class="two-col-grid">
                 <div class="panel">
-                    <div class="panel-header"><h3><i class="fas fa-cog"></i> Configure Report</h3></div>
+                    <div class="panel-header"><h3><i class="fas fa-sliders-h"></i> Configure Report</h3></div>
                     <div style="padding:8px 0;">
                         <div class="form-group">
                             <label class="form-label">Report Type</label>
@@ -374,16 +429,9 @@
 
         <!-- ══ SECTION: User Management ════════════════════════════════════ -->
         <section id="section-user-management" class="sa-section">
-            <!-- User summary cards -->
-            <div class="stats-row" id="umSummaryRow" style="margin-bottom:16px;">
-                <div class="stat-card"><div class="stat-title">Total Users</div><div class="stat-number" id="umCardTotal">—</div></div>
-                <div class="stat-card" style="border-top:3px solid #27ae60;"><div class="stat-title">Active</div><div class="stat-number" id="umCardActive" style="color:#27ae60;">—</div></div>
-                <div class="stat-card"><div class="stat-title">IT Admins</div><div class="stat-number" id="umCardITAdmin">—</div></div>
-                <div class="stat-card"><div class="stat-title">Faculty / Staff</div><div class="stat-number" id="umCardFaculty">—</div></div>
-                <div class="stat-card"><div class="stat-title">Dept Heads</div><div class="stat-number" id="umCardDeptHead">—</div></div>
-                <div class="stat-card"><div class="stat-title">School Admins</div><div class="stat-number" id="umCardSchoolAdmin">—</div></div>
-            </div>
-
+            <!-- User summary cards (#umSummaryRow) removed per request —
+                 renderUserSummaryCards() in SchoolAdmin.js already guards every
+                 getElementById lookup with `if (el)`, so it no-ops safely now. -->
 
             <!-- Sub-tabs -->
             <div class="tab-bar">
@@ -406,10 +454,6 @@
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
-                    <div class="search-wrapper">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="umSearch" class="search-input" placeholder="Search name, ID, email…" autocomplete="off">
-                    </div>
                 </div>
                 <div class="panel">
                     <div class="table-wrapper">
@@ -445,10 +489,6 @@
                     </select>
                     <input type="date" class="filter-select" id="auditDateFrom">
                     <input type="date" class="filter-select" id="auditDateTo">
-                    <div class="search-wrapper">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="auditSearch" class="search-input" placeholder="Search user, action…">
-                    </div>
                 </div>
                 <div class="panel">
                     <div class="table-wrapper">
@@ -466,7 +506,7 @@
             </div>
         </section>
 
-
+        </div>
     </main><!-- /main-content -->
 </div><!-- /dashboard-wrapper -->
 
@@ -557,9 +597,12 @@
     </div>
 </div>
 
-<div id="logoutToast" class="logout-toast">🔐 Logging out…</div>
-
-<script src="Sidebar.js"></script>
-<script src="SchoolAdmin.js"></script>
+<script src="Sidebar.js?v=1"></script>
+<script src="SchoolAdmin.js?v=7"></script>
+<script>
+    var __p = new URLSearchParams(location.search);
+    var __sec = __p.get('__section');
+    if (__sec) { window.addEventListener('load', function(){ setTimeout(function(){ var el = document.querySelector('[data-section="'+__sec+'"]'); if (el) el.click(); }, 300); }); }
+</script>
 </body>
 </html>

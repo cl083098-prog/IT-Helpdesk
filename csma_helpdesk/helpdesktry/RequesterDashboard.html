@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,7 +6,8 @@
     <title>CSMA IT Help Desk | Requester Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="RequesterDashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="RequesterDashboard.css?v=11">
     <!-- no extra style block: all design system rules are inside the external CSS -->
 </head>
 <body>
@@ -25,50 +26,45 @@
         <div class="header-actions">
             <div class="notification-wrapper" id="notificationWrapper">
                 <button class="notification-icon" id="notificationBell">
-                    <i class="fas fa-bell"></i>
+                    <i class="ti ti-bell"></i>
                     <span class="notification-badge" id="notificationBadge">5</span>
                 </button>
                 <div class="notification-panel" id="notificationPanel">
                     <div class="notification-header">
-                        <h3><i class="fas fa-bell"></i> Notifications</h3>
+                        <h3><i class="ti ti-bell"></i> Notifications</h3>
                         <button class="mark-read-btn" id="markAllReadBtn">Mark all read</button>
                     </div>
                     <div class="notification-list" id="notificationList"></div>
                 </div>
             </div>
-            <div class="profile-dropdown" id="profileDropdown">
-                <button class="user-profile-btn" id="profileBtn">
-                    <i class="fas fa-user-circle"></i>
-                    <span id="profileDisplayName">Requester</span>
-                    <i class="fas fa-chevron-down dropdown-arrow"></i>
-                </button>
-                <div class="dropdown-menu" id="dropdownMenu">
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-item theme-toggle-item">
-                        <span class="theme-switch-label"><i class="fas fa-moon" id="themeIcon"></i> Dark mode</span>
-                        <label class="switch">
-                            <input type="checkbox" id="themeSwitchCheckbox">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <button class="dropdown-item logout-btn" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </button>
-                </div>
+            <!-- Theme toggle -->
+            <div class="theme-toggle-wrapper">
+                <i class="ti ti-moon" id="themeIcon"></i>
+                <label class="switch">
+                    <input type="checkbox" id="themeSwitchCheckbox">
+                    <span class="slider round"></span>
+                </label>
             </div>
+            <!-- Avatar -->
+            <div class="user-avatar" title="Requester">R</div>
+            <!-- Logout -->
+            <button class="logout-icon-btn" id="logoutBtn" title="Logout">
+                <i class="ti ti-logout"></i>
+            </button>
         </div>
     </header>
+
+    <div class="dashboard-content-scroll">
 
     <div class="welcome-banner">
         <div class="welcome-content">
             <div class="welcome-text">
-                <h1>Welcome back, <span id="welcomeFirstName">there</span> <span class="wave">👋</span></h1>
+                <h1>Welcome back, <span id="welcomeFirstName">there</span> <span class="wave">ðŸ‘‹</span></h1>
                 <p>Track your IT support requests, create new tickets, and stay updated on progress.</p>
             </div>
             <div class="button-group">
                 <button class="btn-create-welcome" id="openNewRequestBtn">
-                    <i class="fas fa-plus-circle"></i> New Service Request
+                    <i class="fas fa-plus"></i> New Service Request
                 </button>
             </div>
         </div>
@@ -110,6 +106,7 @@
             </div>
         </div>
     </div>
+    </div><!-- /dashboard-content-scroll -->
 </div>
 
 <!-- MODAL: New Service Request Form (unchanged structure) -->
@@ -179,7 +176,7 @@
 <div id="confirmationModal" class="modal-overlay">
     <div class="confirmation-modal">
         <div class="modal-header"><div class="success-icon"><i class="fas fa-check-circle"></i></div><h2>Request Submitted!</h2><p>Your IT service request has been received</p></div>
-        <div class="modal-body"><div class="request-summary-card"><div class="summary-row"><span class="summary-label">Request ID:</span><span class="summary-value" id="confirmTicketId">SR-0000</span></div><div class="summary-row"><span class="summary-label">Title:</span><span class="summary-value" id="confirmTitle">—</span></div><div class="summary-row"><span class="summary-label">Priority:</span><span class="summary-value" id="confirmPriority">Low</span></div><div class="summary-row"><span class="summary-label">Department:</span><span class="summary-value" id="confirmDept">—</span></div><div class="summary-row"><span class="summary-label">Submitted:</span><span class="summary-value" id="confirmDate">—</span></div></div><div class="modal-footer-actions"><button class="btn-done" id="modalDoneBtn"><i class="fas fa-check"></i> Done</button><button class="btn-new-request" id="modalNewRequestBtn"><i class="fas fa-plus"></i> Submit Another</button></div></div>
+        <div class="modal-body"><div class="request-summary-card"><div class="summary-row"><span class="summary-label">Request ID:</span><span class="summary-value" id="confirmTicketId">SR-0000</span></div><div class="summary-row"><span class="summary-label">Title:</span><span class="summary-value" id="confirmTitle">—</span></div><div class="summary-row"><span class="summary-label">Priority:</span><span class="summary-value" id="confirmPriority">Low</span></div><div class="summary-row"><span class="summary-label">Department:</span><span class="summary-value" id="confirmDept">—</span></div><div class="summary-row"><span class="summary-label">Submitted:</span><span class="summary-value" id="confirmDate">—</span></div></div><div class="modal-footer-actions"><button class="btn-done" id="modalDoneBtn"><i class="fas fa-check-circle"></i> Done</button><button class="btn-new-request" id="modalNewRequestBtn"><i class="fas fa-plus"></i> Submit Another</button></div></div>
     </div>
 </div>
 
@@ -202,6 +199,16 @@
             <button class="modal-close" id="closeFullListBtn">&times;</button>
         </div>
         <div class="modal-body full-list-body">
+            <!-- Search + sort toolbar -->
+            <div class="list-toolbar">
+                <input type="text" id="ticketSearchInput" class="ticket-search-input"
+                       placeholder="Search by ticket ID or title...">
+                <select id="ticketSortSelect" class="ticket-sort-select">
+                    <option value="date-desc">Newest first</option>
+                    <option value="date-asc">Oldest first</option>
+                    <option value="priority-desc">Priority: High to Low</option>
+                </select>
+            </div>
             <!-- Filter Bar - dynamic status buttons with consistent styling -->
             <div class="filter-bar" id="ticketFilterBar">
                 <button class="filter-chip filter-chip-active" data-filter="all">All Requests</button>
@@ -240,7 +247,7 @@
                     <i class="fas fa-check-circle"></i> Yes, Issue Resolved
                 </button>
                 <button class="btn-reopen" id="reopenTicketBtn">
-                    <i class="fas fa-redo-alt"></i> Not Resolved — Re-open
+                    <i class="fas fa-redo"></i> Not Resolved — Re-open
                 </button>
             </div>
         </div>
@@ -276,14 +283,14 @@
             </div>
             <p style="font-size:0.75rem;color:#95a5a6;margin-bottom:20px;">Your feedback helps us improve our service quality</p>
             <div class="form-actions" style="display:flex;gap:12px;">
-                <button type="button" class="btn-submit-modal" id="submitFeedbackBtn" style="flex:1;">Submit Feedback</button>
-                <button type="button" class="btn-cancel-modal" id="skipFeedbackBtn" style="min-width:80px;">Skip</button>
+                <button type="button" class="btn-submit-modal" id="submitFeedbackBtn" style="flex:1;"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
+                <button type="button" class="btn-cancel-modal" id="skipFeedbackBtn" style="min-width:80px;"><i class="fas fa-forward"></i> Skip</button>
             </div>
         </div>
     </div>
 </div>
 
 <div id="toastMsg" class="toast-message"></div>
-<script src="RequesterDashboard.js"></script>
+<script src="RequesterDashboard.js?v=3"></script>
 </body>
 </html>

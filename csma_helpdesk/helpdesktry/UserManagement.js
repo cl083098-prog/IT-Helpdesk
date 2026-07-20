@@ -50,6 +50,7 @@
         bindEditUserModal();
         bindResetPasswordModal();
         bindDetailModal();
+        bindSummaryCards();
         initModalBackdrops();
         initActivityLogSection();
     }
@@ -84,11 +85,11 @@
         const isDark = localStorage.getItem('theme') === 'dark';
         if (toggle) toggle.checked = isDark;
         document.body.classList.toggle('dark-mode', isDark);
-        if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        if (icon) icon.className = isDark ? 'ti ti-sun' : 'ti ti-moon';
         toggle?.addEventListener('change', e => {
             document.body.classList.toggle('dark-mode', e.target.checked);
             localStorage.setItem('theme', e.target.checked ? 'dark' : 'light');
-            if (icon) icon.className = e.target.checked ? 'fas fa-sun' : 'fas fa-moon';
+            if (icon) icon.className = e.target.checked ? 'ti ti-sun' : 'ti ti-moon';
         });
     }
 
@@ -170,7 +171,7 @@
                 <td>${escHtml(logModuleLabel(log.module))}</td>
                 <td>${escHtml(log.action || '—')}</td>
                 <td><span class="um-status-badge um-status-${(log.status||'').toLowerCase()}">${escHtml(log.status || '—')}</span></td>
-                <td><button type="button" class="um-action-btn um-btn-view" data-log='${JSON.stringify(log).replace(/'/g,"&apos;")}'>View</button></td>
+                <td><button type="button" class="um-action-btn um-btn-view" data-log='${JSON.stringify(log).replace(/'/g,"&apos;")}'><i class="fas fa-eye"></i> View</button></td>
             </tr>`).join('');
         tbody.querySelectorAll('[data-log]').forEach(btn => {
             btn.addEventListener('click', e => {
@@ -263,6 +264,86 @@
         set('cardSchoolAdmin', totals.school_admin);
     }
 
+    // ─── Category Detail Panel (click a summary card to see its users) ─────
+    // Queried independently of the main role/status filter bar below, so the
+    // panel always reflects the true category regardless of what's currently
+    // typed into the "Manage User Accounts" search/filter controls.
+    const CATEGORY_QUERY = {
+        total:        { role: 'all',           status: 'all'    },
+        active:       { role: 'all',           status: 'Active' },
+        itAdmins:     { role: 'IT Admin',      status: 'all'    },
+        faculty:      { role: 'Faculty/Staff', status: 'all'    },
+        deptHeads:    { role: 'Dept Head',     status: 'all'    },
+        schoolAdmins: { role: 'School Admin',  status: 'all'    },
+    };
+    let selectedCategory = null;
+
+    function bindSummaryCards() {
+        document.querySelectorAll('.um-summary-card').forEach(card => {
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('aria-pressed', 'false');
+            card.addEventListener('click', () => toggleCategory(card));
+            card.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCategory(card); }
+            });
+        });
+        document.getElementById('categoryPanelClose')?.addEventListener('click', closeCategoryPanel);
+    }
+
+    function toggleCategory(card) {
+        const key = card.dataset.category;
+        if (selectedCategory === key) { closeCategoryPanel(); return; }
+        selectedCategory = key;
+        document.querySelectorAll('.um-summary-card').forEach(c => {
+            const isSel = c.dataset.category === key;
+            c.classList.toggle('selected', isSel);
+            c.setAttribute('aria-pressed', isSel ? 'true' : 'false');
+        });
+        loadCategoryPanel(key, card.querySelector('.um-summary-title')?.textContent || key);
+    }
+
+    function closeCategoryPanel() {
+        selectedCategory = null;
+        document.querySelectorAll('.um-summary-card').forEach(c => {
+            c.classList.remove('selected');
+            c.setAttribute('aria-pressed', 'false');
+        });
+        document.getElementById('categoryPanel')?.classList.remove('open');
+    }
+
+    async function loadCategoryPanel(key, title) {
+        const q = CATEGORY_QUERY[key];
+        if (!q) return;
+        const panel   = document.getElementById('categoryPanel');
+        const body    = document.getElementById('categoryTableBody');
+        const titleEl = document.getElementById('categoryPanelTitle');
+        const countEl = document.getElementById('categoryPanelCount');
+        if (titleEl) titleEl.textContent = title;
+        panel?.classList.add('open');
+        if (body) body.innerHTML = '<tr><td colspan="3" class="um-empty-row">Loading…</td></tr>';
+
+        const json = await apiFetch(`${API}?action=get_users&${qs({ role: q.role, status: q.status, search: '' })}`);
+        if (!body || selectedCategory !== key) return;
+
+        if (!json?.success) {
+            body.innerHTML = `<tr><td colspan="3" class="um-empty-row" style="color:#c62828;">Failed to load: ${escHtml(json?.message || 'Server error')}</td></tr>`;
+            return;
+        }
+        const list = json.data || [];
+        if (countEl) countEl.textContent = `${list.length} user${list.length === 1 ? '' : 's'}`;
+        if (!list.length) {
+            body.innerHTML = '<tr><td colspan="3" class="um-empty-row">No users in this category.</td></tr>';
+            return;
+        }
+        body.innerHTML = list.map(u => `
+            <tr>
+                <td><strong>${escHtml(u.full_name)}</strong></td>
+                <td><span class="um-role-badge um-role-${escHtml(u.role)}">${escHtml(u.role_label)}</span></td>
+                <td><span class="um-badge ${u.is_active ? 'um-cat-badge-active' : 'um-badge-inactive'}">${escHtml(u.status_text)}</span></td>
+            </tr>`).join('');
+    }
+
     // ─── Users: list / search / filter ─────────────────────────────────────
     // _filterSuppressed prevents filter change events from firing while
     // a modal is open (selects can emit 'change' on focus-restore after modal close)
@@ -326,8 +407,8 @@
                 <td><span class="${u.is_active ? 'status-active' : 'status-inactive'}">${escHtml(u.status_text)}</span></td>
                 <td>
                     <div class="action-buttons">
-                        <button type="button" class="action-btn edit btn-view-user" data-id="${u.id}" title="View/Edit"><i class="fas fa-eye"></i></button>
-                        <button type="button" class="action-btn reset btn-delete-user" data-id="${u.id}" data-name="${escHtml(u.full_name)}" title="Deactivate"><i class="fas fa-user-slash"></i></button>
+                        <button type="button" class="action-btn-pill view btn-view-user" data-id="${u.id}" title="View/Edit"><i class="fas fa-eye"></i> View</button>
+                        <button type="button" class="action-btn-pill deactivate btn-delete-user" data-id="${u.id}" data-name="${escHtml(u.full_name)}" title="Deactivate"><i class="fas fa-user-slash"></i> Deactivate</button>
                     </div>
                 </td>
             </tr>`).join('');

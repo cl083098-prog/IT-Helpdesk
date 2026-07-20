@@ -8,9 +8,9 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: #f5f9fe;
-    color: #1c4c6e;
-    border: 1px solid #d0dceb;
+    background: #ffffff;
+    color: #8A6D00;
+    border: 1px solid #8A6D00;
     border-radius: 6px;
     font-family: inherit;
     font-size: 0.78rem;
@@ -19,11 +19,11 @@
     transition: all .15s;
 }
 .sa-btn-view-report:hover {
-    background: #1c4c6e;
+    background: #8A6D00;
     color: #fff;
-    border-color: #1c4c6e;
+    border-color: #8A6D00;
     transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(28,76,110,.2);
+    box-shadow: 0 2px 6px rgba(138,109,0,.25);
 }
 .sa-btn-view-report i {
     font-size: 0.72rem;

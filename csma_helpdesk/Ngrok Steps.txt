@@ -1,0 +1,6 @@
+Ngrok Steps:
+
+Step 1: lunch cmd and paste cd C:\ngrok
+Step 2: Paste this ngrok config add-authtoken 3GZuhnvKS5bYUJTPyGCqwWg2Gsa_3YPQLVm7WJ6pkHe3PmLLb
+Step 3: start tunnel by pasting this: ngrok http 80
+Step 4: copy the link  https://cathedral-quaking-blinker.ngrok-free.dev/csma_helpdesk/helpdesktry/Login.html - Changes every restart.

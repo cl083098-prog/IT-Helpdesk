@@ -58,8 +58,8 @@
         return ({
             'ticket_submitted'    : 'fa-paper-plane',
             'approval_needed'     : 'fa-clipboard-check',
-            'approval_approved'   : 'fa-circle-check',
-            'approval_rejected'   : 'fa-circle-xmark',
+            'approval_approved'   : 'fa-check-circle',
+            'approval_rejected'   : 'fa-times-circle',
             'status_change'       : 'fa-sync-alt',
             'confirmation_needed' : 'fa-user-check',
             'sla_change'          : 'fa-clock',

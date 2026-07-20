@@ -107,7 +107,6 @@
         await Promise.all([loadItems(), loadSummary(), loadAllocations()]);
         renderInventoryTable();
         renderAllocatedTable();
-        renderLowStockCards();
     }
 
     async function loadItems() {
@@ -179,7 +178,7 @@
             const isSel = selectedItems.has(item.id);
             const actionsCell = showActions ? `
                     <td class="row-actions">
-                        <button class="row-action-btn edit"   data-action="edit"   data-id="${item.id}"><i class="fas fa-edit"></i></button>
+                        <button class="row-action-btn edit"   data-action="edit"   data-id="${item.id}"><i class="fas fa-pencil-alt"></i></button>
                         <button class="row-action-btn delete" data-action="delete" data-id="${item.id}"><i class="fas fa-trash-alt"></i></button>
                     </td>` : '';
             return `
@@ -244,65 +243,6 @@
             </div>`;
     }
 
-    // ─── Render: low-stock cards (matches Inventory.css classes) ─────────────
-    function renderLowStockCards() {
-        const container = document.getElementById('lowstockCardsContainer');
-        if (container) {
-            const low = inventoryItems.filter(i => i.status === 'Low Stock' && i.type === 'Consumable');
-            if (!low.length) {
-                container.innerHTML = '<div class="empty-state">No consumables are below their low-stock threshold.</div>';
-            } else {
-                container.innerHTML = low.map(i => `
-                    <div class="lowstock-item-card">
-                        <div class="lowstock-info">
-                            <h4>${escapeHtml(i.name)}</h4>
-                            <p>${escapeHtml(i.category)}</p>
-                        </div>
-                        <div class="lowstock-qty">Qty: ${i.quantity}</div>
-                        <button class="reorder-btn" data-reorder-id="${i.id}">Reorder</button>
-                    </div>`).join('');
-                container.querySelectorAll('[data-reorder-id]').forEach(b => {
-                    b.addEventListener('click', () => openReorderModal(+b.dataset.reorderId));
-                });
-            }
-        }
-
-        // Also render the "Low Stock Items by Department" grid.
-        const grid = document.getElementById('deptLowstockGrid');
-        if (!grid) return;
-
-        const lowAll = inventoryItems.filter(i => i.status === 'Low Stock');
-        if (!lowAll.length) {
-            grid.innerHTML = '<div class="empty-state">No low-stock items across departments.</div>';
-            return;
-        }
-        // Group by department
-        const byDept = {};
-        lowAll.forEach(i => {
-            const d = i.department || 'General';
-            (byDept[d] ||= []).push(i);
-        });
-        grid.innerHTML = Object.keys(byDept).sort().map(dept => `
-            <div class="dept-card">
-                <h4>${escapeHtml(dept)}</h4>
-                ${byDept[dept].map(i => `
-                    <div class="dept-item">
-                        <div class="dept-item-info">
-                            <span>${escapeHtml(i.name)}</span>
-                            <small>${escapeHtml(i.type)} · ${escapeHtml(i.category)}</small>
-                        </div>
-                        <span class="lowstock-qty">${i.quantity}</span>
-                    </div>`).join('')}
-            </div>`).join('');
-    }
-
-    // Reorder = open Add Stock modal with the item preselected.
-    function openReorderModal(itemId) {
-        openAddStockModal();
-        const sel = document.getElementById('stockItemSelect');
-        if (sel) sel.value = String(itemId);
-    }
-
     // ─── Tabs / search / static buttons ──────────────────────────────────────
     function wireTabs() {
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -328,13 +268,11 @@
         const tableWrap = document.querySelector('.inventory-table-wrapper');
         const allocCont = document.getElementById('allocatedItemsContainer');
         const selectRow = document.querySelector('.select-all-row');
-        const lowSec    = document.getElementById('lowstockSection');
         const isAlloc   = currentTab === 'allocated';
 
         if (tableWrap) tableWrap.style.display = isAlloc ? 'none'  : 'block';
         if (allocCont) allocCont.style.display = isAlloc ? 'block' : 'none';
         if (selectRow) selectRow.style.display = isAlloc ? 'none'  : 'flex';
-        if (lowSec)    lowSec.style.display    = isAlloc ? 'none'  : 'block';
     }
 
     function wireSearch() {
@@ -355,13 +293,28 @@
         document.getElementById('addNewItemBtn')?.addEventListener('click', openAddModal);
         document.getElementById('addStockBtn')?.addEventListener('click', openAddStockModal);
         document.getElementById('allocateItemBtn')?.addEventListener('click', () => openAllocateModal('Allocate'));
-        document.getElementById('viewAllItemsBtn')?.addEventListener('click', async () => {
-            searchQuery = '';
-            const inp = document.getElementById('inventorySearch');
-            if (inp) inp.value = '';
-            await loadItems();
-            renderInventoryTable();
-        });
+        document.getElementById('viewAllItemsBtn')?.addEventListener('click', () => openViewAllModal());
+
+        // Stat cards double as shortcuts into the View All Items modal,
+        // pre-filtered to the matching item type - mirrors Dashboard's
+        // clickable stat cards (click + Enter/Space for keyboard users).
+        const wireStatCard = (id, filter) => {
+            const card = document.getElementById(id);
+            if (!card) return;
+            card.addEventListener('click', () => openViewAllModal(filter));
+            card.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openViewAllModal(filter);
+                }
+            });
+        };
+        wireStatCard('totalInventoryValueCard', undefined);
+        wireStatCard('equipmentValueCard', 'equipment');
+        wireStatCard('consumableValueCard', 'consumable');
+        wireStatCard('lowStockAlertCard', 'lowstock');
+        wireStatCard('oversupplyAlertCard', 'oversupply');
+
         document.getElementById('bulkDeleteBtn')?.addEventListener('click', bulkDelete);
         document.getElementById('bulkCancelBtn')?.addEventListener('click', () => { selectedItems.clear(); updateBulkBar(); renderInventoryTable(); });
 
@@ -460,7 +413,7 @@
             <div class="modal-overlay" id="invAddStockModal">
                 <div class="edit-modal">
                     <div class="modal-header">
-                        <h3><i class="fas fa-plus-circle"></i> Add Stock</h3>
+                        <h3><i class="fas fa-plus"></i> Add Stock</h3>
                         <button class="modal-close" data-close>&times;</button>
                     </div>
                     <div class="modal-body">
@@ -555,6 +508,35 @@
                     </div>
                 </div>
             </div>
+
+            <!-- View All Items -->
+            <div class="modal-overlay" id="invViewAllModal">
+                <div class="view-all-modal">
+                    <div class="modal-header">
+                        <h3 id="invViewAllTitle"><i class="fas fa-boxes"></i> All Inventory Items</h3>
+                        <button class="modal-close" data-close>&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="modal-stats" id="invViewAllStats"></div>
+                        <div class="modal-table-wrapper">
+                            <table class="modal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Type</th>
+                                        <th>Category</th>
+                                        <th>Quantity</th>
+                                        <th>Price/Unit</th>
+                                        <th>Total Value</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invViewAllTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
         document.body.appendChild(host);
 
@@ -616,8 +598,57 @@
     }
 
     function closeAllModals() {
-        ['invItemModal','invAddStockModal','invAllocateModal','invConfirmModal']
+        ['invItemModal','invAddStockModal','invAllocateModal','invConfirmModal','invViewAllModal']
             .forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
+    }
+
+    // ─── View All Items ─────────────────────────────────────────────────────
+    async function openViewAllModal(tabFilter) {
+        const params = {};
+        let title = 'All Inventory Items';
+        if (tabFilter === 'equipment')  { params.tab = 'equipment';  title = 'Equipment Items'; }
+        if (tabFilter === 'consumable') { params.tab = 'consumable'; title = 'Consumable Items'; }
+        if (tabFilter === 'lowstock')   { params.status = 'Low Stock'; title = 'Low Stock Items'; }
+        if (tabFilter === 'oversupply') { params.status = 'Oversupply'; title = 'Oversupply Items'; }
+
+        const j = await apiGet('list_items', params);
+        const items = j.items || [];
+
+        const titleEl = document.getElementById('invViewAllTitle');
+        if (titleEl) titleEl.innerHTML = `<i class="fas fa-boxes"></i> ${escapeHtml(title)}`;
+
+        const totalUnits = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0);
+        const totalValue = items.reduce((sum, i) => sum + Number(i.total_value || 0), 0);
+
+        const stats = document.getElementById('invViewAllStats');
+        if (stats) {
+            stats.innerHTML = `
+                <div class="modal-stat"><span>Total Items</span><strong>${items.length}</strong></div>
+                <div class="modal-stat"><span>Total Units</span><strong>${totalUnits}</strong></div>
+                <div class="modal-stat"><span>Total Value</span><strong>${formatCurrency(totalValue)}</strong></div>
+            `;
+        }
+
+        const tbody = document.getElementById('invViewAllTableBody');
+        if (tbody) {
+            tbody.innerHTML = items.length ? items.map(item => {
+                const statusClass = item.status === 'Low Stock' ? 'status-badge-lowstock'
+                                  : item.status === 'Oversupply' ? 'status-badge-lowstock'
+                                  : 'status-badge-instock';
+                return `
+                    <tr>
+                        <td>${escapeHtml(item.name)}</td>
+                        <td>${escapeHtml(item.type)}</td>
+                        <td>${escapeHtml(item.category)}</td>
+                        <td>${item.quantity}</td>
+                        <td>${formatCurrency(item.price_unit)}</td>
+                        <td>${formatCurrency(item.total_value)}</td>
+                        <td><span class="${statusClass}">${escapeHtml(item.status)}</span></td>
+                    </tr>`;
+            }).join('') : '<tr class="empty-row"><td colspan="7">No inventory items found.</td></tr>';
+        }
+
+        document.getElementById('invViewAllModal').classList.add('active');
     }
 
     // ─── Add / Edit ──────────────────────────────────────────────────────────
@@ -639,7 +670,7 @@
     function openEditModal(id) {
         const it = inventoryItems.find(i => Number(i.id) === Number(id));
         if (!it) return;
-        document.getElementById('invItemTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Item';
+        document.getElementById('invItemTitle').innerHTML = '<i class="fas fa-pencil-alt"></i> Edit Item';
         document.getElementById('invItemSaveBtn').textContent = 'Save Changes';
         document.getElementById('invItemId').value       = it.id;
         document.getElementById('invItemName').value     = it.name;

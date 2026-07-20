@@ -35,7 +35,37 @@
     async function initDashboard() {
         initCalendar();
         initThemeToggle();
+        initTicketRowClicks();
         await loadDashboardData();
+    }
+
+    // ─── Open a ticket's "Request Details" overlay in place on the Dashboard ──
+    // Reused by the New/Aging Tickets row clicks below and by the "View All"
+    // modal row clicks (wired up in Dashboard.html). Dashboard.html also loads
+    // ServiceRequest.js + ServiceRequest.css so window.openTicketDetails (the
+    // exact same editable overlay used on the Service Request page — assign,
+    // status, SLA, reply) is available without navigating away. Falls back to
+    // navigating there directly only if that script somehow didn't load.
+    function goToTicket(ticketId) {
+        if (!ticketId) return;
+        if (typeof window.openTicketDetails === 'function') {
+            window.openTicketDetails(ticketId);
+        } else {
+            window.location.href = `ServiceRequest.html?view=${encodeURIComponent(String(ticketId).replace(/^#/, ''))}`;
+        }
+    }
+
+    // ─── Click-to-view wiring for the merged tickets feed ─────────────────────
+    // Delegated on the (persistent) list container rather than the individual
+    // .ticket-item rows, since renderTicketsFeed() replaces innerHTML on every
+    // refresh.
+    function initTicketRowClicks() {
+        const container = document.getElementById('ticketsFeedList');
+        if (!container) return;
+        container.addEventListener('click', e => {
+            const item = e.target.closest('.ticket-item[data-ticket-id]');
+            if (item) goToTicket(item.dataset.ticketId);
+        });
     }
 
     // ─── Fetch live data from PHP/MySQL ───────────────────────────────────────
@@ -52,8 +82,7 @@
 
             dashboardData = json;
             renderStats(json.stats);
-            renderNewTickets(json.new_tickets);
-            renderAgingTickets(json.aging_tickets);
+            renderTicketsFeed(json.new_tickets, json.aging_tickets);
             renderActivities(json.activities);
 
         } catch (err) {
@@ -75,68 +104,104 @@
         set('[data-stat="invvalue"]',  formatCurrency(stats.total_inventory_value || 0));
     }
 
-    // ─── Render: New Open Tickets panel ────────────────────────────────────────
-    function renderNewTickets(tickets) {
-        const container = document.getElementById('newTicketsList');
+    // ─── Render: merged tickets feed (New Open + Aging) ────────────────────────
+    // RESTYLED: New Open Tickets and Aging Tickets used to be two separate
+    // panels/sections; now they're one flat list under a single "New open
+    // tickets" header — new tickets first (ID + requester, green "Open" pill),
+    // then aging tickets (title + "ID · priority", red day-count), each row
+    // still carrying data-ticket-id for click-to-view. No data/logic change —
+    // same `t` fields as before, just merged into one container/template pass.
+    function renderTicketsFeed(newTickets, agingTickets) {
+        const container = document.getElementById('ticketsFeedList');
         if (!container) return;
 
-        if (!tickets || tickets.length === 0) {
-            container.innerHTML = '<div class="empty-modal-message">No pending tickets. All caught up!</div>';
-            return;
-        }
-
-        container.innerHTML = tickets.slice(0, 3).map(t => `
-            <div class="ticket-item ${getPriorityClass(t.priority)}">
-                <div class="ticket-id">${escapeHtml(t.id)} <span class="priority-badge ${getPriorityBadgeClass(t.priority)}">${escapeHtml(t.priority)}</span></div>
-                <div class="ticket-desc">${escapeHtml(t.title)}</div>
-                <div class="ticket-meta">Requester: ${escapeHtml(t.requester)} · ${escapeHtml(t.time)}</div>
+        const newRows = (newTickets || []).slice(0, 3).map(t => `
+            <div class="ticket-item ticket-row-new ${getPriorityClass(t.priority)}" data-ticket-id="${escapeHtml(t.id)}">
+                <div class="ticket-id">${escapeHtml(t.id)}</div>
+                <div class="ticket-requester">${escapeHtml(t.requester)}</div>
+                <span class="status-badge status-open">Open</span>
             </div>
-        `).join('');
-    }
+        `);
 
-    // ─── Render: Aging Tickets panel ───────────────────────────────────────────
-    function renderAgingTickets(tickets) {
-        const container = document.getElementById('agingTicketsList');
-        if (!container) return;
-
-        if (!tickets || tickets.length === 0) {
-            container.innerHTML = '<div class="empty-modal-message">No aging tickets right now.</div>';
-            return;
-        }
-
-        container.innerHTML = tickets.slice(0, 3).map(t => `
-            <div class="ticket-item ${getPriorityClass(t.priority)}">
-                <div class="ticket-id">${escapeHtml(t.id)} <span class="priority-badge ${getPriorityBadgeClass(t.priority)}">${escapeHtml(t.priority)}</span></div>
+        const agingRows = (agingTickets || []).slice(0, 3).map(t => `
+            <div class="ticket-item ${getPriorityClass(t.priority)}" data-ticket-id="${escapeHtml(t.id)}">
                 <div class="ticket-desc">${escapeHtml(t.title)}</div>
-                <div class="ticket-meta">Requester: ${escapeHtml(t.requester)} · ${escapeHtml(t.days)}</div>
+                <div class="ticket-id">${escapeHtml(t.id)} · ${escapeHtml(t.priority)}</div>
+                <div class="ticket-meta">${escapeHtml(t.days)}</div>
             </div>
-        `).join('');
+        `);
+
+        const rows = newRows.concat(agingRows);
+        container.innerHTML = rows.length
+            ? rows.join('')
+            : '<div class="empty-modal-message">No tickets to show right now.</div>';
     }
 
     // ─── Render: Recent Activities panel ───────────────────────────────────────
+    // TEMPLATE TWEAK (approved): previously rendered one flat sentence per row.
+    // Now best-effort splits the API's single combined `title` string
+    // ("Ticket #ID: message") into a bold ticket ID + the message as its own
+    // description line, plus a small event-count badge next to the panel
+    // heading (#activitiesCount in Dashboard.html). No new data is fetched —
+    // get_dashboard_data.php only ever returns {title, time, icon} per
+    // activity. Two things this can't do without a backend change:
+    //   1. A "by [Name]" actor line — the SQL query selects a.author_name but
+    //      the PHP endpoint doesn't include it in the JSON response, so it's
+    //      simply not available here. Omitted rather than faked.
+    //   2. A guaranteed-accurate status field — there isn't one, so the status
+    //      pill below is a HEURISTIC guess from keywords in the message text
+    //      (closed/resolved, ongoing, pending/confirmation, approved). It can
+    //      mis-classify messages that don't contain those words, and shows no
+    //      pill at all rather than a wrong guess in that case.
     function renderActivities(activities) {
         const container = document.getElementById('activitiesList');
         if (!container) return;
+
+        const countBadge = document.getElementById('activitiesCount');
+        if (countBadge) {
+            countBadge.textContent = (activities && activities.length) ? `${activities.length} events` : '';
+        }
 
         if (!activities || activities.length === 0) {
             container.innerHTML = '<div class="empty-modal-message">No recent activity yet.</div>';
             return;
         }
 
-        container.innerHTML = activities.slice(0, 4).map(a => `
-            <div class="activity-item">
-                <div class="activity-icon"><i class="fas ${a.icon}"></i></div>
-                <div class="activity-details">
-                    <div class="activity-title">${escapeHtml(a.title)}</div>
+        container.innerHTML = activities.slice(0, 4).map(a => {
+            const match       = /^Ticket #(\S+):\s*(.*)$/.exec(a.title || '');
+            const ticketId    = match ? match[1] : '';
+            const description = match ? match[2] : (a.title || '');
+
+            let statusLabel = '';
+            let statusClass = '';
+            if (/closed|resolved/i.test(description)) {
+                statusLabel = 'Closed';    statusClass = 'activity-status-closed';
+            } else if (/ongoing/i.test(description)) {
+                statusLabel = 'Ongoing';   statusClass = 'activity-status-ongoing';
+            } else if (/pending|confirmation/i.test(description)) {
+                statusLabel = 'Pending';   statusClass = 'activity-status-pending';
+            } else if (/approved/i.test(description)) {
+                statusLabel = 'Approved';  statusClass = 'activity-status-approved';
+            }
+
+            return `
+                <div class="activity-item">
+                    <div class="activity-details">
+                        <div class="activity-title">
+                            ${ticketId ? `<strong>#${escapeHtml(ticketId)}</strong>` : ''}
+                            ${statusLabel ? `<span class="activity-status-badge ${statusClass}">${statusLabel}</span>` : ''}
+                        </div>
+                        <div class="activity-desc">${escapeHtml(description)}</div>
+                    </div>
                     <div class="activity-time">${escapeHtml(a.time)}</div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function showEmptyStates() {
         const msg = '<div class="empty-modal-message">Could not load data. Check your connection.</div>';
-        ['newTicketsList', 'agingTicketsList', 'activitiesList'].forEach(id => {
+        ['ticketsFeedList', 'activitiesList'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = msg;
         });
@@ -227,16 +292,18 @@
         const themeIcon = document.getElementById('themeIcon');
         if (!themeSwitch || !themeIcon) return;
 
-        const isDark = localStorage.getItem('theme') === 'dark';
+        const savedTheme = localStorage.getItem('theme');
+        const isDark = savedTheme === 'dark' ||
+            (savedTheme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         themeSwitch.checked = isDark;
         document.body.classList.toggle('dark-mode', isDark);
-        themeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        themeIcon.className = isDark ? 'ti ti-sun' : 'ti ti-moon';
 
         themeSwitch.addEventListener('change', e => {
             const dark = e.target.checked;
             document.body.classList.toggle('dark-mode', dark);
             localStorage.setItem('theme', dark ? 'dark' : 'light');
-            themeIcon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+            themeIcon.className = dark ? 'ti ti-sun' : 'ti ti-moon';
         });
     }
 
@@ -246,4 +313,9 @@
     window.getPriorityClass      = getPriorityClass;
     window.getPriorityBadgeClass = getPriorityBadgeClass;
     window.escapeHtmlDashboard   = escapeHtml;
+    window.goToTicket            = goToTicket;
+    // Lets ServiceRequest.js's detail overlay (opened in place, see goToTicket
+    // above) refresh these widgets on close so edits made there show up here
+    // without a manual page reload.
+    window.refreshDashboardWidgets = loadDashboardData;
 })();

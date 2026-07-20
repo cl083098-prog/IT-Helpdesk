@@ -24,12 +24,12 @@
         wrapper.className = 'admin-notif-wrapper';
         wrapper.innerHTML = `
             <button class="notification-icon admin-notif-bell" id="adminNotifBell" title="Notifications">
-                <i class="fas fa-bell"></i>
+                <i class="ti ti-bell"></i>
                 <span class="admin-notif-badge" id="adminNotifBadge" style="display:none;">0</span>
             </button>
             <div class="admin-notif-dropdown" id="adminNotifDropdown">
                 <div class="admin-notif-header">
-                    <span><i class="fas fa-bell"></i> Notifications</span>
+                    <span><i class="ti ti-bell"></i> Notifications</span>
                     <button class="admin-notif-mark-read" id="adminMarkAllReadBtn">Mark all read</button>
                 </div>
                 <div class="admin-notif-list" id="adminNotifList">
@@ -104,7 +104,7 @@
             ].join(';');
             toast.innerHTML = `
                 <div style="flex-shrink:0;width:34px;height:34px;background:rgba(255,255,255,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-comment-dots" style="font-size:0.95rem;"></i>
+                    <i class="ti ti-message-circle" style="font-size:0.95rem;"></i>
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div id="adminNwToastTitle" style="font-weight:700;font-size:0.85rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>

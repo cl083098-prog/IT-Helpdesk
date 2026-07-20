@@ -1,59 +1,219 @@
-/* Login.css */
+
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* 2026-07-17 CSMA gold restyle: repointed to the school logo's gold
+   (#FDC913). Token NAMES kept as-is since other rules reference them via
+   var() — only values changed. --gold is the bright brand fill (Sign In
+   button only, paired with ink text) — raw #FDC913 fails WCAG AA as a focus
+   ring or link-hover text color on white, so every other gold usage
+   (focus-visible outlines, link hovers) was repointed to use --gold-dark
+   (#8A6D00) instead, verified ≥4.5:1 text / ≥3:1 UI contrast. --navy-900/800/
+   700/950 (heading/label/input text) now resolve to ink. */
+:root {
+    --navy-950: #1A1A1A;
+    --navy-900: #1A1A1A;
+    --navy-800: #1A1A1A;
+    --navy-700: #1A1A1A;
+    --gold: #FDC913;
+    --gold-dark: #8A6D00;
+    --gold-tint: #FFF3D1;
+    --gray-muted: #585858;
+    --gray-light: #A0A0A0;
+    --border-soft: #E5E5E5;
+    --off-white: #FFFFFF;
+}
+
 body {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Roboto', sans-serif;
+    min-height: 100vh;
+    background: var(--off-white);
+    transition: opacity 0.45s ease;
+}
+
+/* NEW: applied by Login.js right before navigating to the dashboard on a
+   successful login, so the page cross-fades out instead of hard-cutting to
+   the next page. */
+body.page-transitioning {
+    opacity: 0;
+}
+
+/* ---------- Layout shell ---------- */
+
+.split-screen {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* ---------- Left: branding panel ---------- */
+
+.brand-panel {
+    position: relative;
+    flex: 0 0 55%;
+    max-width: 55%;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.8rem;
-    position: relative;
-    background: #0a1a2a;
+    overflow: hidden;
 }
 
-body::before {
+/* Photo lives on its own layer (behind .brand-panel__overlay) so a contrast/
+   saturation boost can be applied to the image only, without washing out the
+   white text sitting above it. Slight overscan + scale keeps the edges from
+   showing a seam once the filter is applied. */
+.brand-panel::before {
     content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh1fMD_8RxSu9sexj1Xs5AWEVmIIh2Pk99bIlIMhZB3d_oicsBTexeu6ajH6rcRoZ3P4RxtSXgvmrNISWRfTRYVxDs1KSiyhhPgxccVoDMRIaBnDKZoZwHazRswYVvcXb27YzXYTkPG_1g/s1600/35963670_1713828492043143_397779139148382208_n.jpg');
+    position: absolute;
+    inset: -3%;
+    /* Local copy — was hotlinked from blogger.googleusercontent.com, which
+       blocked the request when loaded from localhost (no valid referer),
+       so the image never rendered. */
+    background-image: url('../assets/images/csma_campus.jpg');
     background-size: cover;
-    background-position: center 30%;
+    background-position: center 28%;
     background-repeat: no-repeat;
-    filter: brightness(0.6) contrast(1.08);
-    z-index: -2;
+    filter: contrast(1.15) saturate(1.12) brightness(0.92);
+    transform: scale(1.03);
 }
 
-body::after {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
+/* Layered gradient: a soft radial vignette (draws focus to the seal/name in
+   the center) plus the original directional navy tint, for more depth than a
+   single flat gradient. */
+.brand-panel__overlay {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(120% 90% at 50% 20%, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0.82) 100%),
+        linear-gradient(160deg, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.74) 55%, rgba(0, 0, 0, 0.88) 100%);
+}
+
+.brand-panel__content {
+    position: relative;
+    z-index: 1;
+    max-width: 480px; /* NEW (Refinement #2): was 440px — extra room helps the tagline fit on one line */
+    padding: 2.5rem;
+    text-align: center;
+    color: #fff;
+    /* NEW: mirrors the login-card's entrance so both halves settle in together
+       on page load instead of the card animating in against a static photo. */
+    animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1) both;
+}
+
+.brand-seal {
+    width: 148px;
+    height: 148px;
+    margin: 0 auto 1.6rem auto;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    overflow: hidden;
+}
+
+.brand-seal__image {
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(8, 28, 45, 0.72) 0%, rgba(2, 18, 30, 0.8) 100%);
-    z-index: -1;
-    backdrop-filter: brightness(0.96);
+    object-fit: cover;
+    border-radius: 50%;
 }
 
-.login-container {
+/* NEW (Refinement #2): smaller size + tighter tracking so this fits on one
+   line at normal desktop widths (was 0.78rem / 3px letter-spacing, which
+   wrapped to two lines). */
+.brand-tagline {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    /* Literal cream (not var(--gold-dark)/#111111): this sits on the dark
+       photo overlay above, where the new near-black accent would be
+       unreadable. Cream reads as the intentional accent against black here. */
+    color: #EDE9DF;
+    margin-bottom: 0.85rem;
+    white-space: nowrap;
+}
+
+.brand-name {
+    font-family: 'Playfair Display', 'Georgia', serif;
+    font-weight: 700;
+    font-size: clamp(1.7rem, 2.6vw, 2.5rem);
+    line-height: 1.28;
+    margin-bottom: 1.1rem;
+}
+
+/* .brand-name__accent: no styling applied (underline removed per request) —
+   class kept on the "Monica" span in the HTML in case an accent treatment
+   is wanted again later. */
+
+/* NEW (Refinement #2): lighter visual weight (smaller size + more muted
+   color, was 0.98rem / #c7d0d9) so the hierarchy reads clearly: school name
+   > tagline > mission line > Est. info. */
+.brand-mission {
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: #B8B5AC;
+    margin-bottom: 2rem;
+}
+
+.brand-meta {
+    font-size: 0.8rem;
+    letter-spacing: 0.4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.brand-meta__gold {
+    /* Literal cream override — same reasoning as .brand-tagline above. */
+    color: #EDE9DF;
+    font-weight: 600;
+}
+
+.brand-meta__dot {
+    color: #8f8c84;
+}
+
+.brand-meta__gray {
+    color: #c9c6bf;
+}
+
+/* ---------- Right: form panel ---------- */
+
+.form-panel {
+    flex: 1 1 45%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.8rem;
+    background: var(--off-white);
+}
+
+.login-card {
     width: 100%;
-    max-width: 540px;
-    margin: 0 auto;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid #E8E6E0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    padding: 2.6rem 2.3rem 2.2rem 2.3rem;
     animation: fadeSlideUp 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
 
 @keyframes fadeSlideUp {
     from {
         opacity: 0;
-        transform: translateY(28px);
+        transform: translateY(20px);
     }
     to {
         opacity: 1;
@@ -61,137 +221,153 @@ body::after {
     }
 }
 
-.login-card {
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(2px);
-    border-radius: 42px;
-    box-shadow: 0 30px 55px -20px rgba(0, 0, 0, 0.45), 0 6px 14px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    padding: 2.2rem 2rem 2rem 2rem;
-    transition: transform 0.25s ease, box-shadow 0.3s;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-.login-card:hover {
-    box-shadow: 0 40px 60px -22px rgba(0, 0, 0, 0.5);
-    transform: translateY(-2px);
-}
-
-@media (max-width: 560px) {
-    .login-card {
-        padding: 1.8rem 1.5rem;
-        border-radius: 34px;
+/* NEW: entrance for the error/success toasts below. Re-plays automatically
+   whenever an element goes from display:none to display:block/flex, since
+   it only gets a render box (and therefore starts its animation) at that
+   point — no JS re-triggering needed. */
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
     }
-    body {
-        padding: 1rem;
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-.logo-area {
-    text-align: center;
-    margin-bottom: 1.6rem;
-}
-
-.logo-image {
-    max-width: 100px;
-    height: auto;
-    display: block;
-    margin: 0 auto 0.8rem auto;
-    border-radius: 28px;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
-    background: #fff9f0;
-    padding: 6px;
-    transition: all 0.2s ease;
-    border: 1px solid rgba(200, 170, 110, 0.4);
-}
-
-.logo-image:hover {
-    transform: scale(1.02);
-    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22);
-}
-
-.logo-label {
-    font-size: 1.58rem;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    margin: 0.4rem 0 0.15rem 0;
-    text-transform: uppercase;
-    line-height: 1.25;
-    background: linear-gradient(135deg, #0a2f44, #1a5579);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    text-shadow: none;
-}
-
-.logo-sub {
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: #2c6285;
-    border-top: 1px solid #e2edf2;
+.portal-badge {
     display: inline-block;
-    padding-top: 0.55rem;
-    margin-top: 0.3rem;
-    letter-spacing: 0.3px;
+    background: var(--gold-tint);
+    color: var(--gold-dark);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.4rem 0.95rem;
+    border-radius: 999px;
+    margin-bottom: 1.4rem;
 }
 
-@media (max-width: 520px) {
-    .logo-label {
-        font-size: 1.32rem;
-    }
-    .logo-sub {
-        font-size: 0.7rem;
-    }
-    .logo-image {
-        max-width: 82px;
-    }
+.login-heading {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--navy-900);
+    letter-spacing: -0.3px;
+    margin-bottom: 0.35rem;
 }
+
+.login-subtext {
+    font-size: 0.92rem;
+    color: var(--gray-muted);
+    margin-bottom: 2rem;
+}
+
+/* ---------- Inputs ---------- */
 
 .input-group {
-    margin-bottom: 1.45rem;
+    margin-bottom: 1.3rem;
     text-align: left;
 }
 
 .input-group label {
     display: block;
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    color: #1a4c6e;
-    margin-bottom: 0.5rem;
+    color: var(--navy-700);
+    margin-bottom: 0.45rem;
 }
 
-.input-group input {
+.input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 0.95rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    color: var(--gray-light);
+    pointer-events: none;
+}
+
+.input-wrap input {
     width: 100%;
-    padding: 0.85rem 1.1rem;
+    padding: 0.85rem 1.1rem 0.85rem 2.7rem;
     font-size: 0.95rem;
-    border: 1.5px solid #e2edf4;
-    border-radius: 28px;
-    background-color: #ffffff;
-    transition: all 0.2s;
-    font-family: 'Inter', monospace;
-    color: #0a2f3f;
+    border: 1.5px solid var(--border-soft);
+    border-radius: 14px;
+    background-color: #fff;
+    color: var(--navy-900);
     font-weight: 500;
+    font-family: inherit;
+    transition: all 0.25s ease-in-out;
 }
 
-.input-group input:focus {
+.input-wrap input#password {
+    padding-right: 2.7rem;
+}
+
+.input-wrap input:focus {
     outline: none;
-    border-color: #2c7cb6;
-    box-shadow: 0 0 0 3px rgba(44, 124, 182, 0.2);
-    background-color: #fefefe;
+    border-color: var(--gold-dark);
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.12);
 }
 
-.input-group input::placeholder {
-    color: #a9c1d4;
+.input-wrap input::placeholder {
+    color: #9C9A94;
     font-weight: 400;
-    font-size: 0.9rem;
 }
+
+.toggle-password {
+    position: absolute;
+    right: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0.2rem;
+    color: var(--gray-light);
+    cursor: pointer;
+    line-height: 0;
+    transition: color 0.25s ease-in-out;
+}
+
+.toggle-password:hover {
+    color: var(--navy-700);
+}
+
+.input-hint {
+    font-size: 0.75rem;
+    color: var(--gray-light);
+    margin-top: 0.45rem;
+}
+
+/* NEW (Refinement #7): static error slot below the password field. Hidden by
+   default; Login.js's existing showError() sets style.display='block' (and
+   fills textContent) on a failed login — see #loginError in Login.html. */
+.field-error {
+    display: none;
+    color: #B0362A;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 0.6rem;
+    animation: toastIn 0.35s ease-out;
+}
+
+/* ---------- Options row ---------- */
 
 .options-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.8rem;
+    margin: 1.5rem 0 1.75rem 0;
     font-size: 0.85rem;
     flex-wrap: wrap;
     gap: 0.6rem;
@@ -202,106 +378,137 @@ body::after {
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
-    color: #1f5f85;
+    color: var(--navy-700);
     font-weight: 500;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
 }
 
 .checkbox-label input {
     width: 1rem;
     height: 1rem;
     cursor: pointer;
-    accent-color: #1e6f9f;
+    accent-color: var(--gold-dark);
 }
 
 .forgot-link {
-    color: #1a6a96;
+    color: var(--gold-dark);
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.82rem;
-    transition: color 0.2s;
+    font-size: 0.85rem;
+    transition: all 0.25s ease-in-out;
     border-bottom: 1px dotted transparent;
 }
 
 .forgot-link:hover {
-    color: #0b4463;
-    border-bottom-color: #0b4463;
+    color: var(--gold);
+    border-bottom-color: var(--gold);
 }
 
+/* ---------- Primary button ---------- */
+
 .btn-primary {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
     width: 100%;
-    background: linear-gradient(105deg, #1b5a7e 0%, #134768 100%);
+    background: #1A1A1A;
     border: none;
     padding: 0.9rem 1.2rem;
-    border-radius: 44px;
-    color: white;
-    font-size: 0.95rem;
+    border-radius: 999px;
+    color: #FFFFFF;
+    font-size: 0.9rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1.2px;
     cursor: pointer;
-    transition: all 0.25s;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-    text-decoration: none;
-    text-align: center;
     font-family: inherit;
-    margin: 0 auto 1.2rem auto;
+    box-shadow: 0 10px 20px -6px rgba(0, 0, 0, 0.35);
+    transition: all 0.25s;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(105deg, #134c6b, #0f3b55);
+    background: #000000;
     transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-    letter-spacing: 1.4px;
+    box-shadow: 0 14px 26px -6px rgba(0, 0, 0, 0.4);
 }
 
 .btn-primary:active {
     transform: translateY(1px);
 }
 
-.security-note {
-    text-align: center;
-    font-size: 0.68rem;
-    color: #5f7f9c;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 1rem;
-    padding-top: 0.7rem;
-    border-top: 1px solid #eaf0f5;
-    font-weight: 500;
+/* NEW (Refinement #7): loading/spinner state. Purely CSS-driven off the
+   button's native :disabled state — Login.js already sets
+   submitBtn.disabled = true/false around the fetch, so no JS changes were
+   needed to wire this up. */
+.btn-primary:disabled {
+    opacity: 0.85;
+    cursor: not-allowed;
 }
 
-.secure-icon {
-    font-size: 0.7rem;
-    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+.btn-primary:disabled:hover {
+    transform: none;
+}
+
+.btn-spinner {
+    display: none;
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-spin 0.7s linear infinite;
+}
+
+.btn-primary:disabled .btn-spinner {
+    display: inline-block;
+}
+
+.btn-primary:disabled .btn-arrow {
+    display: none;
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---------- Divider + footer ---------- */
+
+.login-divider {
+    height: 1px;
+    background: var(--border-soft);
+    margin: 2.4rem 0 1.3rem 0; /* NEW (Refinement #3): more breathing room above (was 1.9rem) */
 }
 
 .helpdesk-footer {
     text-align: center;
-    margin-top: 1.2rem;
-    font-size: 0.78rem;
+    font-size: 0.85rem;
 }
 
 .helpdesk-footer p {
-    color: #4e6f8c;
+    color: var(--gray-muted);
     font-weight: 500;
 }
 
 .support-link {
-    color: #1f6e9c;
+    color: var(--gold-dark);
     text-decoration: none;
     font-weight: 700;
-    border-bottom: 1px dashed #b8d0e2;
+    border-bottom: 1px dashed rgba(150, 112, 10, 0.35);
     transition: all 0.2s;
 }
 
 .support-link:hover {
-    color: #0c4e73;
+    color: var(--gold);
     border-bottom-style: solid;
-    border-bottom-color: #0c4e73;
+    border-bottom-color: var(--gold);
+}
+
+.copyright {
+    font-size: 0.72rem;
+    color: var(--gray-light);
+    font-weight: 400;
+    margin-top: 0.4rem;
 }
 
 form {
@@ -309,11 +516,233 @@ form {
     width: 100%;
 }
 
-.input-group input:focus {
-    border-color: #3487b5;
-    box-shadow: 0 0 0 4px rgba(52, 135, 181, 0.15);
+/* ---------- NEW (Refinement #5): keyboard focus-visible states ---------- */
+
+.input-wrap input:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
 }
 
-button.btn-primary {
-    background: linear-gradient(105deg, #1f5f82, #154d6b);
+.checkbox-label input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.toggle-password:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.forgot-link:focus-visible,
+.support-link:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: 3px;
+}
+
+.btn-primary:focus-visible {
+    outline: 2px solid var(--navy-900);
+    outline-offset: 3px;
+}
+
+/* ---------- NEW: shared info modal ---------- */
+/* Reuses the existing palette (--gold/--navy-900/--gray-muted etc.) and the
+   same rounded-card/soft-shadow language as .login-card. New classes:
+   .modal-overlay, .modal-card, .modal-close, .modal-icon, .modal-title,
+   .modal-body, .modal-action (the latter is layered on top of the existing
+   .btn-primary, so the action button matches the Sign In button exactly). */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: none; /* JS switches this to "flex" when opening — see openModal() in Login.html */
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    z-index: 1000;
+    background: rgba(8, 20, 32, 0.6);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.modal-overlay.is-open {
+    opacity: 1;
+}
+
+.modal-card {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 30px 60px -20px rgba(10, 30, 48, 0.35), 0 10px 24px rgba(10, 30, 48, 0.12);
+    padding: 2.2rem 2rem 2rem;
+    text-align: center;
+    transform: scale(0.94) translateY(8px);
+    transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+.modal-overlay.is-open .modal-card {
+    transform: scale(1) translateY(0);
+}
+
+.modal-card:focus {
+    outline: none; /* the overlay/card itself takes programmatic focus on open; no visible ring needed here */
+}
+
+.modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--off-white);
+    color: var(--gray-muted);
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+.modal-close:hover {
+    background: #ece8de;
+    color: var(--navy-900);
+}
+
+.modal-close:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+.modal-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.1rem;
+    border-radius: 50%;
+    background: var(--gold-tint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+}
+
+.modal-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--navy-900);
+    letter-spacing: -0.2px;
+    margin-bottom: 0.6rem;
+}
+
+.modal-body {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--gray-muted);
+    margin-bottom: 1.7rem;
+}
+
+.modal-body p + p {
+    margin-top: 0.5rem;
+}
+
+.modal-body a {
+    color: var(--gold-dark);
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(150, 112, 10, 0.35);
+}
+
+.modal-body a:hover {
+    color: var(--gold);
+    border-bottom-style: solid;
+    border-bottom-color: var(--gold);
+}
+
+.modal-body a:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+/* .modal-action needs no extra rules — it reuses .btn-primary as-is (same
+   gradient/pill shape/hover/focus-visible styles as the Sign In button). */
+
+@media (max-width: 480px) {
+    .modal-card {
+        padding: 1.8rem 1.4rem 1.6rem;
+        border-radius: 20px;
+    }
+}
+
+/* ---------- Responsive ---------- */
+
+/* NEW (Refinement #6): below 900px the branding panel no longer disappears —
+   it collapses into a compact header (small seal + school name only, no
+   tagline/mission/meta paragraph text) stacked above the form, instead of
+   vanishing entirely. */
+@media (max-width: 900px) {
+    .split-screen {
+        flex-direction: column;
+    }
+    .brand-panel {
+        flex: 0 0 auto;
+        max-width: 100%;
+        min-height: 0;
+    }
+    .brand-panel::before {
+        background-position: center 35%;
+    }
+    .brand-panel__content {
+        max-width: 100%;
+        padding: 2rem 1.5rem 1.75rem;
+    }
+    .brand-seal {
+        width: 92px;
+        height: 92px;
+        margin-bottom: 0.9rem;
+    }
+    .brand-tagline,
+    .brand-mission,
+    .brand-meta {
+        display: none;
+    }
+    .brand-name {
+        font-size: 1.5rem;
+        margin-bottom: 0;
+    }
+    .form-panel {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 520px) {
+    .brand-panel__content {
+        padding: 1.75rem 1.25rem 1.5rem;
+    }
+    .brand-seal {
+        width: 76px;
+        height: 76px;
+        margin-bottom: 0.75rem;
+    }
+    .brand-name {
+        font-size: 1.3rem;
+    }
+    .form-panel {
+        padding: 1.5rem 1rem;
+    }
+    .login-card {
+        padding: 2.1rem 1.5rem 1.8rem 1.5rem;
+        border-radius: 22px;
+    }
+    .login-heading {
+        font-size: 1.45rem;
+    }
 }
