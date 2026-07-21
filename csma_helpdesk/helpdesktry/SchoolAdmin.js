@@ -6,6 +6,7 @@
     'use strict';
 
     const API = '../api/school-admin-data.php';
+    const COST_API = '../api/cost_analysis.php';
 
     // ─── Auth ─────────────────────────────────────────────────────────────────
     let currentUser = null;
@@ -329,16 +330,28 @@
     }
 
     // ─── Cost Analysis ────────────────────────────────────────────────────────
+    let caMonthlyChart = null;
+    let caCategoryChart = null;
+    const CA_CATEGORY_COLORS = {
+        'Computers':          '#1f6392',
+        'Printers':           '#e67e22',
+        'Network Equipment':  '#27ae60',
+        'Displays':           '#9b59b6',
+        'Other':              '#95a5a6',
+    };
+
     async function loadCostAnalysis() {
-        const json = await apiFetch(`${API}?action=get_cost_analysis`);
+        const params = new URLSearchParams({ action: 'get_dashboard', user_role: currentUser.role, months: 6 });
+        const json = await apiFetch(`${COST_API}?${params.toString()}`);
         if (!json?.success) return;
 
-        const t = json.totals || {};
-        const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-        s('caRepair',      formatPeso(t.repair     || 0));
-        s('caMaintenance', formatPeso(t.maintenance || 0));
-        s('caReplacement', formatPeso(t.replacement || 0));
-        s('caGrandTotal',  formatPeso(t.grand_total || 0));
+        const s = json.summary || {};
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        set('caRepair',      formatPeso(s.total_repair_cost      || 0));
+        set('caReplacement', formatPeso(s.total_replacement_cost || 0));
+        set('caMaintenance', formatPeso(s.total_maintenance_cost || 0));
+        set('caConsumable',  formatPeso(s.total_consumable_cost  || 0));
+        set('caGrandTotal',  formatPeso(s.grand_total            || 0));
 
         // Dept table
         const deptBody = document.getElementById('caDeptBody');
@@ -346,43 +359,66 @@
             deptBody.innerHTML = json.by_department?.length
                 ? json.by_department.map(d => `<tr>
                     <td>${escHtml(d.department)}</td>
-                    <td>${formatPeso(d.repair_cost)}</td>
-                    <td>${formatPeso(d.maintenance_cost)}</td>
-                    <td><strong>${formatPeso(d.total_cost)}</strong></td>
+                    <td>${formatPeso(d.repair)}</td>
+                    <td>${formatPeso(d.replacement)}</td>
+                    <td>${formatPeso(d.maintenance)}</td>
+                    <td>${formatPeso(d.consumable)}</td>
+                    <td><strong>${formatPeso(d.total)}</strong></td>
                   </tr>`).join('')
-                : '<tr><td colspan="4" class="empty-msg">No cost data yet.</td></tr>';
+                : '<tr><td colspan="6" class="empty-msg">No cost data yet.</td></tr>';
         }
 
         // Cat table
         const catBody = document.getElementById('caCatBody');
         if (catBody) {
-            const grandTotal = parseFloat(t.grand_total || 1) || 1;
             catBody.innerHTML = json.by_category?.length
                 ? json.by_category.map(c => `<tr>
                     <td>${escHtml(c.category)}</td>
                     <td>${formatPeso(c.total_cost)}</td>
-                    <td>${c.ticket_count}</td>
-                    <td>${((parseFloat(c.total_cost)||0)/grandTotal*100).toFixed(1)}%</td>
+                    <td>${c.percentage}%</td>
                   </tr>`).join('')
-                : '<tr><td colspan="4" class="empty-msg">No cost data yet.</td></tr>';
+                : '<tr><td colspan="3" class="empty-msg">No cost data yet.</td></tr>';
         }
 
-        // Monthly trend — simple bar-style using CSS flex (no external chart lib required)
-        const chartWrapper = document.getElementById('caChartWrapper');
-        if (chartWrapper && json.monthly_trend?.length) {
-            const maxVal = Math.max(...json.monthly_trend.map(m => parseFloat(m.total)||0), 1);
-            chartWrapper.innerHTML = `<div style="display:flex;gap:12px;align-items:flex-end;height:140px;padding:0 8px;">
-                ${json.monthly_trend.map(m => {
-                    const pct = ((parseFloat(m.total)||0)/maxVal*100).toFixed(1);
-                    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
-                        <span style="font-size:0.68rem;color:#6c86a0;font-weight:600;">${formatPeso(m.total)}</span>
-                        <div style="width:100%;background:#1f6392;border-radius:6px 6px 0 0;height:${pct}%;min-height:4px;transition:height 0.4s;" title="${m.month}: ${formatPeso(m.total)}"></div>
-                        <span style="font-size:0.7rem;color:#95a5a6;">${m.month?.slice(5)}</span>
-                    </div>`;
-                }).join('')}
-            </div>`;
-        } else if (chartWrapper) {
-            chartWrapper.innerHTML = '<div class="empty-msg">No expense trend data yet.</div>';
+        // Monthly trend line chart
+        const lineCtx = document.getElementById('caMonthlyChart');
+        if (lineCtx && window.Chart) {
+            const labels = (json.monthly_trend || []).map(m => m.month);
+            const data   = (json.monthly_trend || []).map(m => m.total);
+            if (caMonthlyChart) caMonthlyChart.destroy();
+            caMonthlyChart = new Chart(lineCtx, {
+                type: 'line',
+                data: { labels, datasets: [{
+                    label: 'Expenses', data,
+                    borderColor: '#1f6392', backgroundColor: 'rgba(31,99,146,0.12)',
+                    fill: true, tension: 0.3, pointRadius: 3,
+                }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: (v) => formatPeso(v) } } }
+                }
+            });
+        }
+
+        // Category pie chart
+        const pieCtx = document.getElementById('caCategoryPieChart');
+        if (pieCtx && window.Chart) {
+            const labels = (json.by_category || []).map(c => c.category);
+            const data   = (json.by_category || []).map(c => c.total_cost);
+            const colors = labels.map(l => CA_CATEGORY_COLORS[l] || '#95a5a6');
+            if (caCategoryChart) caCategoryChart.destroy();
+            caCategoryChart = new Chart(pieCtx, {
+                type: 'pie',
+                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10 } },
+                        tooltip: { callbacks: { label: (c) => `${c.label}: ${formatPeso(c.raw)}` } }
+                    }
+                }
+            });
         }
     }
 
