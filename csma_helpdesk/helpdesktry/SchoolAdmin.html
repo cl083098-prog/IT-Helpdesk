@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="Sidebar.css?v=19">
     <link rel="stylesheet" href="SchoolAdmin.css?v=20">
 </head>
@@ -274,12 +275,16 @@
                     <div class="stat-number" id="caRepair">0</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-title">Total Replacement</div>
+                    <div class="stat-number" id="caReplacement">0</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-title">Total Maintenance</div>
                     <div class="stat-number" id="caMaintenance">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-title">Total Replacement</div>
-                    <div class="stat-number" id="caReplacement">0</div>
+                    <div class="stat-title">Total Consumable</div>
+                    <div class="stat-number" id="caConsumable">0</div>
                 </div>
                 <div class="stat-card dark">
                     <div class="stat-title">Grand Total</div>
@@ -289,30 +294,37 @@
 
             <div class="two-col-grid">
                 <div class="panel">
-                    <div class="panel-header"><h3>Cost by Department</h3></div>
-                    <div class="table-wrapper">
-                        <table class="sa-table" id="caDeptTable">
-                            <thead><tr><th>Department</th><th>Repair Cost</th><th>Maintenance Cost</th><th>Total</th></tr></thead>
-                            <tbody id="caDeptBody"><tr><td colspan="4" class="loading-msg">Loading…</td></tr></tbody>
-                        </table>
+                    <div class="panel-header"><h3>Monthly Expense Trend</h3></div>
+                    <div class="chart-wrapper" style="height:260px;">
+                        <canvas id="caMonthlyChart"></canvas>
                     </div>
                 </div>
                 <div class="panel">
-                    <div class="panel-header"><h3>Cost by Category</h3></div>
-                    <div class="table-wrapper">
-                        <table class="sa-table" id="caCatTable">
-                            <thead><tr><th>Category</th><th>Total Cost</th><th>Tickets</th><th>%</th></tr></thead>
-                            <tbody id="caCatBody"><tr><td colspan="4" class="loading-msg">Loading…</td></tr></tbody>
-                        </table>
+                    <div class="panel-header"><h3>Costs by Equipment Category</h3></div>
+                    <div class="chart-wrapper" style="height:260px;">
+                        <canvas id="caCategoryPieChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Monthly trend -->
-            <div class="panel">
-                <div class="panel-header"><h3>Monthly Expense Trend</h3></div>
-                <div class="chart-wrapper" id="caChartWrapper">
-                    <canvas id="caMonthlyChart" height="120"></canvas>
+            <div class="two-col-grid">
+                <div class="panel">
+                    <div class="panel-header"><h3>Cost by Department</h3></div>
+                    <div class="table-wrapper">
+                        <table class="sa-table" id="caDeptTable">
+                            <thead><tr><th>Department</th><th>Repair</th><th>Replacement</th><th>Maintenance</th><th>Consumable</th><th>Total</th></tr></thead>
+                            <tbody id="caDeptBody"><tr><td colspan="6" class="loading-msg">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><h3>Cost Breakdown by Category</h3></div>
+                    <div class="table-wrapper">
+                        <table class="sa-table" id="caCatTable">
+                            <thead><tr><th>Category</th><th>Total Cost</th><th>%</th></tr></thead>
+                            <tbody id="caCatBody"><tr><td colspan="3" class="loading-msg">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>

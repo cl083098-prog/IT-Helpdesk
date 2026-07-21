@@ -364,6 +364,20 @@ body.dark-mode .card-icon.maintenance {
     font-weight: 700;
 }
 
+/* Predicted Budget by Department — per-row trend % (added for the
+   Linear Regression forecast table; mirrors CostAnalysis.css .card-trend) */
+.trend-pct {
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+.trend-pct.positive { color: #2F7D42; }
+.trend-pct.negative { color: #B0362A; }
+.trend-pct.neutral  { color: #6B6B6B; }
+
+body.dark-mode .trend-pct.positive { color: #4ade80; }
+body.dark-mode .trend-pct.negative { color: #f87171; }
+body.dark-mode .trend-pct.neutral  { color: #9aa5b1; }
+
 /* Dark Mode Support */
 /* FIX (header dedup): .top-bar removed from this selector group — its dark-
    mode styling lives solely in Sidebar.css's shared body.dark-mode rule.

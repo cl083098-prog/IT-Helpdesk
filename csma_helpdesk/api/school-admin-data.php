@@ -195,55 +195,10 @@ try {
             jsonOk(['data' => $items, 'summary' => $sumRow]);
             break;
 
-        // ── Cost analysis (view-only) ─────────────────────────────────────────
-        case 'get_cost_analysis':
-            // Cost by department from ticket_approvals (estimated_cost field)
-            $byDept = $pdo->query(
-                "SELECT d.name AS department,
-                        SUM(CASE WHEN t.request_type='Hardware Issue' THEN ta.estimated_cost ELSE 0 END) AS repair_cost,
-                        SUM(CASE WHEN t.request_type='Installation' OR t.request_type='Maintenance' THEN ta.estimated_cost ELSE 0 END) AS maintenance_cost,
-                        SUM(ta.estimated_cost) AS total_cost
-                 FROM ticket_approvals ta
-                 JOIN tickets t ON t.id=ta.ticket_id
-                 JOIN departments d ON d.id=t.department_id
-                 WHERE ta.decision='Approved' AND ta.estimated_cost IS NOT NULL
-                 GROUP BY d.name ORDER BY total_cost DESC"
-            )->fetchAll();
-
-            // Cost by category
-            $byCat = $pdo->query(
-                "SELECT t.category,
-                        SUM(ta.estimated_cost) AS total_cost,
-                        COUNT(*) AS ticket_count
-                 FROM ticket_approvals ta
-                 JOIN tickets t ON t.id=ta.ticket_id
-                 WHERE ta.decision='Approved' AND ta.estimated_cost IS NOT NULL
-                 GROUP BY t.category ORDER BY total_cost DESC"
-            )->fetchAll();
-
-            // Totals
-            $totals = $pdo->query(
-                "SELECT SUM(CASE WHEN t.request_type='Hardware Issue' THEN ta.estimated_cost ELSE 0 END) AS repair,
-                        SUM(CASE WHEN t.request_type='Maintenance' THEN ta.estimated_cost ELSE 0 END) AS maintenance,
-                        SUM(CASE WHEN t.request_type='Installation' THEN ta.estimated_cost ELSE 0 END) AS replacement,
-                        SUM(ta.estimated_cost) AS grand_total
-                 FROM ticket_approvals ta
-                 JOIN tickets t ON t.id=ta.ticket_id
-                 WHERE ta.decision='Approved' AND ta.estimated_cost IS NOT NULL"
-            )->fetch();
-
-            // Monthly trend (last 6 months)
-            $monthly = $pdo->query(
-                "SELECT DATE_FORMAT(ta.decided_at,'%Y-%m') AS month,
-                        SUM(ta.estimated_cost) AS total
-                 FROM ticket_approvals ta
-                 WHERE ta.decision='Approved' AND ta.estimated_cost IS NOT NULL
-                   AND ta.decided_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                 GROUP BY month ORDER BY month ASC"
-            )->fetchAll();
-
-            jsonOk(['by_department' => $byDept, 'by_category' => $byCat, 'totals' => $totals, 'monthly_trend' => $monthly]);
-            break;
+        // NOTE: Cost analysis now lives in api/cost_analysis.php (shared with
+        // the IT Admin Cost Analysis page). SchoolAdmin.js calls that
+        // endpoint directly — the old 'get_cost_analysis' action that used to
+        // live here has been removed as dead code.
 
         // ── Feedback monitoring ───────────────────────────────────────────────
         case 'get_feedback':
